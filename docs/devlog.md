@@ -202,6 +202,25 @@
 
 ---
 
+## 2026-04-22 - Codex (2)
+
+### 작업
+- `server/scripts/ingest_pdfs.py` 생성 — PDF 텍스트 추출, JWT 로그인, article 등록, RAG 질의 자동화
+- `server/requirements.txt` — `PyMuPDF` 추가
+- `data/articles/` 폴더 생성 및 DBR PDF 16개 인제스트 실행
+
+### 검증
+- PDF 16개 모두 등록 성공 (`article_id=3~18`)
+- 각 PDF `content` 기반 자동 RAG 인덱싱 및 `chunk_count` 생성 확인
+- RAG 질문 3개 모두 응답/소스 반환 확인
+
+### 주의
+- 스크립트는 `http://localhost:8000` 서버가 켜져 있어야 동작
+- `published_date`는 현재 스크립트 실행일 기준 오늘 날짜로 저장
+- 동일 `title` 존재 시 스킵하도록 구현
+
+---
+
 ## 2026-04-22 - Claude
 
 ### 작업
