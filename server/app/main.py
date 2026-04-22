@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import article, chat, health, mentor, mentoring, point, rag, user
+from app.routers import article, chat, framework, health, mentor, mentoring, point, rag, user
 
 app = FastAPI(
     title="landfactory API",
@@ -25,3 +25,4 @@ app.include_router(article.router)
 app.include_router(mentor.router)
 app.include_router(chat.router)
 app.include_router(rag.router)
+app.include_router(framework.router)

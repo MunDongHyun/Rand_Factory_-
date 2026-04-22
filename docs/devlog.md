@@ -39,7 +39,7 @@
 | 멘토 프로필 수정 API | ~~중간~~ | ✅ 완료 |
 | 포인트 충전 API | ~~중간~~ | ✅ 완료 |
 | 프론트엔드 | 높음 | client/src/App.jsx 뼈대만 있음 |
-| 팀 레포 오픈 후 git 이전 | 높음 | 팀장 대기 중 |
+| 팀 레포 오픈 후 git 이전 | ~~높음~~ | ✅ 완료 — https://github.com/MunDongHyun/Rand_Factory_- |
 
 ### 알아두면 좋은 것
 
@@ -278,8 +278,35 @@
 - 100P 미만 충전 → 422
 
 ### 다음
-- 팀 레포 오픈 후 git 이전
 - 프론트엔드 연결
 
 ### 주의
 - `PATCH /api/mentors/me`는 `/me`를 `/{user_id}` 앞에 선언해야 라우팅 정상 동작
+
+---
+
+## 2026-04-22 - Claude
+
+### 작업
+- `schemas/framework.py` — FrameworkGenerate, FrameworkResponse
+- `services/framework_service.py` — RAG 기반 프레임워크 생성 (OKR/AARRR/JTBD/Flywheel/린캔버스)
+- `routers/framework.py` — 생성/목록/상세/저장토글 API
+- Docker 테스트 — Docker Desktop 미설치로 생략, 배포 단계에서 진행 예정
+
+### 결정
+- 프레임워크 타입별 전용 프롬프트로 구조화된 JSON 생성 (OKR/AARRR/JTBD/Flywheel/린캔버스)
+- LLM 응답에서 마크다운 코드블록 자동 제거 후 JSON 파싱, 실패 시 raw 텍스트로 저장
+- 저장 여부는 PATCH /{id}/save 토글 방식
+
+### 검증
+- OKR 생성 → structured JSON + referenced_article_ids 반환 확인
+- 저장 토글 동작 확인
+- 내 목록 조회 확인
+
+### 다음
+- 프론트엔드 연결
+- Docker 테스트 (Docker Desktop 설치 후)
+
+### 주의
+- ChromaDB에 아티클이 없으면 referenced_article_ids=[] 로 빈 컨텍스트로 생성됨 (LLM 자체 지식으로 답변)
+- Docker compose의 DB_HOST는 'mysql'(컨테이너명)로 하드코딩 — 학원 DB 쓸 때는 .env의 DB_HOST로 오버라이드 필요
