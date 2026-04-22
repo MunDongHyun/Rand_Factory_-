@@ -221,6 +221,20 @@
 
 ---
 
+## 2026-04-22 - Codex (3)
+
+### 작업
+- `server/app/services/rag_service.py` 검색 2회 호출 구조를 1회 호출로 정리
+
+### 결정
+- retriever 결과를 재사용해서 `context`와 `sources`를 함께 구성
+- 기능 동작은 유지하면서 질문당 벡터 검색/임베딩 비용을 줄이는 방향으로 수정
+
+### 검증
+- `server/app` compileall 통과
+
+---
+
 ## 2026-04-22 - Claude
 
 ### 작업

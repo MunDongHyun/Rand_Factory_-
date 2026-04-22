@@ -8,7 +8,6 @@ from typing import Optional
 from langchain_community.vectorstores import Chroma
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnablePassthrough
 from langchain_core.documents import Document
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -59,6 +58,9 @@ def query_rag(question: str, k: int = 4) -> dict:
     """질문을 받아 관련 청크 검색 후 LLM 답변 생성. answer와 sources 반환."""
     vs = _get_vectorstore()
     retriever = vs.as_retriever(search_kwargs={"k": k})
+    raw_docs = retriever.invoke(question)
+
+    context = "\n\n".join(doc.page_content for doc in raw_docs)
 
     prompt = ChatPromptTemplate.from_template(
         "당신은 DBR 아티클 기반 비즈니스 멘토링 AI입니다.\n"
@@ -74,17 +76,14 @@ def query_rag(question: str, k: int = 4) -> dict:
         api_key=settings.openai_api_key,
     )
 
-    chain = (
-        {"context": retriever, "question": RunnablePassthrough()}
-        | prompt
-        | llm
-        | StrOutputParser()
-    )
+    chain = prompt | llm | StrOutputParser()
 
-    answer = chain.invoke(question)
+    answer = chain.invoke({
+        "context": context,
+        "question": question,
+    })
 
     # 참조 아티클 메타데이터 수집 (중복 제거)
-    raw_docs = retriever.invoke(question)
     seen = set()
     sources = []
     for doc in raw_docs:
