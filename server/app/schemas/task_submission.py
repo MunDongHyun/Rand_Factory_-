@@ -1,6 +1,10 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
+
+
+TaskStatus = Literal["submitted", "feedback_given", "resubmit_requested"]
 
 
 class TaskSubmissionCreate(BaseModel):
@@ -12,7 +16,7 @@ class TaskSubmissionCreate(BaseModel):
 
 class TaskSubmissionFeedbackUpdate(BaseModel):
     task_manager_feedback: str
-    task_status: str = "feedback_given"
+    task_status: TaskStatus = "feedback_given"
 
 
 class TaskSubmissionResponse(BaseModel):
@@ -27,4 +31,4 @@ class TaskSubmissionResponse(BaseModel):
     task_submitted_at: datetime | None = None
     task_manager_feedback: str | None = None
     task_feedback_at: datetime | None = None
-    task_status: str | None = None
+    task_status: TaskStatus | None = None

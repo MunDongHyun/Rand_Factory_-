@@ -1,23 +1,15 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
     name: str
-    role: str
     job_title: str | None = None
     industry: str | None = None
     work_years: int | None = 0
-
-    @field_validator("role")
-    @classmethod
-    def validate_role(cls, value: str) -> str:
-        if value not in {"j", "m", "a"}:
-            raise ValueError("role must be one of: j, m, a")
-        return value
 
 
 class UserLogin(BaseModel):

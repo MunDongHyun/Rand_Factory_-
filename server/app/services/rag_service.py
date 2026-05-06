@@ -31,6 +31,12 @@ def _get_vectorstore() -> Chroma:
     return _vectorstore
 
 
+def get_article_content(article_id: int, max_chunks: int = 20) -> str:
+    """특정 article_id의 청크들을 ChromaDB에서 가져와 하나의 텍스트로 합쳐 반환."""
+    docs = _get_vectorstore().similarity_search("", k=max_chunks, filter={"article_id": article_id})
+    return "\n\n".join(doc.page_content for doc in docs)
+
+
 def ingest_article(
     article_id: int,
     title: str,

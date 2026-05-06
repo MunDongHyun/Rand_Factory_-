@@ -1,10 +1,14 @@
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
 
+ArticleSource = Literal["DBR", "HBR"]
+
+
 class ArticleCreate(BaseModel):
-    article_source: str
+    article_source: ArticleSource
     article_title: str
     article_author: str | None = None
     article_published_date: date | None = None
@@ -18,7 +22,7 @@ class ArticleResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     article_id: int
-    article_source: str
+    article_source: ArticleSource
     article_title: str
     article_author: str | None = None
     article_published_date: date | None = None

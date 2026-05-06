@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.chatbot import ChatbotMessage, ChatbotSession
+from app.models.curriculum import Curriculum
 from app.models.user import User
 from app.schemas.chatbot import (
     ChatbotMessageCreate,
@@ -21,6 +22,21 @@ def create_session(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    if current_user.user_role not in {"m", "a"}:
+        raise HTTPException(status_code=403, detail="Only manager/admin can use chatbot")
+
+    if body.cb_curriculum_id is not None:
+        curriculum = (
+            db.query(Curriculum)
+            .filter(Curriculum.cur_id == body.cb_curriculum_id)
+            .first()
+        )
+        owns_curriculum = curriculum is not None and (
+            current_user.user_role == "a" or curriculum.cur_creator_id == current_user.user_id
+        )
+        if not owns_curriculum:
+            raise HTTPException(status_code=404, detail="Curriculum not found")
+
     session = ChatbotSession(cb_manager_id=current_user.user_id, cb_curriculum_id=body.cb_curriculum_id)
     db.add(session)
     db.commit()

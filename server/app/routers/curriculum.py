@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy import func
+from sqlalchemy.orm import Query, Session
 
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -10,12 +11,30 @@ from app.schemas.curriculum import CurriculumCreate, CurriculumResponse, Curricu
 router = APIRouter(prefix="/api/curricula", tags=["curricula"])
 
 
+def _scope_curriculum_query(query: Query, user: User) -> Query:
+    """Role 기반으로 curriculum 조회 범위를 제한 (soft delete 제외).
+
+    - a (admin): 전체
+    - m (manager): 본인이 만든 것
+    - j (learner): 본인이 cur_assigned_learner_ids에 포함된 것
+    """
+    query = query.filter(Curriculum.cur_deleted_at.is_(None))
+    if user.user_role == "a":
+        return query
+    if user.user_role == "m":
+        return query.filter(Curriculum.cur_creator_id == user.user_id)
+    return query.filter(func.json_contains(Curriculum.cur_assigned_learner_ids, str(user.user_id)))
+
+
 @router.post("", response_model=CurriculumResponse, status_code=status.HTTP_201_CREATED)
 def create_curriculum(
     body: CurriculumCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    if current_user.user_role not in {"m", "a"}:
+        raise HTTPException(status_code=403, detail="Only manager/admin can create curricula")
+
     curriculum = Curriculum(
         cur_creator_id=current_user.user_id,
         cur_title=body.cur_title,
@@ -37,18 +56,20 @@ def create_curriculum(
 @router.get("", response_model=list[CurriculumResponse])
 def list_curricula(
     db: Session = Depends(get_db),
-    _current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ):
-    return db.query(Curriculum).order_by(Curriculum.cur_created_at.desc()).all()
+    query = _scope_curriculum_query(db.query(Curriculum), current_user)
+    return query.order_by(Curriculum.cur_created_at.desc()).all()
 
 
 @router.get("/{cur_id}", response_model=CurriculumResponse)
 def get_curriculum(
     cur_id: int,
     db: Session = Depends(get_db),
-    _current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ):
-    curriculum = db.query(Curriculum).filter(Curriculum.cur_id == cur_id).first()
+    query = _scope_curriculum_query(db.query(Curriculum), current_user)
+    curriculum = query.filter(Curriculum.cur_id == cur_id).first()
     if not curriculum:
         raise HTTPException(status_code=404, detail="Curriculum not found")
     return curriculum
@@ -63,7 +84,11 @@ def update_curriculum(
 ):
     curriculum = (
         db.query(Curriculum)
-        .filter(Curriculum.cur_id == cur_id, Curriculum.cur_creator_id == current_user.user_id)
+        .filter(
+            Curriculum.cur_id == cur_id,
+            Curriculum.cur_creator_id == current_user.user_id,
+            Curriculum.cur_deleted_at.is_(None),
+        )
         .first()
     )
     if not curriculum:

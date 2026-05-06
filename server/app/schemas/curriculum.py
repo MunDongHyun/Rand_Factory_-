@@ -1,6 +1,10 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
+
+
+CurriculumStatus = Literal["draft", "active", "archived"]
 
 
 class CurriculumCreate(BaseModel):
@@ -12,7 +16,7 @@ class CurriculumCreate(BaseModel):
     cur_ai_prompt_input: str | None = None
     cur_week_plan: dict | None = None
     cur_assigned_learner_ids: list[int] | None = None
-    cur_status: str | None = "draft"
+    cur_status: CurriculumStatus | None = "draft"
 
 
 class CurriculumUpdate(BaseModel):
@@ -24,7 +28,7 @@ class CurriculumUpdate(BaseModel):
     cur_ai_prompt_input: str | None = None
     cur_week_plan: dict | None = None
     cur_assigned_learner_ids: list[int] | None = None
-    cur_status: str | None = None
+    cur_status: CurriculumStatus | None = None
 
 
 class CurriculumResponse(BaseModel):
@@ -39,8 +43,8 @@ class CurriculumResponse(BaseModel):
     cur_learning_goal: str | None = None
     cur_ai_prompt_input: str | None = None
     cur_week_plan: dict | None = None
-    cur_assigned_learner_ids: dict | None = None
-    cur_status: str | None = None
+    cur_assigned_learner_ids: list[int] | None = None
+    cur_status: CurriculumStatus | None = None
     cur_created_at: datetime | None = None
     cur_updated_at: datetime | None = None
     cur_deleted_at: datetime | None = None

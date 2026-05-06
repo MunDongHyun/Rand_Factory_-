@@ -1,6 +1,10 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
+
+
+ChatbotRole = Literal["user", "assistant"]
 
 
 class ChatbotSessionCreate(BaseModel):
@@ -17,7 +21,7 @@ class ChatbotSessionResponse(BaseModel):
 
 
 class ChatbotMessageCreate(BaseModel):
-    role: str
+    role: ChatbotRole
     content: str
 
 
@@ -26,6 +30,6 @@ class ChatbotMessageResponse(BaseModel):
 
     message_id: int
     session_id: int
-    role: str
+    role: ChatbotRole
     content: str
     created_at: datetime | None = None

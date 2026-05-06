@@ -15,8 +15,11 @@ router = APIRouter(prefix="/api/articles", tags=["articles"])
 def create_article(
     body: ArticleCreate,
     db: Session = Depends(get_db),
-    _current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ):
+    if current_user.user_role != "a":
+        raise HTTPException(status_code=403, detail="Only admin can create articles")
+
     article = Article(
         article_source=body.article_source,
         article_title=body.article_title,
@@ -101,8 +104,7 @@ def get_article_insights(
     if not article:
         raise HTTPException(status_code=404, detail="Article not found")
 
-    docs = rag_service._get_vectorstore().similarity_search("", k=20, filter={"article_id": article_id})
-    content = "\n\n".join(doc.page_content for doc in docs)
+    content = rag_service.get_article_content(article_id)
 
     if not content:
         raise HTTPException(status_code=422, detail="Article content is not indexed yet")
