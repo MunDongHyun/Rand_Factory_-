@@ -6,10 +6,10 @@ from pydantic import BaseModel, ConfigDict
 class ArticleCreate(BaseModel):
     article_source: str
     article_title: str
-    article_author: str
-    article_published_date: date
-    article_category: str
-    article_source_url: str
+    article_author: str | None = None
+    article_published_date: date | None = None
+    article_category: str | None = None
+    article_source_url: str | None = None
     article_image_count: int = 0
     content: str | None = None
 
@@ -20,14 +20,14 @@ class ArticleResponse(BaseModel):
     article_id: int
     article_source: str
     article_title: str
-    article_author: str
-    article_published_date: date
-    article_category: str
+    article_author: str | None = None
+    article_published_date: date | None = None
+    article_category: str | None = None
     article_source_url: str | None = None
-    article_image_count: int
-    article_chunk_count: int
-    article_created_at: datetime
-    article_updated_at: datetime
+    article_image_count: int | None = None
+    article_chunk_count: int | None = None
+    article_created_at: datetime | None = None
+    article_updated_at: datetime | None = None
 
 
 class ArticleListResponse(BaseModel):

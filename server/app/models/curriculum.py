@@ -10,18 +10,18 @@ class Curriculum(Base):
     cur_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     cur_creator_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.user_id"), nullable=False)
     cur_title: Mapped[str] = mapped_column(String(200), nullable=False)
-    cur_target_job: Mapped[str] = mapped_column(String(100), nullable=False)
-    cur_target_industry: Mapped[str] = mapped_column(String(100), nullable=False)
+    cur_target_job: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    cur_target_industry: Mapped[str | None] = mapped_column(String(100), nullable=True)
     cur_duration_weeks: Mapped[int] = mapped_column(Integer, nullable=False)
-    cur_learning_goal: Mapped[str] = mapped_column(Text, nullable=False)
-    cur_ai_prompt_input: Mapped[str] = mapped_column(Text, nullable=False)
-    cur_week_plan: Mapped[dict] = mapped_column(JSON, nullable=False)
-    cur_assigned_learner_ids: Mapped[dict] = mapped_column(JSON, nullable=False)
-    cur_status: Mapped[str] = mapped_column(Enum("draft", "active", "archived"), nullable=False, default="draft")
-    cur_created_at: Mapped[DateTime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+    cur_learning_goal: Mapped[str | None] = mapped_column(Text, nullable=True)
+    cur_ai_prompt_input: Mapped[str | None] = mapped_column(Text, nullable=True)
+    cur_week_plan: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    cur_assigned_learner_ids: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    cur_status: Mapped[str | None] = mapped_column(Enum("draft", "active", "archived"), nullable=True, default="draft")
+    cur_created_at: Mapped[DateTime | None] = mapped_column(DateTime, nullable=True, server_default=func.now())
     cur_updated_at: Mapped[DateTime] = mapped_column(
         DateTime,
-        nullable=False,
+        nullable=True,
         server_default=func.now(),
         onupdate=func.now(),
     )

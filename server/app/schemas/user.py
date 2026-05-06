@@ -8,9 +8,9 @@ class UserCreate(BaseModel):
     password: str
     name: str
     role: str
-    job_title: str
-    industry: str
-    work_years: int = 0
+    job_title: str | None = None
+    industry: str | None = None
+    work_years: int | None = 0
 
     @field_validator("role")
     @classmethod
@@ -32,11 +32,11 @@ class UserResponse(BaseModel):
     user_email: str
     user_name: str
     user_role: str
-    user_job_title: str
-    user_industry: str
-    user_work_years: int
-    user_created_at: datetime
-    user_updated_at: datetime
+    user_job_title: str | None = None
+    user_industry: str | None = None
+    user_work_years: int | None = None
+    user_created_at: datetime | None = None
+    user_updated_at: datetime | None = None
     user_deleted_at: datetime | None = None
 
 

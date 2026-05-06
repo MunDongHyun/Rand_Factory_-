@@ -11,14 +11,14 @@ class TaskSubmission(Base):
     task_curriculum_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("curriculum.cur_id"), nullable=False)
     task_learner_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.user_id"), nullable=False)
     task_week_number: Mapped[int] = mapped_column(Integer, nullable=False)
-    task_framework_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    task_framework_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
     task_submitted_content: Mapped[dict] = mapped_column(JSON, nullable=False)
-    task_submitted_at: Mapped[DateTime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+    task_submitted_at: Mapped[DateTime | None] = mapped_column(DateTime, nullable=True, server_default=func.now())
     task_manager_feedback: Mapped[str | None] = mapped_column(Text, nullable=True)
     task_feedback_at: Mapped[DateTime | None] = mapped_column(DateTime, nullable=True)
-    task_status: Mapped[str] = mapped_column(
+    task_status: Mapped[str | None] = mapped_column(
         Enum("submitted", "feedback_given", "resubmit_requested"),
-        nullable=False,
+        nullable=True,
         default="submitted",
     )
 

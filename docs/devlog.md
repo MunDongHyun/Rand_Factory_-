@@ -447,3 +447,33 @@
 ### 참고
 - `server/.env` 와 `server/venv/` 는 `.gitignore` 기준으로 커밋 제외됨
 - uvicorn 실행 시 8000번 포트에 이미 서버가 떠 있어 새 프로세스 하나는 포트 충돌로 종료됐지만, 기존 서버 응답은 정상 확인됨
+
+---
+
+## 2026-05-06 - Codex (3)
+
+### 작업
+- `.env`로 연결되는 실제 MySQL DB 기준 테이블/컬럼 구조 확인
+- 실제 DB의 8개 테이블과 SQLAlchemy 모델 테이블/컬럼명을 대조
+  - `users`
+  - `articles`
+  - `curriculum`
+  - `ai_outputs`
+  - `output_article_refs`
+  - `task_submissions`
+  - `chatbot_sessions`
+  - `chatbot_messages`
+- DB에서 NULL 허용인 컬럼들이 모델에서는 `nullable=False`로 잡혀 있던 부분을 실제 DB 기준으로 수정
+- 기존 데이터에 NULL이 있을 때 응답 변환이 실패하지 않도록 Pydantic response schema도 optional 기준으로 보정
+
+### 검증
+- 실제 DB 테이블/컬럼과 모델 컬럼 존재 여부 일치 확인
+- 실제 DB nullable 설정과 모델 nullable 설정 일치 확인
+- `python -m compileall -q app` 통과
+- `import app.main` 통과
+- TestClient 기준 `GET /health` 200 확인
+- TestClient 기준 `/api/articles`, `/api/articles/categories`는 인증 필요로 401 반환 확인
+
+### 참고
+- SQL 파일은 팀원 오푸시 가능성이 있어 이번 점검 기준에서 제외
+- 현재 점검 기준은 실제 `.env`의 DB와 `dev` 브랜치 코드

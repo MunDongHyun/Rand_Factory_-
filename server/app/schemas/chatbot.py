@@ -13,7 +13,7 @@ class ChatbotSessionResponse(BaseModel):
     cb_session_id: int
     cb_manager_id: int
     cb_curriculum_id: int | None = None
-    cb_created_at: datetime
+    cb_created_at: datetime | None = None
 
 
 class ChatbotMessageCreate(BaseModel):
@@ -28,4 +28,4 @@ class ChatbotMessageResponse(BaseModel):
     session_id: int
     role: str
     content: str
-    created_at: datetime
+    created_at: datetime | None = None

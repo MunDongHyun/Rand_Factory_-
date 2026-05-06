@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict
 class TaskSubmissionCreate(BaseModel):
     task_curriculum_id: int
     task_week_number: int
-    task_framework_type: str
+    task_framework_type: str | None = None
     task_submitted_content: dict
 
 
@@ -22,9 +22,9 @@ class TaskSubmissionResponse(BaseModel):
     task_curriculum_id: int
     task_learner_id: int
     task_week_number: int
-    task_framework_type: str
+    task_framework_type: str | None = None
     task_submitted_content: dict
-    task_submitted_at: datetime
+    task_submitted_at: datetime | None = None
     task_manager_feedback: str | None = None
     task_feedback_at: datetime | None = None
-    task_status: str
+    task_status: str | None = None

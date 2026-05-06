@@ -12,13 +12,13 @@ class User(Base):
     user_pw: Mapped[str] = mapped_column(String(255), nullable=False)
     user_name: Mapped[str] = mapped_column(String(50), nullable=False)
     user_role: Mapped[str] = mapped_column(Enum("j", "m", "a"), nullable=False)
-    user_job_title: Mapped[str] = mapped_column(String(100), nullable=False)
-    user_industry: Mapped[str] = mapped_column(String(100), nullable=False)
-    user_work_years: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    user_created_at: Mapped[DateTime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+    user_job_title: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    user_industry: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    user_work_years: Mapped[int | None] = mapped_column(Integer, nullable=True, default=0)
+    user_created_at: Mapped[DateTime | None] = mapped_column(DateTime, nullable=True, server_default=func.now())
     user_updated_at: Mapped[DateTime] = mapped_column(
         DateTime,
-        nullable=False,
+        nullable=True,
         server_default=func.now(),
         onupdate=func.now(),
     )

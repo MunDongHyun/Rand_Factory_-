@@ -13,7 +13,7 @@ class AiOutputCreate(BaseModel):
     user_input: str | None = None
     generated_content: dict | None = None
     is_saved: bool = False
-    model_used: str
+    model_used: str | None = None
 
 
 class AiOutputUpdate(BaseModel):
@@ -33,6 +33,6 @@ class AiOutputResponse(BaseModel):
     framework_type: str | None = None
     user_input: str | None = None
     generated_content: dict | None = None
-    is_saved: bool
-    model_used: str
-    created_at: datetime
+    is_saved: bool | None = None
+    model_used: str | None = None
+    created_at: datetime | None = None
