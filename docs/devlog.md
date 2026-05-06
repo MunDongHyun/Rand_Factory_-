@@ -4,6 +4,17 @@
 
 ---
 
+## 2026-05-06 - Claude
+
+### 작업
+- `routers/user.py` 버그 수정 2건
+
+### 수정 내용
+- **로그인 soft delete 미체크** (`POST /api/users/login`) — 탈퇴 계정(`user_deleted_at IS NOT NULL`)으로 로그인이 가능한 버그 수정. `user_deleted_at.is_(None)` 조건 추가
+- **유저 조회 인증 없음** (`GET /api/users/{user_id}`) — 토큰 없이 누구나 유저 정보 조회 가능한 버그 수정. `get_current_user` 의존성 추가 + 탈퇴 계정 soft delete 필터도 동일하게 적용
+
+---
+
 ## 현재 상태 요약 (2026-05-06 기준)
 
 ### 백엔드 현재 API
@@ -477,3 +488,28 @@
 ### 참고
 - SQL 파일은 팀원 오푸시 가능성이 있어 이번 점검 기준에서 제외
 - 현재 점검 기준은 실제 `.env`의 DB와 `dev` 브랜치 코드
+
+---
+
+## 2026-05-06 - Codex (4)
+
+### 작업
+- 실제 DB의 활성 사용자 `user_id=1` 기준으로 테스트 JWT 생성
+- DB 쓰기 없이 인증이 필요한 GET API 중심으로 수동 점검
+
+### 검증
+- `GET /health` 200
+- `GET /api/users/me` 200
+- `GET /api/users/1` 200
+- `GET /api/articles` 200
+- `GET /api/articles/categories` 200
+- `GET /api/curricula` 200
+- `GET /api/ai-outputs/my` 200
+- `GET /api/chatbot/sessions` 200
+- `GET /api/task-submissions/my` 200
+- `GET /api/articles/1026` 200
+- `GET /api/ai-outputs/5` 200
+
+### 참고
+- 현재 DB에 `curriculum`, `task_submissions`, `chatbot_sessions` 행이 없어 해당 상세 조회는 건너뜀
+- 이번 점검은 TestClient 기반이며 실제 DB에 새 데이터를 생성하지 않음

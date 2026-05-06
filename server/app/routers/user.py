@@ -31,7 +31,7 @@ def signup(body: UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=TokenResponse)
 def login(body: UserLogin, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.user_email == body.email).first()
+    user = db.query(User).filter(User.user_email == body.email, User.user_deleted_at.is_(None)).first()
     if not user or not verify_password(body.password, user.user_pw):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
     return TokenResponse(access_token=create_access_token(user.user_id))
@@ -43,8 +43,8 @@ def get_me(current_user: User = Depends(get_current_user)):
 
 
 @router.get("/{user_id}", response_model=UserResponse)
-def get_user(user_id: int, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.user_id == user_id).first()
+def get_user(user_id: int, db: Session = Depends(get_db), _current_user: User = Depends(get_current_user)):
+    user = db.query(User).filter(User.user_id == user_id, User.user_deleted_at.is_(None)).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
