@@ -91,13 +91,30 @@ npm run dev
 - 정적 경로(`/me`, `/categories`)는 동적 경로(`/{id}`)보다 먼저 선언
 - 환경변수는 `app/core/config.py`의 `settings` 객체를 통해서만 접근
 - 진행 상황과 결정 사항은 `docs/devlog.md`에 기록
-- 멘토 피드백과 후속 액션은 `docs/mentor-feedback.md`에 기록
+
+## 권한 정책
+
+`user_role` 값은 `j` / `m` / `a` 세 종류이며, 라우터에서 역할별로 접근 범위를 제한합니다.
+
+| Role | 의미 | 접근 범위 |
+|------|------|----------|
+| `j` | 학습자 (junior) | 본인이 제출한 과제, 본인이 배정된 커리큘럼만 조회 |
+| `m` | 매니저 (manager) | 본인이 만든 커리큘럼 생성/수정, 본인 커리큘럼의 과제 피드백, 챗봇 사용 |
+| `a` | 관리자 (admin) | 전체 접근, 아티클 등록 전담 |
+
+운영 규칙:
+
+- `POST /api/users/signup`은 `j`만 자유 가입. `m`/`a` 계정은 DB에서 `user_role` 직접 변경으로 운영
+- 새 라우터 추가 시 위 정책 기준으로 역할 체크 필수
+- 권한 없는 ID 접근은 403 대신 404로 숨김 (정보 노출 방지)
+- 챗봇(`/api/chatbot/*`)은 매니저(`m`/`a`) 전용, 학습자는 사용 불가
 
 ## 주의사항
 
 - `.env`는 커밋하지 않음
 - `venv/`, `server/chroma_db/`, 로컬 테스트 산출물은 커밋하지 않음
 - 현재 DB는 팀원에게 받은 MySQL 계정을 사용 중이며 실제 값은 `server/.env` 참고
+- `SECRET_KEY` 환경변수 필수 (기본값 없음, `.env`에 없으면 앱 시작 실패)
 - 인증은 JWT 기반이며 `user_deleted_at is NULL`인 사용자만 유효 사용자로 취급
 - `bcrypt==4.0.1` 유지 (`passlib 1.7.4` 호환 이슈 방지)
 - 테스트 시 `user_id` 하드코딩보다 `/api/users/me` 기준 확인 우선
@@ -133,4 +150,3 @@ npm run dev
 5. `cd server && .\venv\Scripts\python.exe -m compileall -q app`
 6. 변경한 핵심 API 최소 1회 확인
 7. `docs/devlog.md` 최신화 확인
-8. 멘토 피드백 관련 변경이면 `docs/mentor-feedback.md` 최신화 확인
