@@ -4,51 +4,53 @@
 
 ---
 
-## 현재 상태 요약 (2026-04-22 기준)
+## 현재 상태 요약 (2026-05-06 기준)
 
-### 백엔드 완성된 API
+### 백엔드 현재 API
 
 | 영역 | 엔드포인트 | 비고 |
 |------|-----------|------|
-| 회원 | POST /api/users/signup | 가입 시 1000P 자동 지급, mentor면 프로필 자동 생성 |
+| Health | GET /health | 서버 상태 확인 |
+| 회원 | POST /api/users/signup | 현재 DB 컬럼명 기준 회원 생성 |
 | | POST /api/users/login | JWT 토큰 발급 |
-| | GET /api/users/me | 내 정보 (mentor_profile 포함) |
+| | GET /api/users/me | 내 정보 조회 |
 | | GET /api/users/{user_id} | 특정 유저 조회 |
-| 멘토 | GET /api/mentors | is_verified=True, available=True 필터 / industry·keyword 검색 |
-| | GET /api/mentors/{user_id} | 멘토 상세 |
-| 멘토링 | POST /api/mentoring/request | 멘티 전용, 잔액 확인 후 pending 생성 |
-| | PATCH /api/mentoring/{id}/status | 멘토가 수락/거절/취소, 수락 시 포인트 이동 |
-| | PATCH /api/mentoring/{id}/complete | 멘토/멘티 모두 완료 처리 가능 |
-| | POST /api/mentoring/{id}/review | 멘티가 별점·후기 작성, rating_avg 자동 갱신 |
-| | GET /api/mentoring/my | 내 목록 (role 자동 분기, status 필터) |
-| | GET /api/mentoring/{id} | 상세 (참여자만) |
-| 포인트 | GET /api/points/balance | 내 잔액 |
-| | GET /api/points/history | 거래 내역 (limit/offset) |
-| 아티클 | POST /api/articles | 인증 필요 |
-| | GET /api/articles | category·industry·keyword 필터, 페이지네이션 |
+| 아티클 | POST /api/articles | 아티클 등록 |
+| | GET /api/articles | 목록/검색/페이지네이션 |
 | | GET /api/articles/categories | 카테고리 목록 |
-| | GET /api/articles/{id} | 상세 |
-| 채팅 | POST /api/chat/{match_id}/messages | accepted 매칭만 허용, 민감정보 자동 감지 |
-| | GET /api/chat/{match_id}/messages | 참여자만 조회 |
+| | GET /api/articles/{id} | 상세 조회 |
+| | GET /api/articles/{id}/insights | RAG/LLM 기반 인사이트 추출 |
+| RAG | POST /api/rag/query | ChromaDB 기반 질의응답 |
+| 커리큘럼 | /api/curricula/* | 커리큘럼 생성/조회/관리 |
+| AI 결과물 | /api/ai-outputs/* | summary/wordcloud/framework 결과물 관리 |
+| 챗봇 | /api/chatbot/* | 챗봇 세션/메시지 관리 |
+| 과제 제출 | /api/task-submissions/* | 학습자 과제 제출 및 피드백 |
+
+### 현재 서버 구조
+
+| 구분 | 현재 사용 |
+|------|-----------|
+| 모델 | `users`, `articles`, `curriculum`, `ai_outputs`, `output_article_refs`, `task_submissions`, `chatbot_sessions`, `chatbot_messages` |
+| 라우터 | `user`, `article`, `rag`, `curriculum`, `ai_output`, `chatbot`, `task_submission`, `health` |
+| 제거된 예전 구조 | `mentor`, `mentoring`, `point`, `framework`, `chat` |
 
 ### 남은 작업
 
 | 항목 | 우선순위 | 비고 |
 |------|---------|------|
-| RAG 파이프라인 연결 | ~~높음~~ | ✅ 완료 |
-| 멘토 프로필 수정 API | ~~중간~~ | ✅ 완료 |
-| 포인트 충전 API | ~~중간~~ | ✅ 완료 |
-| 프론트엔드 | 높음 | client/src/App.jsx 뼈대만 있음 |
-| 팀 레포 오픈 후 git 이전 | ~~높음~~ | ✅ 완료 — https://github.com/MunDongHyun/Rand_Factory_- |
+| Swagger 기준 엔드포인트 수동 확인 | 높음 | uvicorn 실행 후 주요 API 응답 확인 |
+| 프론트엔드 연동 | 높음 | 현재 백엔드 API 이름 기준으로 화면 연결 필요 |
+| AI 결과물 생성 흐름 정리 | 중간 | `ai_outputs` 중심으로 summary/wordcloud/framework 저장 흐름 결정 |
+| 문서 최신화 | 중간 | 구조 변경 시 `CLAUDE.md`, `README.md`, `docs/devlog.md` 같이 갱신 |
 
 ### 알아두면 좋은 것
 
+- **현재 작업 브랜치**: `dev`
 - **서버 실행**: `cd server && venv/Scripts/activate && uvicorn app.main:app --reload`
 - **Swagger UI**: `http://localhost:8000/docs`
 - **환경변수**: `server/.env` 참고 (절대 커밋 금지)
-- **mentor 목록**은 `is_verified=True`인 멘토만 노출됨. 테스트 계정은 False라 목록에 안 나오는 게 정상
-- **민감정보 감지**: 전화번호·이메일·주민번호 포함 메시지는 저장되되 `is_flagged=True` + 경고 반환
-- **포인트 잔액**은 points 테이블 최신 레코드의 balance 컬럼 기준 (별도 집계 없음)
+- **로컬 벡터 저장소**: `server/chroma_db/` 사용, git 커밋 제외
+- **PDF 인제스트 스크립트**: `server/scripts/ingest_pdfs.py`
 - **bcrypt 버전 주의**: `bcrypt==4.0.1` 고정 (5.x는 passlib 1.7.4와 호환 안 됨)
 
 ---
@@ -424,3 +426,24 @@
 - `CLAUDE.md` 를 현재 서버 구조 기준으로 재작성
 - `README.md` 를 멘토링 플랫폼 설명에서 AI 학습 지원 플랫폼 설명으로 갱신
 - 문서 내 예전 `mentor / mentoring / point / framework / chat` 중심 설명 제거
+
+---
+
+## 2026-05-06 - Codex (2)
+
+### 작업
+- 현재 작업 폴더(`C:\Users\smhrd\Desktop\landfactory`) 기준 `server/.env` 생성
+- `server/venv` 생성 및 `server/requirements.txt` 의존성 설치
+- `README.md` 에 `server/app`, `server/scripts`, PDF 인제스트 스크립트 설명 추가
+- `docs/devlog.md` 상단 현재 상태 요약을 `dev` 브랜치의 현재 API 구조 기준으로 갱신
+
+### 검증
+- `python -m compileall -q server\app` 통과
+- `import app.main` 통과
+- `GET /health` 200 확인
+- `GET /docs` 200 확인
+- DB 연결 테스트 `SELECT 1` 통과
+
+### 참고
+- `server/.env` 와 `server/venv/` 는 `.gitignore` 기준으로 커밋 제외됨
+- uvicorn 실행 시 8000번 포트에 이미 서버가 떠 있어 새 프로세스 하나는 포트 충돌로 종료됐지만, 기존 서버 응답은 정상 확인됨

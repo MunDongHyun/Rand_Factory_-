@@ -38,6 +38,8 @@ landfactory는 DBR/HBR 아티클을 기반으로 RAG 검색, AI 결과물 생성
 landfactory/
 ├── client/          # React (Vite) 프론트엔드
 ├── server/          # FastAPI 백엔드
+│   ├── app/          # API, 모델, 스키마, 서비스 코드
+│   └── scripts/      # PDF 인제스트 등 운영/테스트 보조 스크립트
 ├── ai/              # AI 실험 코드
 ├── data/            # 로컬 데이터
 ├── docs/            # 개발 로그 및 문서
@@ -99,4 +101,5 @@ npm run dev
 
 - 실제 작업 로그는 `docs/devlog.md` 에 기록합니다.
 - 로컬 ChromaDB 저장소는 `server/chroma_db/` 를 사용합니다.
+- PDF 아티클 등록/RAG 테스트 보조 스크립트는 `server/scripts/ingest_pdfs.py` 입니다.
 - `article-lab/` 은 메인 프론트와 분리된 아티클 시각화 실험 폴더입니다.
