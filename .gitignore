@@ -46,3 +46,6 @@ chroma_db/
 
 # Docker
 docker/volumes/
+
+# Claude Code local settings
+.claude/
