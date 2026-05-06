@@ -91,6 +91,7 @@ npm run dev
 - 정적 경로(`/me`, `/categories`)는 동적 경로(`/{id}`)보다 먼저 선언
 - 환경변수는 `app/core/config.py`의 `settings` 객체를 통해서만 접근
 - 진행 상황과 결정 사항은 `docs/devlog.md`에 기록
+- 멘토 피드백과 후속 액션은 `docs/mentor-feedback.md`에 기록
 
 ## 주의사항
 
@@ -132,3 +133,4 @@ npm run dev
 5. `cd server && .\venv\Scripts\python.exe -m compileall -q app`
 6. 변경한 핵심 API 최소 1회 확인
 7. `docs/devlog.md` 최신화 확인
+8. 멘토 피드백 관련 변경이면 `docs/mentor-feedback.md` 최신화 확인
