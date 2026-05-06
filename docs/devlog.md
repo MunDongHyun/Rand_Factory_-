@@ -318,6 +318,31 @@
 
 ---
 
+## 2026-04-24 - Claude
+
+### 작업
+- `services/article_service.py` — LLM으로 아티클 keywords/insights 추출 서비스
+- `schemas/article.py` — InsightItem, ArticleInsightsResponse 스키마 추가
+- `routers/article.py` — `GET /api/articles/{id}/insights` 엔드포인트 추가
+- `origin/dev` push — 프레임워크 API + PDF 인제스트 커밋 2개 업로드
+
+### 결정
+- DB 스키마 변경 없이 조회 시 LLM 실시간 추출 방식으로 구현 (방향 확정 전 리스크 최소화)
+- ChromaDB에서 해당 article_id 청크를 복원해서 LLM 컨텍스트로 활용
+- 본문 4000자 truncation으로 토큰 비용 제한
+- 인덱싱 안 된 아티클은 422 반환
+
+### 다음
+- 서버 기동 후 `/api/articles/{id}/insights` 실제 테스트
+- 프론트 담당자 합류 시 해당 엔드포인트 연결
+- 팀 방향 확정 후 DB 저장 방식으로 전환 여부 결정
+
+### 주의
+- 호출마다 GPT 호출 발생 (캐싱 없음) — 향후 DB 저장 방식으로 전환 시 해결
+- ChromaDB filter는 `{"article_id": int}` 형태로 전달
+
+---
+
 ## 2026-04-22 - Claude
 
 ### 작업
@@ -343,3 +368,59 @@
 ### 주의
 - ChromaDB에 아티클이 없으면 referenced_article_ids=[] 로 빈 컨텍스트로 생성됨 (LLM 자체 지식으로 답변)
 - Docker compose의 DB_HOST는 'mysql'(컨테이너명)로 하드코딩 — 학원 DB 쓸 때는 .env의 DB_HOST로 오버라이드 필요
+
+---
+
+## 2026-05-06 - Codex
+
+### 작업
+- 기존 멘토링 중심 스키마에서 새 DB 스키마 기준으로 서버 모델 구조 전환
+- 삭제한 구 모델 파일
+  - `chat.py`
+  - `framework.py`
+  - `mentoring.py`
+  - `point.py`
+- 추가한 신규 모델 파일
+  - `curriculum.py`
+  - `ai_output.py`
+  - `output_article_ref.py`
+  - `task_submission.py`
+  - `chatbot.py`
+- 새 데이터 구조에 맞게 schema 파일 전체 재정리
+- 삭제한 구 라우터
+  - `chat`
+  - `framework`
+  - `mentor`
+  - `mentoring`
+  - `point`
+- 추가한 신규 라우터
+  - `curriculum`
+  - `ai_output`
+  - `chatbot`
+  - `task_submission`
+- `user`, `article`, `rag` 라우터를 새 컬럼명 기준으로 수정
+- `server/app/main.py` 라우터 등록 구조를 새 앱 구조 기준으로 재작성
+- `server/app/core/security.py` 를 `user_email`, `user_pw`, soft delete 기준에 맞게 재작성
+- 사용하지 않는 서비스 제거
+  - `framework_service.py`
+  - `point_service.py`
+- `server/.env.example` 에 `CHROMA_PERSIST_DIR` 추가
+
+### 검증
+- `import app.main` 통과
+- 모델 import 체크 통과
+- DB 연결 테스트 `SELECT 1` 통과
+
+### 참고
+- `server/.env` 는 이미 존재했고 실제 DB 접속 정보가 들어 있어 별도 실행용 `.env` 파일 생성은 하지 않음
+- 현재 기준으로는 새 스키마에 맞는 최소 CRUD 뼈대와 import/DB 연결 정상화까지 완료한 상태
+
+### 다음
+- uvicorn 실행 후 Swagger 엔드포인트 수동 점검
+- 프론트 전달용 API 명세를 새 curriculum / ai_output / chatbot 흐름 기준으로 재정리
+- summary / wordcloud / framework 생성 로직을 `ai_outputs` 중심으로 유지할지, 보조 엔드포인트로 분리할지 결정
+
+### 문서 정리
+- `CLAUDE.md` 를 현재 서버 구조 기준으로 재작성
+- `README.md` 를 멘토링 플랫폼 설명에서 AI 학습 지원 플랫폼 설명으로 갱신
+- 문서 내 예전 `mentor / mentoring / point / framework / chat` 중심 설명 제거

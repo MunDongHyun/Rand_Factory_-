@@ -5,8 +5,8 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.article import Article
 from app.models.user import User
-from app.schemas.article import ArticleCreate, ArticleListResponse, ArticleResponse
-from app.services import rag_service
+from app.schemas.article import ArticleCreate, ArticleInsightsResponse, ArticleListResponse, ArticleResponse
+from app.services import article_service, rag_service
 
 router = APIRouter(prefix="/api/articles", tags=["articles"])
 
@@ -18,13 +18,13 @@ def create_article(
     _current_user: User = Depends(get_current_user),
 ):
     article = Article(
-        title=body.title,
-        author=body.author,
-        published_date=body.published_date,
-        category=body.category,
-        industry_tags=body.industry_tags,
-        summary=body.summary,
-        source_url=body.source_url,
+        article_source=body.article_source,
+        article_title=body.article_title,
+        article_author=body.article_author,
+        article_published_date=body.article_published_date,
+        article_category=body.article_category,
+        article_source_url=body.article_source_url,
+        article_image_count=body.article_image_count,
     )
     db.add(article)
     db.commit()
@@ -33,12 +33,12 @@ def create_article(
     if body.content:
         chunk_count = rag_service.ingest_article(
             article_id=article.article_id,
-            title=article.title,
+            title=article.article_title,
             content=body.content,
-            category=article.category,
-            author=article.author,
+            category=article.article_category,
+            author=article.article_author,
         )
-        article.chunk_count = chunk_count
+        article.article_chunk_count = chunk_count
         db.commit()
         db.refresh(article)
 
@@ -48,26 +48,27 @@ def create_article(
 @router.get("", response_model=ArticleListResponse)
 def list_articles(
     category: str | None = None,
-    industry: str | None = None,
+    source: str | None = None,
     keyword: str | None = Query(None, description="Search keyword for article title"),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
+    _current_user: User = Depends(get_current_user),
 ):
     query = db.query(Article)
 
     if category:
-        query = query.filter(Article.category == category)
+        query = query.filter(Article.article_category == category)
 
-    if industry:
-        query = query.filter(Article.industry_tags.contains(industry))
+    if source:
+        query = query.filter(Article.article_source == source)
 
     if keyword:
-        query = query.filter(Article.title.ilike(f"%{keyword}%"))
+        query = query.filter(Article.article_title.ilike(f"%{keyword}%"))
 
     total = query.count()
     articles = (
-        query.order_by(Article.created_at.desc())
+        query.order_by(Article.article_created_at.desc())
         .offset((page - 1) * limit)
         .limit(limit)
         .all()
@@ -77,20 +78,51 @@ def list_articles(
 
 
 @router.get("/categories", response_model=list[str])
-def list_categories(db: Session = Depends(get_db)):
+def list_categories(
+    db: Session = Depends(get_db),
+    _current_user: User = Depends(get_current_user),
+):
     rows = (
-        db.query(Article.category)
-        .filter(Article.category.isnot(None))
+        db.query(Article.article_category)
         .distinct()
-        .order_by(Article.category.asc())
+        .order_by(Article.article_category.asc())
         .all()
     )
     return [category for (category,) in rows if category]
 
 
-@router.get("/{article_id}", response_model=ArticleResponse)
-def get_article(article_id: int, db: Session = Depends(get_db)):
+@router.get("/{article_id}/insights", response_model=ArticleInsightsResponse)
+def get_article_insights(
+    article_id: int,
+    db: Session = Depends(get_db),
+    _current_user: User = Depends(get_current_user),
+):
     article = db.query(Article).filter(Article.article_id == article_id).first()
     if not article:
-        raise HTTPException(status_code=404, detail="아티클을 찾을 수 없습니다")
+        raise HTTPException(status_code=404, detail="Article not found")
+
+    docs = rag_service._get_vectorstore().similarity_search("", k=20, filter={"article_id": article_id})
+    content = "\n\n".join(doc.page_content for doc in docs)
+
+    if not content:
+        raise HTTPException(status_code=422, detail="Article content is not indexed yet")
+
+    result = article_service.extract_insights(title=article.article_title, content=content)
+    return ArticleInsightsResponse(
+        article_id=article.article_id,
+        title=article.article_title,
+        keywords=result.get("keywords", []),
+        insights=result.get("insights", []),
+    )
+
+
+@router.get("/{article_id}", response_model=ArticleResponse)
+def get_article(
+    article_id: int,
+    db: Session = Depends(get_db),
+    _current_user: User = Depends(get_current_user),
+):
+    article = db.query(Article).filter(Article.article_id == article_id).first()
+    if not article:
+        raise HTTPException(status_code=404, detail="Article not found")
     return article

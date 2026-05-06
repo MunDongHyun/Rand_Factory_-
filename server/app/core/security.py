@@ -13,7 +13,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/users/login")
 
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24시간
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 
 
 def hash_password(password: str) -> str:
@@ -38,7 +38,7 @@ def get_current_user(
 
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="유효하지 않은 토큰입니다",
+        detail="Invalid authentication token",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
@@ -49,7 +49,11 @@ def get_current_user(
     except JWTError:
         raise credentials_exception
 
-    user = db.query(User).filter(User.user_id == int(user_id)).first()
+    user = (
+        db.query(User)
+        .filter(User.user_id == int(user_id), User.user_deleted_at.is_(None))
+        .first()
+    )
     if user is None:
         raise credentials_exception
     return user

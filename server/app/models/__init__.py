@@ -1,17 +1,18 @@
-from app.models.user import User, MentorProfile
-from app.models.mentoring import MentoringMatch, MentoringReview
-from app.models.point import Point
+from app.models.ai_output import AiOutput
 from app.models.article import Article
-from app.models.framework import Framework
-from app.models.chat import ChatMessage
+from app.models.chatbot import ChatbotMessage, ChatbotSession
+from app.models.curriculum import Curriculum
+from app.models.output_article_ref import OutputArticleRef
+from app.models.task_submission import TaskSubmission
+from app.models.user import User
 
 __all__ = [
-    "User",
-    "MentorProfile",
-    "MentoringMatch",
-    "MentoringReview",
-    "Point",
+    "AiOutput",
     "Article",
-    "Framework",
-    "ChatMessage",
+    "ChatbotMessage",
+    "ChatbotSession",
+    "Curriculum",
+    "OutputArticleRef",
+    "TaskSubmission",
+    "User",
 ]

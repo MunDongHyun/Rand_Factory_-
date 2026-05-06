@@ -1,0 +1,30 @@
+from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict
+
+
+class TaskSubmissionCreate(BaseModel):
+    task_curriculum_id: int
+    task_week_number: int
+    task_framework_type: str
+    task_submitted_content: dict
+
+
+class TaskSubmissionFeedbackUpdate(BaseModel):
+    task_manager_feedback: str
+    task_status: str = "feedback_given"
+
+
+class TaskSubmissionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    task_submission_id: int
+    task_curriculum_id: int
+    task_learner_id: int
+    task_week_number: int
+    task_framework_type: str
+    task_submitted_content: dict
+    task_submitted_at: datetime
+    task_manager_feedback: str | None = None
+    task_feedback_at: datetime | None = None
+    task_status: str
