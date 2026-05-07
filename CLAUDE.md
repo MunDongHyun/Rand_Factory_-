@@ -153,5 +153,6 @@ npm run dev
 4. `server/app/main.py`의 router import / `include_router(...)` 누락 확인
 5. `schemas / services / routers` import 오류 확인
 6. `cd server && .\venv\Scripts\python.exe -m compileall -q app`
-7. 변경한 핵심 API 최소 1회 확인
-8. `docs/devlog.md` 최신화 확인
+7. 프론트 변경 시 `cd client && npm run build` 확인
+8. 변경한 핵심 API 최소 1회 확인
+9. `docs/devlog.md` 최신화 확인
