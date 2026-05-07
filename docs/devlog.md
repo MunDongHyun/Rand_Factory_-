@@ -597,3 +597,37 @@
 - `ai/rag/pipeline.py`는 기존 실험용 RAG 코드이며, 현재 서버 RAG 기준은 `server/app/services/rag_service.py`
 - `ai/summary_model.py` 실제 실행에는 `torch`, `sentence-transformers`, `langchain-chroma`, `langchain-huggingface`, `ddgs` 등 AI 전용 패키지 설치가 필요
 - AI 전용 패키지는 무거우므로 `server/requirements.txt`에 섞지 않고 `ai/requirements.txt`로 분리 유지
+
+---
+
+## 2026-05-07 - chanhui (프론트 로그인 연동 + 백엔드 안전성)
+
+### 작업
+- 프론트 로그인 API 실연결
+  - `client/src/lib/auth.js`: localStorage 기반 토큰 헬퍼 (신규)
+  - `client/src/lib/api.js`: axios 인스턴스 + 요청 시 토큰 자동 첨부, 401 응답 시 토큰 자동 클리어 (신규)
+  - `client/src/components/Intro.jsx`: 하드코딩 로그인 제거. `POST /api/users/login` + `GET /api/users/me` 실호출, 로딩/에러 상태 추가
+  - `client/src/App.jsx`: 새로고침 시 토큰 있으면 `/me`로 세션 복원, `user_role` 기반 화면 분기 (`a` → MasterDashboard, `m`/`j` → Dashboard), 로그아웃 시 토큰 클리어
+- `verify_password` 안전 처리
+  - bcrypt가 비-bcrypt 형식 해시(시드 더미 등)를 만나면 `UnknownHashError`(ValueError 하위)를 던져 로그인이 500으로 실패하던 버그 수정
+  - `try/except (ValueError, TypeError)`로 감싸 False 반환 → 정상 401 흐름
+- 의존성/설정 정리
+  - `client/package.json`: 미사용 `react-wordcloud@1.2.7` 제거 (react@18 peer 충돌 해소)
+  - `client/package-lock.json`: 그에 맞춰 재생성
+  - `server/.env.example`: 미사용 `AI_CURRICULUM_MODEL`, `AI_SUMMARY_MODEL` 줄 제거 (`AI_MODEL` 단일 변수로 통합되는 흐름과 일치)
+
+### 검증
+- 백엔드 `python -m compileall -q app` 통과
+- `verify_password` 단위 테스트: 빈 문자열/`hashed_pw_29`/`foobar` 모두 False 반환 확인
+- 로그인 API: 잘못된 자격 증명에 대해 401 응답 확인 (이전엔 500)
+- 브라우저 로그인 (Vite 5173, FastAPI 8000):
+  - `j` 계정 → Dashboard 라우팅 OK
+  - `a` 계정 → MasterDashboard 라우팅 OK
+  - 새로고침 시 세션 유지 OK
+  - 로그아웃 버튼 → Intro 복귀 OK, 토큰 클리어 OK
+
+### 참고
+- DB 시드 일부 사용자는 `user_pw` 컬럼에 평문 placeholder(`hashed_pw_N` 등)가 들어있어 그대로는 로그인 불가. 테스트 시 `app.core.security.hash_password('1234')` 결과로 `UPDATE` 필요
+- `client/src/lib/`은 신규 폴더 (axios/auth 모듈 분리)
+- Vite dev 서버 proxy(`/api` → `http://localhost:8000`)는 기존 설정 그대로 사용. CORS는 백엔드에서 별도 처리 안 함
+
