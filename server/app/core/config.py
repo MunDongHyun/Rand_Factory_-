@@ -6,6 +6,7 @@ class Settings(BaseSettings):
 
     # OpenAI
     openai_api_key: str
+    ai_model: str = "gpt-5.4-mini"
 
     # MySQL
     db_host: str = "localhost"
