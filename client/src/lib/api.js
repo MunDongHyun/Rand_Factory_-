@@ -18,6 +18,7 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       clearToken();
+      window.dispatchEvent(new Event('auth:logout'));
     }
     return Promise.reject(error);
   },

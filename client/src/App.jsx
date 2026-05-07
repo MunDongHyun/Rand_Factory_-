@@ -46,6 +46,15 @@ function App() {
     setScreen('intro');
   };
 
+  useEffect(() => {
+    const onAuthLogout = () => {
+      setUser(null);
+      setScreen('intro');
+    };
+    window.addEventListener('auth:logout', onAuthLogout);
+    return () => window.removeEventListener('auth:logout', onAuthLogout);
+  }, []);
+
   if (restoring) return null;
 
   return (

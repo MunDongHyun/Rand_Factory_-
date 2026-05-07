@@ -631,3 +631,32 @@
 - `client/src/lib/`은 신규 폴더 (axios/auth 모듈 분리)
 - Vite dev 서버 proxy(`/api` → `http://localhost:8000`)는 기존 설정 그대로 사용. CORS는 백엔드에서 별도 처리 안 함
 
+---
+
+## 2026-05-07 - chanhui (Dashboard 아티클 연동 + 인증/네비 폴리싱)
+
+### 작업
+- Dashboard 아티클 목록 실연결
+  - `client/src/components/Dashboard.jsx`: `DASHBOARD_DATA` 하드코딩 제거. `GET /api/articles?limit=100` 한 번 호출 → 카테고리별 그룹화, 글 많은 순 정렬, 각 5개 노출. 로딩/에러/빈 상태 처리. 카드 표시 필드 매핑(`article_title`, `article_source`, `article_category`, `article_published_date`)
+  - `client/src/components/ArticleDetailView.jsx`: 필드 이름을 실제 API 응답에 맞춰 변경(`article_title` 등). 메타 라인(출처/저자/발행/카테고리) 추가
+- 401 자동 로그아웃
+  - `client/src/lib/api.js`: 401 응답 시 `auth:logout` 커스텀 이벤트 발행
+  - `client/src/App.jsx`: 이벤트 수신 시 `setUser(null) + setScreen('intro')`로 Intro 복귀
+- 브라우저 뒤로가기 처리
+  - `client/src/components/Dashboard.jsx`: `view` 변경마다 `history.pushState` + popstate 리스너. 메인 articles에서 back 시 재push로 chrome 종료 방지, 서브뷰(articleDetail/curriculum/emailing)에서 back 시 articles로 복귀
+  - ArticleDetailView 내부 "← 뒤로가기" 버튼도 `window.history.back()` 호출하도록 통일
+- published_date 빈 값일 때 카드 메타의 dot 숨김
+
+### 검증
+- 백엔드 articles 테이블 `article_chunk_count` 컬럼 누락 발견 (어제 마이그레이션 누락분) → `ALTER TABLE articles ADD COLUMN article_chunk_count INT NULL DEFAULT 0;` 적용 후 정상화
+- 브라우저(Vite 5173, FastAPI 8000) 시나리오:
+  - Dashboard에 7개 카테고리 섹션 정상 노출 (마케팅 12, 경영 9, AI 4, 리더십 4, HRD 3, 조직 3, 인문 2)
+  - 카드 클릭 → ArticleDetailView 진입, 메타 정상 표시
+  - 카드 진입 후 브라우저 back → 목록 복귀
+  - 메인 articles에서 브라우저 back → 페이지 유지(chrome 종료 방지)
+
+### 참고
+- 메인 articles에서 back을 매우 빠르게 연타하면 React StrictMode 더블 mount + Chrome의 동일 state push 병합 영향으로 드물게 빠져나갈 수 있음. 정식 라우팅이 필요하면 `react-router-dom` 도입 권장
+- Insights 데이터(`/api/articles/{id}/insights`)는 인덱싱이 비어 있어 상세 화면 본문/시각화 연결은 보류
+- 회원가입 화면은 디자인/정책 갭 (회사 + 직원 다건 등록 vs 백엔드 학습자 1명 셀프 가입)으로 보류, 멘토링 후 방향 결정 예정
+
