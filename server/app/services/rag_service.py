@@ -8,6 +8,10 @@ from typing import Optional
 from langchain_community.vectorstores import Chroma
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
+<<<<<<< HEAD
+from langchain_core.runnables import RunnablePassthrough
+=======
+>>>>>>> 54ce94ac13cdc028831d4832e4150a5dcb114511
 from langchain_core.documents import Document
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -31,12 +35,15 @@ def _get_vectorstore() -> Chroma:
     return _vectorstore
 
 
+<<<<<<< HEAD
+=======
 def get_article_content(article_id: int, max_chunks: int = 20) -> str:
     """특정 article_id의 청크들을 ChromaDB에서 가져와 하나의 텍스트로 합쳐 반환."""
     docs = _get_vectorstore().similarity_search("", k=max_chunks, filter={"article_id": article_id})
     return "\n\n".join(doc.page_content for doc in docs)
 
 
+>>>>>>> 54ce94ac13cdc028831d4832e4150a5dcb114511
 def ingest_article(
     article_id: int,
     title: str,
@@ -64,9 +71,12 @@ def query_rag(question: str, k: int = 4) -> dict:
     """질문을 받아 관련 청크 검색 후 LLM 답변 생성. answer와 sources 반환."""
     vs = _get_vectorstore()
     retriever = vs.as_retriever(search_kwargs={"k": k})
+<<<<<<< HEAD
+=======
     raw_docs = retriever.invoke(question)
 
     context = "\n\n".join(doc.page_content for doc in raw_docs)
+>>>>>>> 54ce94ac13cdc028831d4832e4150a5dcb114511
 
     prompt = ChatPromptTemplate.from_template(
         "당신은 DBR 아티클 기반 비즈니스 멘토링 AI입니다.\n"
@@ -82,6 +92,19 @@ def query_rag(question: str, k: int = 4) -> dict:
         api_key=settings.openai_api_key,
     )
 
+<<<<<<< HEAD
+    chain = (
+        {"context": retriever, "question": RunnablePassthrough()}
+        | prompt
+        | llm
+        | StrOutputParser()
+    )
+
+    answer = chain.invoke(question)
+
+    # 참조 아티클 메타데이터 수집 (중복 제거)
+    raw_docs = retriever.invoke(question)
+=======
     chain = prompt | llm | StrOutputParser()
 
     answer = chain.invoke({
@@ -90,6 +113,7 @@ def query_rag(question: str, k: int = 4) -> dict:
     })
 
     # 참조 아티클 메타데이터 수집 (중복 제거)
+>>>>>>> 54ce94ac13cdc028831d4832e4150a5dcb114511
     seen = set()
     sources = []
     for doc in raw_docs:
