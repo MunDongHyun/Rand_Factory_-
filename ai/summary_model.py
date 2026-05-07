@@ -32,7 +32,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"🚀 시스템 디바이스: {device.upper()}")
 
 
-llm = ChatOpenAI(model=os.getenv("AI_MODEL", "gpt-4o"), temperature=0.2)
+llm = ChatOpenAI(model=os.getenv("AI_MODEL", "gpt-5.4-mini"), temperature=0.2)
 
 # 한국어 특화 임베딩 모델
 embeddings = HuggingFaceEmbeddings(
