@@ -31,8 +31,8 @@ if openai_api_key:
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"🚀 시스템 디바이스: {device.upper()}")
 
-# 인터랙티브 콘텐츠용 심층 분석을 위해 창의성과 추론 능력을 살짝 올림 (0.1 -> 0.2)
-llm = ChatOpenAI(model=os.getenv("AI_SUMMARY_MODEL", "gpt-4o"), temperature=0.2)
+
+llm = ChatOpenAI(model=os.getenv("AI_MODEL", "gpt-4o"), temperature=0.2)
 
 # 한국어 특화 임베딩 모델
 embeddings = HuggingFaceEmbeddings(
