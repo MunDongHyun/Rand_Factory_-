@@ -1,0 +1,42 @@
+version: "3.9"
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: landfactory-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ../server
+      dockerfile: ../docker/Dockerfile.server
+    container_name: landfactory-api
+    restart: unless-stopped
+    env_file:
+      - ../server/.env
+    environment:
+      DB_HOST: mysql  # 컨테이너 내부에서는 서비스명으로 접근
+    ports:
+      - "8000:8000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - ../server:/app  # 개발 시 코드 변경 즉시 반영 (핫리로드)
+
+volumes:
+  mysql_data:

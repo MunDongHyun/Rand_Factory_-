@@ -1,0 +1,21 @@
+﻿# 가상환경 (이게 10,000개 숫자의 주범입니다)
+rag_env/
+.venv/
+venv/
+node_modules/
+Lib/
+Scripts/
+Include/
+share/
+pyvenv.cfg
+
+# 캐시 및 설정
+__pycache__/
+*.py[cod]
+.env
+.vscode/
+
+# 데이터 및 출력물
+data/
+summary/
+curriculum_output/
