@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import './styles/theme.css';
+import './styles/theme.css'
 import Intro from './components/Intro';
 import Signup from './components/Signup';
 import Dashboard from './components/Dashboard';
