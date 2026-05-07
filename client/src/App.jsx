@@ -1,22 +1,52 @@
 import React, { useState, useEffect } from 'react';
 import './styles/theme.css'
+import api from './lib/api';
+import { getToken, clearToken } from './lib/auth';
 import Intro from './components/Intro';
 import Signup from './components/Signup';
 import Dashboard from './components/Dashboard';
 import MasterDashboard from './components/MasterDashboard';
 
+const screenForRole = (role) => (role === 'a' ? 'master' : 'dashboard');
+
 function App() {
   const [screen, setScreen] = useState('intro');
   const [user, setUser] = useState(null);
+  const [restoring, setRestoring] = useState(true);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', 'tangerine-disco');
   }, []);
 
-  const handleLogin = (data) => {
-    setUser(data);
-    setScreen(data.role === 'master' ? 'master' : 'dashboard');
+  useEffect(() => {
+    const token = getToken();
+    if (!token) {
+      setRestoring(false);
+      return;
+    }
+    api.get('/users/me')
+      .then((res) => {
+        setUser(res.data);
+        setScreen(screenForRole(res.data.user_role));
+      })
+      .catch(() => {
+        clearToken();
+      })
+      .finally(() => setRestoring(false));
+  }, []);
+
+  const handleLogin = (loggedInUser) => {
+    setUser(loggedInUser);
+    setScreen(screenForRole(loggedInUser.user_role));
   };
+
+  const handleLogout = () => {
+    clearToken();
+    setUser(null);
+    setScreen('intro');
+  };
+
+  if (restoring) return null;
 
   return (
     <div className="App">
@@ -35,13 +65,13 @@ function App() {
       {screen === 'dashboard' && (
         <Dashboard
           user={user}
-          onLogout={() => { setScreen('intro'); setUser(null); }}
+          onLogout={handleLogout}
         />
       )}
       {screen === 'master' && (
         <MasterDashboard
           user={user}
-          onLogout={() => { setScreen('intro'); setUser(null); }}
+          onLogout={handleLogout}
         />
       )}
     </div>

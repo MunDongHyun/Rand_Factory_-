@@ -1,18 +1,34 @@
 import React, { useState } from 'react';
 import serviceDetailRobot from '../public/인트로 설명 이미지.png'
+import api from '../lib/api';
+import { setToken } from '../lib/auth';
 
 const Intro = ({ onLogin, onSignup }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
-    if (email === 'smhrd@gmail.com' && password === '1234') {
-      onLogin({ name: '관리자', role: 'master' });
-    } else if (email && password) {
-      onLogin({ name: '사용자', role: 'user' });
-    } else {
+  const handleLogin = async () => {
+    if (!email || !password) {
       setError('이메일과 비밀번호를 입력해주세요.');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    try {
+      const loginRes = await api.post('/users/login', { email, password });
+      setToken(loginRes.data.access_token);
+      const meRes = await api.get('/users/me');
+      onLogin(meRes.data);
+    } catch (err) {
+      if (err.response?.status === 401) {
+        setError('이메일 또는 비밀번호가 올바르지 않습니다.');
+      } else {
+        setError('로그인 중 문제가 발생했습니다. 다시 시도해주세요.');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -71,8 +87,8 @@ const Intro = ({ onLogin, onSignup }) => {
                   onChange={(e) => setPassword(e.target.value)} />
               </div>
               {error && <p style={{ color: 'red', fontSize: '13px', margin: '0' }}>{error}</p>} {/* ✅ 에러 메시지 */}
-              <button className="btn-login" onClick={handleLogin}> 
-                로그인 →
+              <button className="btn-login" onClick={handleLogin} disabled={loading}>
+                {loading ? '로그인 중...' : '로그인 →'}
               </button>
               <div className="divider-row"><span>또는</span></div>
               <div className="register-block">
