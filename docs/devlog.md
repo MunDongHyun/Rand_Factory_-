@@ -562,3 +562,38 @@
 ### 참고
 - 현재 DB에 `curriculum`, `task_submissions`, `chatbot_sessions` 행이 없어 해당 상세 조회는 건너뜀
 - 이번 점검은 TestClient 기반이며 실제 DB에 새 데이터를 생성하지 않음
+
+---
+
+## 2026-05-07 - Codex
+
+### 작업
+- `origin/mun_ai` 브랜치 확인
+- `mun_ai` 전체 merge는 하지 않고 AI 모델링 산출물만 선별 반영
+  - `ai/curr.py`
+  - `ai/summary_model.py`
+  - `ai/summary/`
+  - `ai/curriculum_output/*.md`
+  - `ai/requirements.txt`
+- `mun_ai`에 포함된 압축 산출물(`.zip`, `.7z`)은 제외
+- `mun_ai`의 `server/app`, `DB`, `README.md`, `CLAUDE.md`, `docs/devlog.md` 변경은 현재 `dev` 구조를 되돌릴 위험이 있어 반영하지 않음
+- AI 스크립트가 `server/.env`를 읽도록 경로 정리
+- AI 모델명을 환경변수로 설정 가능하게 정리
+  - `AI_CURRICULUM_MODEL`
+  - `AI_SUMMARY_MODEL`
+- AI 전용 의존성은 백엔드 서버 의존성과 분리해 `ai/requirements.txt`에 기록
+
+### 검증
+- 백엔드 `python -m compileall -q app` 통과
+- 백엔드 `import app.main` 통과
+- `GET /health` 200 확인
+- `python -m py_compile ai\curr.py ai\summary_model.py` 통과
+- `ai/curr.py` import 및 로컬 summary JSON 검색 확인
+- `ai/summary` JSON 26개 구조 검증 통과
+- `ai/curriculum_output` Markdown 4개 공통 heading 구조 확인
+
+### 주의
+- `ai/` 폴더는 현재 백엔드 운영 코드가 아니라 모델링/실험 산출물 영역으로 구분
+- `ai/rag/pipeline.py`는 기존 실험용 RAG 코드이며, 현재 서버 RAG 기준은 `server/app/services/rag_service.py`
+- `ai/summary_model.py` 실제 실행에는 `torch`, `sentence-transformers`, `langchain-chroma`, `langchain-huggingface`, `ddgs` 등 AI 전용 패키지 설치가 필요
+- AI 전용 패키지는 무거우므로 `server/requirements.txt`에 섞지 않고 `ai/requirements.txt`로 분리 유지
