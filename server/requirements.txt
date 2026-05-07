@@ -18,3 +18,7 @@ numpy>=2.0.0
 passlib[bcrypt]>=1.7.4
 bcrypt==4.0.1
 python-jose[cryptography]>=3.3.0
+<<<<<<< HEAD
+=======
+PyMuPDF>=1.24.0
+>>>>>>> 54ce94ac13cdc028831d4832e4150a5dcb114511

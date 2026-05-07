@@ -4,51 +4,113 @@
 
 ---
 
-## 현재 상태 요약 (2026-04-22 기준)
+## 2026-05-06 - Claude
 
-### 백엔드 완성된 API
+### 작업
+- `routers/user.py` 버그 수정 2건
+
+### 수정 내용
+- **로그인 soft delete 미체크** (`POST /api/users/login`) — 탈퇴 계정(`user_deleted_at IS NOT NULL`)으로 로그인이 가능한 버그 수정. `user_deleted_at.is_(None)` 조건 추가
+- **유저 조회 인증 없음** (`GET /api/users/{user_id}`) — 토큰 없이 누구나 유저 정보 조회 가능한 버그 수정. `get_current_user` 의존성 추가 + 탈퇴 계정 soft delete 필터도 동일하게 적용
+
+---
+
+## 2026-05-06 - Claude (2)
+
+### 작업
+- 전체 백엔드 구조 점검 후 권한/검증 이슈 일괄 수정 (9건)
+
+### 권한/보안 수정
+- **Signup 역할 무제한** (`POST /api/users/signup`) — 누구나 admin/manager로 가입 가능했던 버그 수정. `UserCreate`에서 `role` 필드 제거하고 라우터에서 `j`(학습자) 강제. m/a 계정은 DB 직접 변경으로 운영
+- **Article 등록 권한 없음** (`POST /api/articles`) — admin(`a`)만 등록 가능하도록 역할 체크 추가
+- **Curriculum 조회 전체 노출** (`GET /api/curricula`, `GET /api/curricula/{id}`) — 학습자가 배정 안 된 커리큘럼까지 다 보이는 문제 수정. `_scope_curriculum_query` helper로 role 기반 필터 적용 (j: 배정된 것, m: 본인 생성, a: 전체). 권한 없는 ID는 404로 숨김
+- **Curriculum 생성 권한 없음** (`POST /api/curricula`) — m/a만 생성 가능하도록 제한
+- **Task submission 매니저 권한 누락** (`GET/PATCH /api/task-submissions/{id}`) — 매니저가 본인이 만들지 않은 커리큘럼의 과제까지 조회/피드백 가능했던 문제 수정. `_can_access_submission` helper로 role별 접근 권한 판정
+- **Chatbot 세션 검증 없음** (`POST /api/chatbot/sessions`) — 임의 `cb_curriculum_id` 지정 가능한 문제 수정. 챗봇은 매니저 전용으로 m/a만 사용 가능, 커리큘럼 지정 시 본인 소유 검증
+- **Secret key 운영 강제** — `secret_key`의 기본값 `"changeme"` 제거. 환경변수에 설정 안 하면 앱 시작 자체가 안 됨
+
+### 데이터 무결성 수정
+- **스키마 enum 검증 추가** — `article_source`(DBR/HBR), `cur_status`, `task_status`, chatbot `role`, `output_type` 모두 `Literal`로 타입 강제. 잘못된 값 들어가면 422 반환
+- **Curriculum soft delete 필터** — `_scope_curriculum_query`와 PATCH 라우터에 `cur_deleted_at IS NULL` 조건 추가. 삭제된 커리큘럼은 조회/수정 불가
+- **`CurriculumResponse.cur_assigned_learner_ids` 타입 불일치** — Create는 `list[int]`, Response는 `dict`였던 것 → `list[int]`로 통일
+
+### 검증
+- `python -m compileall -q app` 통과
+- `import app.main` 통과
+
+### 다음
+- 매니저용 "내 커리큘럼 과제 목록" 엔드포인트 추가 — 새 기능, 챗봇/AI 결과물 작업과 함께 결정
+
+---
+
+## 2026-05-06 - Claude (3)
+
+### 작업
+- 코드 품질 이슈 5건 일괄 정리
+
+### 수정 내용
+- **rag_service public API 분리** — `routers/article.py`에서 `_get_vectorstore()` private 호출하던 부분을 `services/rag_service.py`에 `get_article_content(article_id)` public 함수 추가하고 라우터는 이를 호출하도록 변경
+- **`datetime.utcnow()` deprecation 제거** — `routers/task_submission.py`에서 `datetime.now(timezone.utc)`로 교체
+- **Pydantic v2 스타일 마이그레이션** — `core/config.py`의 `class Config:`를 `model_config = SettingsConfigDict(...)`로 교체. v1 deprecation warning 제거
+- **`services/content_filter.py` 삭제** — 예전 chat 라우터 제거 후 호출처 없는 dead code 정리. 챗봇 입력 검사가 필요해지면 그때 다시 추가
+- **`AiOutputCreate` output_type 분기 검증** — `model_validator(mode="after")`로 output_type별 필수 필드 검증 추가:
+  - `summary` → `summary_text` 필수
+  - `wordcloud` → `result_json` 또는 `image_url` 필수
+  - `framework` → `framework_type` + `generated_content` 모두 필수
+
+### 검증
+- `python -m compileall -q app` 통과
+- `import app.main` 통과
+
+---
+
+## 현재 상태 요약 (2026-05-06 기준)
+
+### 백엔드 현재 API
 
 | 영역 | 엔드포인트 | 비고 |
 |------|-----------|------|
-| 회원 | POST /api/users/signup | 가입 시 1000P 자동 지급, mentor면 프로필 자동 생성 |
+| Health | GET /health | 서버 상태 확인 |
+| 회원 | POST /api/users/signup | 현재 DB 컬럼명 기준 회원 생성 |
 | | POST /api/users/login | JWT 토큰 발급 |
-| | GET /api/users/me | 내 정보 (mentor_profile 포함) |
+| | GET /api/users/me | 내 정보 조회 |
 | | GET /api/users/{user_id} | 특정 유저 조회 |
-| 멘토 | GET /api/mentors | is_verified=True, available=True 필터 / industry·keyword 검색 |
-| | GET /api/mentors/{user_id} | 멘토 상세 |
-| 멘토링 | POST /api/mentoring/request | 멘티 전용, 잔액 확인 후 pending 생성 |
-| | PATCH /api/mentoring/{id}/status | 멘토가 수락/거절/취소, 수락 시 포인트 이동 |
-| | PATCH /api/mentoring/{id}/complete | 멘토/멘티 모두 완료 처리 가능 |
-| | POST /api/mentoring/{id}/review | 멘티가 별점·후기 작성, rating_avg 자동 갱신 |
-| | GET /api/mentoring/my | 내 목록 (role 자동 분기, status 필터) |
-| | GET /api/mentoring/{id} | 상세 (참여자만) |
-| 포인트 | GET /api/points/balance | 내 잔액 |
-| | GET /api/points/history | 거래 내역 (limit/offset) |
-| 아티클 | POST /api/articles | 인증 필요 |
-| | GET /api/articles | category·industry·keyword 필터, 페이지네이션 |
+| 아티클 | POST /api/articles | 아티클 등록 |
+| | GET /api/articles | 목록/검색/페이지네이션 |
 | | GET /api/articles/categories | 카테고리 목록 |
-| | GET /api/articles/{id} | 상세 |
-| 채팅 | POST /api/chat/{match_id}/messages | accepted 매칭만 허용, 민감정보 자동 감지 |
-| | GET /api/chat/{match_id}/messages | 참여자만 조회 |
+| | GET /api/articles/{id} | 상세 조회 |
+| | GET /api/articles/{id}/insights | RAG/LLM 기반 인사이트 추출 |
+| RAG | POST /api/rag/query | ChromaDB 기반 질의응답 |
+| 커리큘럼 | /api/curricula/* | 커리큘럼 생성/조회/관리 |
+| AI 결과물 | /api/ai-outputs/* | summary/wordcloud/framework 결과물 관리 |
+| 챗봇 | /api/chatbot/* | 챗봇 세션/메시지 관리 |
+| 과제 제출 | /api/task-submissions/* | 학습자 과제 제출 및 피드백 |
+
+### 현재 서버 구조
+
+| 구분 | 현재 사용 |
+|------|-----------|
+| 모델 | `users`, `articles`, `curriculum`, `ai_outputs`, `output_article_refs`, `task_submissions`, `chatbot_sessions`, `chatbot_messages` |
+| 라우터 | `user`, `article`, `rag`, `curriculum`, `ai_output`, `chatbot`, `task_submission`, `health` |
+| 제거된 예전 구조 | `mentor`, `mentoring`, `point`, `framework`, `chat` |
 
 ### 남은 작업
 
 | 항목 | 우선순위 | 비고 |
 |------|---------|------|
-| RAG 파이프라인 연결 | ~~높음~~ | ✅ 완료 |
-| 멘토 프로필 수정 API | ~~중간~~ | ✅ 완료 |
-| 포인트 충전 API | ~~중간~~ | ✅ 완료 |
-| 프론트엔드 | 높음 | client/src/App.jsx 뼈대만 있음 |
-| 팀 레포 오픈 후 git 이전 | 높음 | 팀장 대기 중 |
+| Swagger 기준 엔드포인트 수동 확인 | 높음 | uvicorn 실행 후 주요 API 응답 확인 |
+| 프론트엔드 연동 | 높음 | 현재 백엔드 API 이름 기준으로 화면 연결 필요 |
+| AI 결과물 생성 흐름 정리 | 중간 | `ai_outputs` 중심으로 summary/wordcloud/framework 저장 흐름 결정 |
+| 문서 최신화 | 중간 | 구조 변경 시 `CLAUDE.md`, `README.md`, `docs/devlog.md` 같이 갱신 |
 
 ### 알아두면 좋은 것
 
+- **현재 작업 브랜치**: `dev`
 - **서버 실행**: `cd server && venv/Scripts/activate && uvicorn app.main:app --reload`
 - **Swagger UI**: `http://localhost:8000/docs`
 - **환경변수**: `server/.env` 참고 (절대 커밋 금지)
-- **mentor 목록**은 `is_verified=True`인 멘토만 노출됨. 테스트 계정은 False라 목록에 안 나오는 게 정상
-- **민감정보 감지**: 전화번호·이메일·주민번호 포함 메시지는 저장되되 `is_flagged=True` + 경고 반환
-- **포인트 잔액**은 points 테이블 최신 레코드의 balance 컬럼 기준 (별도 집계 없음)
+- **로컬 벡터 저장소**: `server/chroma_db/` 사용, git 커밋 제외
+- **PDF 인제스트 스크립트**: `server/scripts/ingest_pdfs.py`
 - **bcrypt 버전 주의**: `bcrypt==4.0.1` 고정 (5.x는 passlib 1.7.4와 호환 안 됨)
 
 ---
@@ -202,6 +264,39 @@
 
 ---
 
+## 2026-04-22 - Codex (2)
+
+### 작업
+- `server/scripts/ingest_pdfs.py` 생성 — PDF 텍스트 추출, JWT 로그인, article 등록, RAG 질의 자동화
+- `server/requirements.txt` — `PyMuPDF` 추가
+- `data/articles/` 폴더 생성 및 DBR PDF 16개 인제스트 실행
+
+### 검증
+- PDF 16개 모두 등록 성공 (`article_id=3~18`)
+- 각 PDF `content` 기반 자동 RAG 인덱싱 및 `chunk_count` 생성 확인
+- RAG 질문 3개 모두 응답/소스 반환 확인
+
+### 주의
+- 스크립트는 `http://localhost:8000` 서버가 켜져 있어야 동작
+- `published_date`는 현재 스크립트 실행일 기준 오늘 날짜로 저장
+- 동일 `title` 존재 시 스킵하도록 구현
+
+---
+
+## 2026-04-22 - Codex (3)
+
+### 작업
+- `server/app/services/rag_service.py` 검색 2회 호출 구조를 1회 호출로 정리
+
+### 결정
+- retriever 결과를 재사용해서 `context`와 `sources`를 함께 구성
+- 기능 동작은 유지하면서 질문당 벡터 검색/임베딩 비용을 줄이는 방향으로 수정
+
+### 검증
+- `server/app` compileall 통과
+
+---
+
 ## 2026-04-22 - Claude
 
 ### 작업
@@ -278,8 +373,227 @@
 - 100P 미만 충전 → 422
 
 ### 다음
-- 팀 레포 오픈 후 git 이전
 - 프론트엔드 연결
 
 ### 주의
 - `PATCH /api/mentors/me`는 `/me`를 `/{user_id}` 앞에 선언해야 라우팅 정상 동작
+
+---
+
+## 2026-04-24 - Claude
+
+### 작업
+- `services/article_service.py` — LLM으로 아티클 keywords/insights 추출 서비스
+- `schemas/article.py` — InsightItem, ArticleInsightsResponse 스키마 추가
+- `routers/article.py` — `GET /api/articles/{id}/insights` 엔드포인트 추가
+- `origin/dev` push — 프레임워크 API + PDF 인제스트 커밋 2개 업로드
+
+### 결정
+- DB 스키마 변경 없이 조회 시 LLM 실시간 추출 방식으로 구현 (방향 확정 전 리스크 최소화)
+- ChromaDB에서 해당 article_id 청크를 복원해서 LLM 컨텍스트로 활용
+- 본문 4000자 truncation으로 토큰 비용 제한
+- 인덱싱 안 된 아티클은 422 반환
+
+### 다음
+- 서버 기동 후 `/api/articles/{id}/insights` 실제 테스트
+- 프론트 담당자 합류 시 해당 엔드포인트 연결
+- 팀 방향 확정 후 DB 저장 방식으로 전환 여부 결정
+
+### 주의
+- 호출마다 GPT 호출 발생 (캐싱 없음) — 향후 DB 저장 방식으로 전환 시 해결
+- ChromaDB filter는 `{"article_id": int}` 형태로 전달
+
+---
+
+## 2026-04-22 - Claude
+
+### 작업
+- `schemas/framework.py` — FrameworkGenerate, FrameworkResponse
+- `services/framework_service.py` — RAG 기반 프레임워크 생성 (OKR/AARRR/JTBD/Flywheel/린캔버스)
+- `routers/framework.py` — 생성/목록/상세/저장토글 API
+- Docker 테스트 — Docker Desktop 미설치로 생략, 배포 단계에서 진행 예정
+
+### 결정
+- 프레임워크 타입별 전용 프롬프트로 구조화된 JSON 생성 (OKR/AARRR/JTBD/Flywheel/린캔버스)
+- LLM 응답에서 마크다운 코드블록 자동 제거 후 JSON 파싱, 실패 시 raw 텍스트로 저장
+- 저장 여부는 PATCH /{id}/save 토글 방식
+
+### 검증
+- OKR 생성 → structured JSON + referenced_article_ids 반환 확인
+- 저장 토글 동작 확인
+- 내 목록 조회 확인
+
+### 다음
+- 프론트엔드 연결
+- Docker 테스트 (Docker Desktop 설치 후)
+
+### 주의
+- ChromaDB에 아티클이 없으면 referenced_article_ids=[] 로 빈 컨텍스트로 생성됨 (LLM 자체 지식으로 답변)
+- Docker compose의 DB_HOST는 'mysql'(컨테이너명)로 하드코딩 — 학원 DB 쓸 때는 .env의 DB_HOST로 오버라이드 필요
+
+---
+
+## 2026-05-06 - Codex
+
+### 작업
+- 기존 멘토링 중심 스키마에서 새 DB 스키마 기준으로 서버 모델 구조 전환
+- 삭제한 구 모델 파일
+  - `chat.py`
+  - `framework.py`
+  - `mentoring.py`
+  - `point.py`
+- 추가한 신규 모델 파일
+  - `curriculum.py`
+  - `ai_output.py`
+  - `output_article_ref.py`
+  - `task_submission.py`
+  - `chatbot.py`
+- 새 데이터 구조에 맞게 schema 파일 전체 재정리
+- 삭제한 구 라우터
+  - `chat`
+  - `framework`
+  - `mentor`
+  - `mentoring`
+  - `point`
+- 추가한 신규 라우터
+  - `curriculum`
+  - `ai_output`
+  - `chatbot`
+  - `task_submission`
+- `user`, `article`, `rag` 라우터를 새 컬럼명 기준으로 수정
+- `server/app/main.py` 라우터 등록 구조를 새 앱 구조 기준으로 재작성
+- `server/app/core/security.py` 를 `user_email`, `user_pw`, soft delete 기준에 맞게 재작성
+- 사용하지 않는 서비스 제거
+  - `framework_service.py`
+  - `point_service.py`
+- `server/.env.example` 에 `CHROMA_PERSIST_DIR` 추가
+
+### 검증
+- `import app.main` 통과
+- 모델 import 체크 통과
+- DB 연결 테스트 `SELECT 1` 통과
+
+### 참고
+- `server/.env` 는 이미 존재했고 실제 DB 접속 정보가 들어 있어 별도 실행용 `.env` 파일 생성은 하지 않음
+- 현재 기준으로는 새 스키마에 맞는 최소 CRUD 뼈대와 import/DB 연결 정상화까지 완료한 상태
+
+### 다음
+- uvicorn 실행 후 Swagger 엔드포인트 수동 점검
+- 프론트 전달용 API 명세를 새 curriculum / ai_output / chatbot 흐름 기준으로 재정리
+- summary / wordcloud / framework 생성 로직을 `ai_outputs` 중심으로 유지할지, 보조 엔드포인트로 분리할지 결정
+
+### 문서 정리
+- `CLAUDE.md` 를 현재 서버 구조 기준으로 재작성
+- `README.md` 를 멘토링 플랫폼 설명에서 AI 학습 지원 플랫폼 설명으로 갱신
+- 문서 내 예전 `mentor / mentoring / point / framework / chat` 중심 설명 제거
+
+---
+
+## 2026-05-06 - Codex (2)
+
+### 작업
+- 현재 작업 폴더(`C:\Users\smhrd\Desktop\landfactory`) 기준 `server/.env` 생성
+- `server/venv` 생성 및 `server/requirements.txt` 의존성 설치
+- `README.md` 에 `server/app`, `server/scripts`, PDF 인제스트 스크립트 설명 추가
+- `docs/devlog.md` 상단 현재 상태 요약을 `dev` 브랜치의 현재 API 구조 기준으로 갱신
+
+### 검증
+- `python -m compileall -q server\app` 통과
+- `import app.main` 통과
+- `GET /health` 200 확인
+- `GET /docs` 200 확인
+- DB 연결 테스트 `SELECT 1` 통과
+
+### 참고
+- `server/.env` 와 `server/venv/` 는 `.gitignore` 기준으로 커밋 제외됨
+- uvicorn 실행 시 8000번 포트에 이미 서버가 떠 있어 새 프로세스 하나는 포트 충돌로 종료됐지만, 기존 서버 응답은 정상 확인됨
+
+---
+
+## 2026-05-06 - Codex (3)
+
+### 작업
+- `.env`로 연결되는 실제 MySQL DB 기준 테이블/컬럼 구조 확인
+- 실제 DB의 8개 테이블과 SQLAlchemy 모델 테이블/컬럼명을 대조
+  - `users`
+  - `articles`
+  - `curriculum`
+  - `ai_outputs`
+  - `output_article_refs`
+  - `task_submissions`
+  - `chatbot_sessions`
+  - `chatbot_messages`
+- DB에서 NULL 허용인 컬럼들이 모델에서는 `nullable=False`로 잡혀 있던 부분을 실제 DB 기준으로 수정
+- 기존 데이터에 NULL이 있을 때 응답 변환이 실패하지 않도록 Pydantic response schema도 optional 기준으로 보정
+
+### 검증
+- 실제 DB 테이블/컬럼과 모델 컬럼 존재 여부 일치 확인
+- 실제 DB nullable 설정과 모델 nullable 설정 일치 확인
+- `python -m compileall -q app` 통과
+- `import app.main` 통과
+- TestClient 기준 `GET /health` 200 확인
+- TestClient 기준 `/api/articles`, `/api/articles/categories`는 인증 필요로 401 반환 확인
+
+### 참고
+- SQL 파일은 팀원 오푸시 가능성이 있어 이번 점검 기준에서 제외
+- 현재 점검 기준은 실제 `.env`의 DB와 `dev` 브랜치 코드
+
+---
+
+## 2026-05-06 - Codex (4)
+
+### 작업
+- 실제 DB의 활성 사용자 `user_id=1` 기준으로 테스트 JWT 생성
+- DB 쓰기 없이 인증이 필요한 GET API 중심으로 수동 점검
+
+### 검증
+- `GET /health` 200
+- `GET /api/users/me` 200
+- `GET /api/users/1` 200
+- `GET /api/articles` 200
+- `GET /api/articles/categories` 200
+- `GET /api/curricula` 200
+- `GET /api/ai-outputs/my` 200
+- `GET /api/chatbot/sessions` 200
+- `GET /api/task-submissions/my` 200
+- `GET /api/articles/1026` 200
+- `GET /api/ai-outputs/5` 200
+
+### 참고
+- 현재 DB에 `curriculum`, `task_submissions`, `chatbot_sessions` 행이 없어 해당 상세 조회는 건너뜀
+- 이번 점검은 TestClient 기반이며 실제 DB에 새 데이터를 생성하지 않음
+
+---
+
+## 2026-05-07 - Codex
+
+### 작업
+- `origin/mun_ai` 브랜치 확인
+- `mun_ai` 전체 merge는 하지 않고 AI 모델링 산출물만 선별 반영
+  - `ai/curr.py`
+  - `ai/summary_model.py`
+  - `ai/summary/`
+  - `ai/curriculum_output/*.md`
+  - `ai/requirements.txt`
+- `mun_ai`에 포함된 압축 산출물(`.zip`, `.7z`)은 제외
+- `mun_ai`의 `server/app`, `DB`, `README.md`, `CLAUDE.md`, `docs/devlog.md` 변경은 현재 `dev` 구조를 되돌릴 위험이 있어 반영하지 않음
+- AI 스크립트가 `server/.env`를 읽도록 경로 정리
+- AI 모델명을 환경변수로 설정 가능하게 정리
+  - `AI_CURRICULUM_MODEL`
+  - `AI_SUMMARY_MODEL`
+- AI 전용 의존성은 백엔드 서버 의존성과 분리해 `ai/requirements.txt`에 기록
+
+### 검증
+- 백엔드 `python -m compileall -q app` 통과
+- 백엔드 `import app.main` 통과
+- `GET /health` 200 확인
+- `python -m py_compile ai\curr.py ai\summary_model.py` 통과
+- `ai/curr.py` import 및 로컬 summary JSON 검색 확인
+- `ai/summary` JSON 26개 구조 검증 통과
+- `ai/curriculum_output` Markdown 4개 공통 heading 구조 확인
+
+### 주의
+- `ai/` 폴더는 현재 백엔드 운영 코드가 아니라 모델링/실험 산출물 영역으로 구분
+- `ai/rag/pipeline.py`는 기존 실험용 RAG 코드이며, 현재 서버 RAG 기준은 `server/app/services/rag_service.py`
+- `ai/summary_model.py` 실제 실행에는 `torch`, `sentence-transformers`, `langchain-chroma`, `langchain-huggingface`, `ddgs` 등 AI 전용 패키지 설치가 필요
+- AI 전용 패키지는 무거우므로 `server/requirements.txt`에 섞지 않고 `ai/requirements.txt`로 분리 유지

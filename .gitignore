@@ -1,21 +1,51 @@
-﻿# 가상환경 (이게 10,000개 숫자의 주범입니다)
-rag_env/
-.venv/
-venv/
-node_modules/
-Lib/
-Scripts/
-Include/
-share/
-pyvenv.cfg
-
-# 캐시 및 설정
+# Python
 __pycache__/
 *.py[cod]
-.env
-.vscode/
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
 
-# 데이터 및 출력물
+# Node.js
+node_modules/
+dist/
+.pnp
+.pnp.js
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Data (로컬 데이터 파일 제외)
 data/
-summary/
-curriculum_output/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# FAISS / ChromaDB 벡터 저장소
+*.faiss
+*.index
+chroma_db/
+
+# Docker
+docker/volumes/
+
+# Claude Code local settings
+.claude/

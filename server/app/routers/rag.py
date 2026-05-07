@@ -11,6 +11,7 @@ router = APIRouter(prefix="/api/rag", tags=["rag"])
 @router.post("/query", response_model=RagResponse)
 def query_rag(
     body: RagQuery,
+<<<<<<< HEAD
     current_user: User = Depends(get_current_user),
 ):
     result = rag_service.query_rag(question=body.question, k=body.k)
@@ -18,3 +19,9 @@ def query_rag(
         answer=result["answer"],
         sources=result["sources"],
     )
+=======
+    _current_user: User = Depends(get_current_user),
+):
+    result = rag_service.query_rag(question=body.question, k=body.k)
+    return RagResponse(answer=result["answer"], sources=result["sources"])
+>>>>>>> 54ce94ac13cdc028831d4832e4150a5dcb114511

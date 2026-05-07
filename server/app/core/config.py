@@ -1,7 +1,9 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+
     # OpenAI
     openai_api_key: str
 
@@ -14,7 +16,7 @@ class Settings(BaseSettings):
 
     # App
     app_env: str = "development"
-    secret_key: str = "changeme"
+    secret_key: str
 
     # RAG
     chroma_persist_dir: str = "./chroma_db"
@@ -25,10 +27,6 @@ class Settings(BaseSettings):
             f"mysql+pymysql://{self.db_user}:{self.db_password}"
             f"@{self.db_host}:{self.db_port}/{self.db_name}"
         )
-
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
 
 
 settings = Settings()

@@ -1,26 +1,33 @@
 import os
 import json
+from pathlib import Path
+
+from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from langchain_community.tools import DuckDuckGoSearchResults
-
-from dotenv import load_dotenv
 
 # 1. 환경 설정 및 기본 초기화
-os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
+BASE_DIR = Path(__file__).resolve().parent
+PROJECT_DIR = BASE_DIR.parent
 
-llm = ChatOpenAI(model="gpt-5.4-mini", temperature=0.2) # gpt-4o로 변경하여 더 깊이 있는 내용 도출 권장
-search_tool = DuckDuckGoSearchResults()
+load_dotenv(PROJECT_DIR / "server" / ".env")
+load_dotenv(PROJECT_DIR / ".env", override=False)
+
+openai_api_key = os.getenv("OPENAI_API_KEY")
+if openai_api_key:
+    os.environ["OPENAI_API_KEY"] = openai_api_key
+
+llm = ChatOpenAI(model=os.getenv("AI_CURRICULUM_MODEL", "gpt-4o"), temperature=0.2)
 
 # 임시 Vector DB 역할을 할 로컬 요약 폴더 경로
-SUMMARY_DIR = "./summary"
+SUMMARY_DIR = BASE_DIR / "summary"
 # 결과물이 저장될 폴더 경로 추가
-OUTPUT_DIR = "./curriculum_output"
+OUTPUT_DIR = BASE_DIR / "curriculum_output"
 
 
 # 2. 정보 검색 및 보충 (로컬 JSON + Web RAG 로직)
-def retrieve_from_local_json(query_keywords: list, summary_dir: str = SUMMARY_DIR) -> str:
+def retrieve_from_local_json(query_keywords: list, summary_dir: Path = SUMMARY_DIR) -> str:
     if not os.path.exists(summary_dir):
         os.makedirs(summary_dir)
         print(f"📁 '{summary_dir}' 폴더가 없어 새로 생성했습니다.")
@@ -50,6 +57,9 @@ def retrieve_and_supplement_context(course_name: str, training_goal: str, requir
     if len(db_context.strip()) < 100:
         print("⚠️ 로컬 폴더에 관련 아티클이 부족합니다. 웹 검색(RAG)을 통해 정보를 보충합니다...")
         try:
+            from langchain_community.tools import DuckDuckGoSearchResults
+
+            search_tool = DuckDuckGoSearchResults()
             web_query = f"{course_name} 대기업 S-OJT 실무 지침"
             web_context = search_tool.invoke(web_query)
             combined_context = f"[로컬 자료]\n관련 자료 없음\n\n[웹 검색 보충 자료]\n{web_context}"
@@ -172,7 +182,7 @@ def generate_chatbot_curriculum(user_input: dict):
         os.makedirs(OUTPUT_DIR)
         print(f"📁 '{OUTPUT_DIR}' 폴더를 새로 생성했습니다.")
 
-    safe_course_name = user_input['course_name'].replace(' ', '_').replace('/', '_')
+    safe_course_name = user_input["course_name"].replace(" ", "_").replace("/", "_")
     save_filename = f"OJT_Curriculum_{safe_course_name}.md"
     save_path = os.path.join(OUTPUT_DIR, save_filename)
     

@@ -1,0 +1,102 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func
+from sqlalchemy.orm import Query, Session
+
+from app.core.database import get_db
+from app.core.security import get_current_user
+from app.models.curriculum import Curriculum
+from app.models.user import User
+from app.schemas.curriculum import CurriculumCreate, CurriculumResponse, CurriculumUpdate
+
+router = APIRouter(prefix="/api/curricula", tags=["curricula"])
+
+
+def _scope_curriculum_query(query: Query, user: User) -> Query:
+    """Role 기반으로 curriculum 조회 범위를 제한 (soft delete 제외).
+
+    - a (admin): 전체
+    - m (manager): 본인이 만든 것
+    - j (learner): 본인이 cur_assigned_learner_ids에 포함된 것
+    """
+    query = query.filter(Curriculum.cur_deleted_at.is_(None))
+    if user.user_role == "a":
+        return query
+    if user.user_role == "m":
+        return query.filter(Curriculum.cur_creator_id == user.user_id)
+    return query.filter(func.json_contains(Curriculum.cur_assigned_learner_ids, str(user.user_id)))
+
+
+@router.post("", response_model=CurriculumResponse, status_code=status.HTTP_201_CREATED)
+def create_curriculum(
+    body: CurriculumCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.user_role not in {"m", "a"}:
+        raise HTTPException(status_code=403, detail="Only manager/admin can create curricula")
+
+    curriculum = Curriculum(
+        cur_creator_id=current_user.user_id,
+        cur_title=body.cur_title,
+        cur_target_job=body.cur_target_job,
+        cur_target_industry=body.cur_target_industry,
+        cur_duration_weeks=body.cur_duration_weeks,
+        cur_learning_goal=body.cur_learning_goal,
+        cur_ai_prompt_input=body.cur_ai_prompt_input,
+        cur_week_plan=body.cur_week_plan,
+        cur_assigned_learner_ids=body.cur_assigned_learner_ids,
+        cur_status=body.cur_status,
+    )
+    db.add(curriculum)
+    db.commit()
+    db.refresh(curriculum)
+    return curriculum
+
+
+@router.get("", response_model=list[CurriculumResponse])
+def list_curricula(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    query = _scope_curriculum_query(db.query(Curriculum), current_user)
+    return query.order_by(Curriculum.cur_created_at.desc()).all()
+
+
+@router.get("/{cur_id}", response_model=CurriculumResponse)
+def get_curriculum(
+    cur_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    query = _scope_curriculum_query(db.query(Curriculum), current_user)
+    curriculum = query.filter(Curriculum.cur_id == cur_id).first()
+    if not curriculum:
+        raise HTTPException(status_code=404, detail="Curriculum not found")
+    return curriculum
+
+
+@router.patch("/{cur_id}", response_model=CurriculumResponse)
+def update_curriculum(
+    cur_id: int,
+    body: CurriculumUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    curriculum = (
+        db.query(Curriculum)
+        .filter(
+            Curriculum.cur_id == cur_id,
+            Curriculum.cur_creator_id == current_user.user_id,
+            Curriculum.cur_deleted_at.is_(None),
+        )
+        .first()
+    )
+    if not curriculum:
+        raise HTTPException(status_code=404, detail="Curriculum not found")
+
+    for field, value in body.model_dump(exclude_unset=True).items():
+        setattr(curriculum, field, value)
+
+    db.commit()
+    db.refresh(curriculum)
+    return curriculum

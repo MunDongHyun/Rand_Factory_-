@@ -2,6 +2,9 @@ import os
 import torch
 import json
 import re
+from pathlib import Path
+
+from dotenv import load_dotenv
 from langchain_chroma import Chroma
 from langchain_openai import ChatOpenAI
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -13,17 +16,23 @@ from langchain_classic.retrievers import ParentDocumentRetriever
 from langchain_community.vectorstores.utils import filter_complex_metadata
 from langchain_community.document_loaders import PyMuPDFLoader
 
-from dotenv import load_dotenv
-
   
 # 1. 환경 설정 및 모델 초기화
-os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
+BASE_DIR = Path(__file__).resolve().parent
+PROJECT_DIR = BASE_DIR.parent
+
+load_dotenv(PROJECT_DIR / "server" / ".env")
+load_dotenv(PROJECT_DIR / ".env", override=False)
+
+openai_api_key = os.getenv("OPENAI_API_KEY")
+if openai_api_key:
+    os.environ["OPENAI_API_KEY"] = openai_api_key
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"🚀 시스템 디바이스: {device.upper()}")
 
 # 인터랙티브 콘텐츠용 심층 분석을 위해 창의성과 추론 능력을 살짝 올림 (0.1 -> 0.2)
-llm = ChatOpenAI(model="gpt-4o", temperature=0.2)
+llm = ChatOpenAI(model=os.getenv("AI_SUMMARY_MODEL", "gpt-4o"), temperature=0.2)
 
 # 한국어 특화 임베딩 모델
 embeddings = HuggingFaceEmbeddings(
@@ -34,8 +43,8 @@ embeddings = HuggingFaceEmbeddings(
 
 
 # 2. 루프를 통한 모든 PDF 개별 처리
-data_path = "./data"
-summary_dir = "./summary"  # ✅ 요약문 저장 폴더 지정
+data_path = BASE_DIR / "data"
+summary_dir = BASE_DIR / "summary"  # ✅ 요약문 저장 폴더 지정
 
 # 💡 요약문을 저장할 폴더가 없다면 새로 생성합니다.
 if not os.path.exists(summary_dir):
