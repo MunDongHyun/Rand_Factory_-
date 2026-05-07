@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
@@ -11,7 +11,7 @@ class ArticleCreate(BaseModel):
     article_source: ArticleSource
     article_title: str
     article_author: str | None = None
-    article_published_date: date | None = None
+    article_published_date: str | None = None
     article_category: str | None = None
     article_source_url: str | None = None
     article_image_count: int = 0
@@ -25,7 +25,7 @@ class ArticleResponse(BaseModel):
     article_source: ArticleSource
     article_title: str
     article_author: str | None = None
-    article_published_date: date | None = None
+    article_published_date: str | None = None
     article_category: str | None = None
     article_source_url: str | None = None
     article_image_count: int | None = None

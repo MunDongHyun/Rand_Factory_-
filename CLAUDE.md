@@ -91,6 +91,10 @@ npm run dev
 - 정적 경로(`/me`, `/categories`)는 동적 경로(`/{id}`)보다 먼저 선언
 - 환경변수는 `app/core/config.py`의 `settings` 객체를 통해서만 접근
 - 진행 상황과 결정 사항은 `docs/devlog.md`에 기록
+- 기능 변경과 무관한 스타일 수정은 피함
+  - 예: 작은따옴표를 큰따옴표로 바꾸기, 의미 없는 공백/줄바꿈 정리
+  - 포맷팅만 필요한 경우 별도 `style:` 커밋으로 분리
+- 충돌 해결 시에는 필요한 코드만 선택하고, 기존 코드 스타일은 최대한 유지
 
 ## 권한 정책
 
@@ -145,8 +149,9 @@ npm run dev
 
 1. `git status`로 변경 파일 확인
 2. `.env`, `venv`, `server/chroma_db` 포함 여부 확인
-3. `server/app/main.py`의 router import / `include_router(...)` 누락 확인
-4. `schemas / services / routers` import 오류 확인
-5. `cd server && .\venv\Scripts\python.exe -m compileall -q app`
-6. 변경한 핵심 API 최소 1회 확인
-7. `docs/devlog.md` 최신화 확인
+3. 기능 변경과 무관한 따옴표/공백/줄바꿈 수정이 섞였는지 확인
+4. `server/app/main.py`의 router import / `include_router(...)` 누락 확인
+5. `schemas / services / routers` import 오류 확인
+6. `cd server && .\venv\Scripts\python.exe -m compileall -q app`
+7. 변경한 핵심 API 최소 1회 확인
+8. `docs/devlog.md` 최신화 확인
