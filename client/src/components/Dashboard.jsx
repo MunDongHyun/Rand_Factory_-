@@ -108,6 +108,9 @@ function Dashboard({ user, onLogout }) {
                 }}
               >
                 <div className="cardTop">
+                  {item.article_thumbnail_url && (
+                    <img src={item.article_thumbnail_url} alt={item.article_title} />
+                  )}
                   <span className="cardTag"># {item.article_category || '기타'}</span>
                 </div>
                 <div className="cardBottom">
