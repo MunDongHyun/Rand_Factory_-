@@ -701,3 +701,63 @@
 - `article_view_count` 컬럼은 어제 발견한 `article_chunk_count` 누락 케이스와 함께 마이그레이션 누락 패턴. 향후 새 컬럼 추가 시 ALTER와 모델/스키마를 한 번에 묶는 워크플로 권장
 - 마스터 페이지의 "많이 본 아티클" UI는 미구현. `/popular` 엔드포인트만 준비된 상태
 
+---
+
+## 2026-05-11 - Codex (AI 커리큘럼 생성 API + 프론트 저장 흐름 연결)
+
+### 작업
+- AI 커리큘럼 생성 백엔드 서비스 추가
+  - `server/app/services/curriculum_service.py` 신규 생성
+  - 기존 `ai/curr.py`의 핵심 프롬프트/LLM 호출 흐름을 백엔드 서비스용으로 재구성
+  - 입력값(과정명/직무/산업/기간/학습목표/필수내용)을 받아 주차별 `cur_week_plan` JSON 리스트로 반환
+  - LLM 응답의 markdown code fence 제거 후 JSON 파싱
+- 커리큘럼 생성 스키마 추가
+  - `server/app/schemas/curriculum.py`
+  - `CurriculumGenerateRequest`, `CurriculumGenerateResponse` 추가
+- 커리큘럼 생성 API 추가
+  - `server/app/routers/curriculum.py`
+  - `POST /api/curricula/generate` 추가
+  - manager/admin(`m`, `a`)만 호출 가능
+  - 자동 저장하지 않고 AI 생성 결과만 반환
+  - AI 호출/파싱 실패 시 502 응답으로 변환
+- 프론트 커리큘럼 생성 흐름 연결
+  - `client/src/components/CurriculumView.jsx`
+  - 기존 `DUMMY_PREVIEW` 제거
+  - 생성 모달에 과정명/직무/산업/기간/학습목표/필수내용 입력 폼 추가
+  - `POST /api/curricula/generate` 호출 후 실제 AI 결과를 미리보기 모달에 표시
+  - 미리보기에서 `생성` 클릭 시 `POST /api/curricula`로 DB 저장
+  - 저장 후 목록을 다시 불러오고 방금 생성한 커리큘럼 선택
+  - 생성/저장 로딩 상태와 에러 메시지 처리 추가
+- 프론트 스타일 보강
+  - `client/src/styles/Curriculum.css`
+  - 생성 폼, 입력 필드, 생성 버튼, 에러 문구 스타일 추가
+  - 미리보기 모달이 긴 주차 계획도 표시할 수 있도록 최대 높이/스크롤 처리
+
+### 기존 대비 변경점
+- 기존에는 커리큘럼 목록 조회(`GET /api/curricula`)와 상세 표시만 연결되어 있었음
+- 생성 모달은 채팅 UI 형태의 더미 미리보기(`DUMMY_PREVIEW`)만 표시했음
+- 이제는 실제 AI 생성 API를 호출하고, 사용자가 검토한 뒤 DB에 저장하는 흐름까지 연결됨
+- `ai/curr.py`를 서버에서 직접 import하지 않고, 백엔드 책임 범위에 맞게 `server/app/services/curriculum_service.py`로 분리 구현함
+
+### 검증
+- 백엔드 컴파일 확인
+  - `server/venv/Scripts/python.exe -m compileall -q server/app` 통과
+- 백엔드 서비스 import 확인
+  - `from app.services.curriculum_service import generate_week_plan` OK
+- 실제 API 호출 확인
+  - Python `requests`로 `POST /api/curricula/generate` 호출
+  - 한글 입력/응답 정상
+  - `cur_week_plan`이 `week`, `theme`, `tasks` 구조로 정상 반환됨
+- 프론트 빌드 확인
+  - `npm run build` 통과
+- Git 점검
+  - `git fetch origin` 후 `dev`와 `origin/dev` 동일
+  - 충돌 마커 없음
+  - `git diff --check` 치명 오류 없음
+  - Windows 줄바꿈 경고만 확인됨
+
+### 주의
+- `POST /api/curricula/generate`는 DB에 저장하지 않음. 저장은 미리보기 모달의 `생성` 버튼에서 `POST /api/curricula`로 수행
+- PowerShell 5에서 한글 JSON 요청/응답이 깨질 수 있어 API 테스트는 Swagger 또는 Python `requests` 권장
+- 현재 생성 결과 검증은 기본 JSON 파싱 중심. 추후 `cur_duration_weeks`와 실제 반환 주차 개수 일치 검증을 추가하면 더 안전함
+- `required_content`는 현재 저장 시 `cur_ai_prompt_input`에 보존

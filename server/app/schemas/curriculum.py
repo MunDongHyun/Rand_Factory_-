@@ -31,6 +31,24 @@ class CurriculumUpdate(BaseModel):
     cur_status: CurriculumStatus | None = None
 
 
+class CurriculumGenerateRequest(BaseModel):
+    cur_title: str
+    cur_duration_weeks: int
+    cur_target_job: str | None = None
+    cur_target_industry: str | None = None
+    cur_learning_goal: str | None = None
+    required_content: str | None = None
+
+
+class CurriculumGenerateResponse(BaseModel):
+    cur_title: str
+    cur_duration_weeks: int
+    cur_target_job: str | None = None
+    cur_target_industry: str | None = None
+    cur_learning_goal: str | None = None
+    cur_week_plan: list[dict]
+
+
 class CurriculumResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

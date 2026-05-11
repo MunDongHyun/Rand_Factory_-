@@ -6,7 +6,14 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.curriculum import Curriculum
 from app.models.user import User
-from app.schemas.curriculum import CurriculumCreate, CurriculumResponse, CurriculumUpdate
+from app.schemas.curriculum import (
+    CurriculumCreate,
+    CurriculumGenerateRequest,
+    CurriculumGenerateResponse,
+    CurriculumResponse,
+    CurriculumUpdate,
+)
+from app.services import curriculum_service
 
 router = APIRouter(prefix="/api/curricula", tags=["curricula"])
 
@@ -51,6 +58,36 @@ def create_curriculum(
     db.commit()
     db.refresh(curriculum)
     return curriculum
+
+
+@router.post("/generate", response_model=CurriculumGenerateResponse)
+def generate_curriculum(
+    body: CurriculumGenerateRequest,
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.user_role not in {"m", "a"}:
+        raise HTTPException(status_code=403, detail="Only manager/admin can generate curricula")
+
+    try:
+        week_plan = curriculum_service.generate_week_plan(
+            cur_title=body.cur_title,
+            cur_duration_weeks=body.cur_duration_weeks,
+            cur_target_job=body.cur_target_job,
+            cur_target_industry=body.cur_target_industry,
+            cur_learning_goal=body.cur_learning_goal,
+            required_content=body.required_content,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"AI 생성 실패: {exc}")
+
+    return CurriculumGenerateResponse(
+        cur_title=body.cur_title,
+        cur_duration_weeks=body.cur_duration_weeks,
+        cur_target_job=body.cur_target_job,
+        cur_target_industry=body.cur_target_industry,
+        cur_learning_goal=body.cur_learning_goal,
+        cur_week_plan=week_plan,
+    )
 
 
 @router.get("", response_model=list[CurriculumResponse])

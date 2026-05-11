@@ -3,6 +3,15 @@ import api from '../lib/api';
 import curri_nulll from '../public/curri_null.png';
 import '../styles/Curriculum.css';
 
+const initialForm = {
+  cur_title: '',
+  cur_duration_weeks: 4,
+  cur_target_job: '',
+  cur_target_industry: '',
+  cur_learning_goal: '',
+  required_content: '',
+};
+
 const formatTasks = (tasks) => {
   if (Array.isArray(tasks)) return tasks.join(', ');
   if (typeof tasks === 'string') return tasks;
@@ -15,17 +24,14 @@ const normalizeWeekPlan = (plan) => {
   return [];
 };
 
-// 미리보기용 더미 (생성 흐름은 아직 미연결)
-const DUMMY_PREVIEW = {
-  name: '마케팅 프레임워크 과정',
-  goal: 'DBR 아티클 기반으로 마케팅 프레임워크를 습득하고 실무에 적용할 수 있다(cur_learing_goal)',
-  steps: [
-    { week: 1, theme: 'targetjob | industry', task: '디지털 마케팅 개론' },
-    { week: 2, theme: 'targetjob | industry', task: '데이터 기반 의사결정' },
-    { week: 3, theme: 'targetjob | industry', task: '콘텐츠 마케팅 전략' },
-    { week: 4, theme: 'targetjob | industry', task: '성과 측정 및 최적화' },
-  ]
-};
+const buildGeneratePayload = (form) => ({
+  cur_title: form.cur_title.trim(),
+  cur_duration_weeks: Number(form.cur_duration_weeks),
+  cur_target_job: form.cur_target_job.trim() || null,
+  cur_target_industry: form.cur_target_industry.trim() || null,
+  cur_learning_goal: form.cur_learning_goal.trim() || null,
+  required_content: form.required_content.trim() || null,
+});
 
 function CurriculumView() {
   const [modalOpen, setModalOpen] = useState(false);
@@ -34,35 +40,130 @@ function CurriculumView() {
   const [selectedId, setSelectedId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [form, setForm] = useState(initialForm);
+  const [preview, setPreview] = useState(null);
+  const [generating, setGenerating] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState(null);
+
+  const loadCurriculums = () => {
+    setLoading(true);
+    setError(null);
+    return api.get('/curricula')
+      .then((res) => {
+        const list = Array.isArray(res.data) ? res.data : [];
+        setCurriculums(list);
+        setSelectedId((prev) => {
+          if (prev && list.some((c) => c.cur_id === prev)) return prev;
+          return list[0]?.cur_id ?? null;
+        });
+        return list;
+      })
+      .catch((err) => {
+        setError(err.response?.data?.detail || '커리큘럼을 불러오지 못했어요.');
+        return [];
+      })
+      .finally(() => setLoading(false));
+  };
 
   useEffect(() => {
-    let cancelled = false;
+    let mounted = true;
     setLoading(true);
     setError(null);
     api.get('/curricula')
       .then((res) => {
-        if (cancelled) return;
+        if (!mounted) return;
         const list = Array.isArray(res.data) ? res.data : [];
         setCurriculums(list);
         if (list.length > 0) setSelectedId(list[0].cur_id);
       })
       .catch((err) => {
-        if (cancelled) return;
+        if (!mounted) return;
         setError(err.response?.data?.detail || '커리큘럼을 불러오지 못했어요.');
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (mounted) setLoading(false);
       });
-    return () => { cancelled = true; };
+    return () => { mounted = false; };
   }, []);
 
   const selectedCurriculum = curriculums.find((c) => c.cur_id === selectedId);
+
+  const closeModal = () => {
+    if (generating || saving) return;
+    setModalOpen(false);
+    setConfirmOpen(false);
+    setPreview(null);
+    setFormError(null);
+  };
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setForm((prev) => ({ ...prev, [name]: name === 'cur_duration_weeks' ? Number(value) : value }));
+  };
+
+  const handleGenerate = async (event) => {
+    event.preventDefault();
+    setFormError(null);
+
+    const payload = buildGeneratePayload(form);
+    if (!payload.cur_title) {
+      setFormError('과정명을 입력해 주세요.');
+      return;
+    }
+    if (!payload.cur_duration_weeks || payload.cur_duration_weeks < 1) {
+      setFormError('기간은 1주 이상으로 입력해 주세요.');
+      return;
+    }
+
+    setGenerating(true);
+    try {
+      const res = await api.post('/curricula/generate', payload);
+      setPreview(res.data);
+      setConfirmOpen(true);
+    } catch (err) {
+      setFormError(err.response?.data?.detail || 'AI 커리큘럼 생성에 실패했어요.');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!preview) return;
+    setSaving(true);
+    setFormError(null);
+    try {
+      const savePayload = {
+        cur_title: preview.cur_title,
+        cur_duration_weeks: preview.cur_duration_weeks,
+        cur_target_job: preview.cur_target_job,
+        cur_target_industry: preview.cur_target_industry,
+        cur_learning_goal: preview.cur_learning_goal,
+        cur_ai_prompt_input: form.required_content.trim() || null,
+        cur_week_plan: preview.cur_week_plan,
+        cur_status: 'draft',
+      };
+      const res = await api.post('/curricula', savePayload);
+      await loadCurriculums();
+      setSelectedId(res.data.cur_id);
+      setForm(initialForm);
+      setPreview(null);
+      setConfirmOpen(false);
+      setModalOpen(false);
+    } catch (err) {
+      setFormError(err.response?.data?.detail || '커리큘럼 저장에 실패했어요.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const previewWeeks = normalizeWeekPlan(preview?.cur_week_plan);
 
   return (
     <div className="curriculumPageContainer">
       <h2 className="sectionTitle">커리큘럼 관리</h2>
 
-      {loading && <p style={{ padding: '20px' }}>커리큘럼 불러오는 중...</p>}
+      {loading && <p style={{ padding: '20px' }}>커리큘럼을 불러오는 중...</p>}
       {error && <p style={{ padding: '20px', color: '#c33' }}>{error}</p>}
 
       {!loading && !error && curriculums.length === 0 && (
@@ -86,7 +187,9 @@ function CurriculumView() {
                   key={c.cur_id}
                   className={`curriculumSidebarItem ${selectedId === c.cur_id ? 'active' : ''}`}
                   onClick={() => setSelectedId(c.cur_id)}
-                >{c.cur_title}</li>
+                >
+                  {c.cur_title}
+                </li>
               ))}
             </ul>
             <button className="curriculumSidebarAddBtn" onClick={() => setModalOpen(true)}>
@@ -104,8 +207,8 @@ function CurriculumView() {
                 <div key={step.week} className="curriculumStepCard">
                   <div className="stepWeek">{step.week}주차</div>
                   <div className="stepContent">
-                    <p className="stepTitle">{formatTasks(step.tasks ?? step.task)}</p>
-                    <p className="stepDesc">{step.theme}</p>
+                    <p className="stepTitle">{step.theme}</p>
+                    <p className="stepDesc">{formatTasks(step.tasks ?? step.task)}</p>
                   </div>
                 </div>
               ))}
@@ -116,82 +219,133 @@ function CurriculumView() {
 
       {modalOpen && (
         <>
-          <div className="chatModalOverlay" onClick={() => setModalOpen(false)} />
+          <div className="chatModalOverlay" onClick={closeModal} />
           <div className="chatModalContainer">
             <aside className="chatSidebar">
               <p className="chatSidebarTitle">생성한 커리큘럼</p>
               <div className="chatSidebarDivider" />
               <ul className="chatSidebarList">
+                {curriculums.length === 0 && <li>아직 없음</li>}
                 {curriculums.map((c) => <li key={c.cur_id}>{c.cur_title}</li>)}
               </ul>
             </aside>
             <div className="chatMain">
-              <button className="chatModalClose" onClick={() => setModalOpen(false)}>✕</button>
-              <p className="chatMainTitle">AI 챗봇을 활용해 커리큘럼을 구성하세요.</p>
-              <div className="chatMessages">
-                <div className="chatBotMessage">
-                  <div className="chatBotAvatar" />
-                  <div className="chatBubble">안녕하세요! 무엇을 도와드릴까요?</div>
+              <button className="chatModalClose" onClick={closeModal} disabled={generating || saving}>×</button>
+              <p className="chatMainTitle">AI로 커리큘럼 초안을 생성하세요</p>
+              <form className="curriculumGenerateForm" onSubmit={handleGenerate}>
+                <label className="curriculumField">
+                  <span>과정명</span>
+                  <input
+                    name="cur_title"
+                    value={form.cur_title}
+                    onChange={handleChange}
+                    placeholder="예: 마케팅 신입 4주 온보딩"
+                  />
+                </label>
+                <div className="curriculumFieldGrid">
+                  <label className="curriculumField">
+                    <span>대상 직무</span>
+                    <input
+                      name="cur_target_job"
+                      value={form.cur_target_job}
+                      onChange={handleChange}
+                      placeholder="예: 마케터"
+                    />
+                  </label>
+                  <label className="curriculumField">
+                    <span>산업</span>
+                    <input
+                      name="cur_target_industry"
+                      value={form.cur_target_industry}
+                      onChange={handleChange}
+                      placeholder="예: IT"
+                    />
+                  </label>
                 </div>
-              </div>
-              <div className="chatInputArea">
-                <input
-                  className="chatInput"
-                  type="text"
-                  placeholder="메시지를 입력하세요... (클릭 시 미리보기 테스트)"
-                  onClick={() => setConfirmOpen(true)}
-                  readOnly
-                />
-              </div>
+                <label className="curriculumField">
+                  <span>기간</span>
+                  <input
+                    name="cur_duration_weeks"
+                    type="number"
+                    min="1"
+                    max="52"
+                    value={form.cur_duration_weeks}
+                    onChange={handleChange}
+                  />
+                </label>
+                <label className="curriculumField">
+                  <span>학습 목표</span>
+                  <textarea
+                    name="cur_learning_goal"
+                    value={form.cur_learning_goal}
+                    onChange={handleChange}
+                    rows="3"
+                    placeholder="예: 디지털 마케팅 기초 역량 확보"
+                  />
+                </label>
+                <label className="curriculumField">
+                  <span>필수 포함 내용</span>
+                  <textarea
+                    name="required_content"
+                    value={form.required_content}
+                    onChange={handleChange}
+                    rows="3"
+                    placeholder="예: GA4 분석, SEO 기본, 콘텐츠 마케팅 전략"
+                  />
+                </label>
+                {formError && <p className="curriculumFormError">{formError}</p>}
+                <button className="curriculumGenerateBtn" type="submit" disabled={generating}>
+                  {generating ? 'AI 생성 중...' : 'AI 커리큘럼 생성'}
+                </button>
+              </form>
             </div>
           </div>
         </>
       )}
 
-      {confirmOpen && (
+      {confirmOpen && preview && (
         <>
-          <div className="confirmOverlay" onClick={() => setConfirmOpen(false)} />
+          <div className="confirmOverlay" onClick={() => !saving && setConfirmOpen(false)} />
           <div className="confirmModal">
-
             <div className="confirmHeader">
               <div className="confirmHeaderRight">
-                <p className="confirmHeaderLabel">직무 | N주차</p>
-                <h3 className="confirmTitle">이 커리큘럼을 생성하시겠습니까?</h3>
+                <p className="confirmHeaderLabel">
+                  {preview.cur_target_job || '직무 미지정'} | {preview.cur_duration_weeks}주차
+                </p>
+                <h3 className="confirmTitle">이 커리큘럼을 저장할까요?</h3>
                 <div className="confirmDivider" />
               </div>
             </div>
 
             <div className="confirmGoalBox">
               <p className="confirmGoalLabel">교육 목표 :</p>
-              <p className="confirmGoalText">{DUMMY_PREVIEW.goal}</p>
+              <p className="confirmGoalText">{preview.cur_learning_goal || '교육 목표가 입력되지 않았습니다.'}</p>
             </div>
 
-            <p className="confirmProgramName">{DUMMY_PREVIEW.name}</p>
+            <p className="confirmProgramName">{preview.cur_title}</p>
 
             <div className="confirmStepList">
-              {DUMMY_PREVIEW.steps.map((step) => (
+              {previewWeeks.map((step) => (
                 <div key={step.week} className="confirmStepRow">
                   <span className="confirmStepWeek">week {step.week}</span>
                   <span className="confirmStepDivider" />
-                  <span className="confirmStepTask">{step.task}</span>
+                  <span className="confirmStepTask">{step.theme}</span>
                   <span className="confirmStepDivider" />
-                  <span className="confirmStepTheme">{step.theme}</span>
+                  <span className="confirmStepTheme">{formatTasks(step.tasks ?? step.task)}</span>
                 </div>
               ))}
             </div>
 
+            {formError && <p className="curriculumFormError">{formError}</p>}
+
             <div className="confirmBtns">
-              <button className="confirmBtnBack" onClick={() => setConfirmOpen(false)}>
-                뒤로가기
+              <button className="confirmBtnBack" onClick={() => setConfirmOpen(false)} disabled={saving}>
+                돌아가기
               </button>
-              <button className="confirmBtnCreate" onClick={() => {
-                setConfirmOpen(false);
-                setModalOpen(false);
-              }}>
-                생성
+              <button className="confirmBtnCreate" onClick={handleSave} disabled={saving}>
+                {saving ? '저장 중...' : '생성'}
               </button>
             </div>
-
           </div>
         </>
       )}

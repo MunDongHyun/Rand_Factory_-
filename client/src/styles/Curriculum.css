@@ -289,6 +289,95 @@
   color: #BEC6CF;
 }
 
+.curriculumGenerateForm {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-right: 4px;
+  text-align: left;
+}
+
+.curriculumFieldGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.curriculumField {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.curriculumField input,
+.curriculumField textarea {
+  width: 100%;
+  border: 1px solid #BEC6CF;
+  border-radius: 8px;
+  padding: 11px 12px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--ink);
+  background: #FFFFFF;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.curriculumField textarea {
+  resize: vertical;
+  min-height: 74px;
+  line-height: 1.5;
+}
+
+.curriculumField input:focus,
+.curriculumField textarea:focus {
+  border-color: #3A4A5C;
+  box-shadow: 0 0 0 3px rgba(58, 74, 92, 0.12);
+}
+
+.curriculumGenerateBtn {
+  width: 100%;
+  min-height: 48px;
+  border: none;
+  border-radius: 8px;
+  background: #3A4A5C;
+  color: #FFFFFF;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.curriculumGenerateBtn:hover {
+  transform: translateY(-1px);
+}
+
+.curriculumGenerateBtn:disabled,
+.confirmBtnBack:disabled,
+.confirmBtnCreate:disabled,
+.chatModalClose:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.curriculumFormError {
+  margin: 0;
+  color: #C33A3A;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+}
+
 /* ===========================
    커리큘럼 있을 때 레이아웃
    =========================== */
@@ -480,6 +569,8 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
+  max-height: 86vh;
+  overflow-y: auto;
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
   animation: slideUp 0.25s ease;
 }
@@ -608,8 +699,9 @@
   font-family: 'Pretendard', sans-serif;
   font-size: 12px;
   color: #656565;
-  width: 60px;
-  text-align: right;
+  width: 310px;
+  text-align: left;
+  line-height: 1.5;
 }
 
 /* 버튼 */
