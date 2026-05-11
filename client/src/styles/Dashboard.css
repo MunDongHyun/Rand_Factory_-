@@ -36,11 +36,29 @@
 }
 
 .dashLogo {
+  cursor: pointer;
+  position: relative;
   font-weight: 800;
   font-size: 25px;
   color: var(--ink);
   letter-spacing: -0.03em;
 }
+
+.dashLogo::after {
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--primary);
+  transition: width 0.3s ease;
+}
+
+.dashLogo:hover::after {
+  width: 100%;
+}
+
 
 .searchContainer {
   position: absolute;
