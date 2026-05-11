@@ -207,21 +207,6 @@
 }
 
 
-
-.curriculumLabel {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--ink);
-  letter-spacing: -0.02em;
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-
-.curriculumLabel:hover {
-  color: var(--primary);
-}
-
 .iconBox {
   width: 85px;
   height: 85px;
