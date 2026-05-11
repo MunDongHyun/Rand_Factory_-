@@ -135,8 +135,10 @@ function Dashboard({ user, onLogout }) {
         {view === 'articleDetail' &&
           (<ArticleDetailView
             article={selectedArticle}
-            onBack={() => window.history.back()}
-          />
+            onBack={() => {
+              setView('articles');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }} />
           )}
         {view === 'curriculum' && <CurriculumView />}
         {view === 'emailing' && <EmailingView />}
