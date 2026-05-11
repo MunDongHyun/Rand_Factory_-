@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -94,6 +95,20 @@ def list_categories(
     return [category for (category,) in rows if category]
 
 
+@router.get("/popular", response_model=list[ArticleResponse])
+def get_popular_articles(
+    limit: int = Query(10, ge=1, le=50),
+    db: Session = Depends(get_db),
+    _current_user: User = Depends(get_current_user),
+):
+    return (
+        db.query(Article)
+        .order_by(Article.article_view_count.desc(), Article.article_created_at.desc())
+        .limit(limit)
+        .all()
+    )
+
+
 @router.get("/{article_id}/insights", response_model=ArticleInsightsResponse)
 def get_article_insights(
     article_id: int,
@@ -127,4 +142,13 @@ def get_article(
     article = db.query(Article).filter(Article.article_id == article_id).first()
     if not article:
         raise HTTPException(status_code=404, detail="Article not found")
+
+    db.execute(
+        update(Article)
+        .where(Article.article_id == article_id)
+        .values(article_view_count=Article.article_view_count + 1)
+    )
+    db.commit()
+    db.refresh(article)
+
     return article
