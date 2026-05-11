@@ -33,6 +33,7 @@ class ArticleResponse(BaseModel):
     article_view_count: int | None = None
     article_created_at: datetime | None = None
     article_updated_at: datetime | None = None
+    article_thumbnail_url: str | None = None
 
 
 class ArticleListResponse(BaseModel):

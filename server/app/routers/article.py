@@ -7,9 +7,15 @@ from app.core.security import get_current_user
 from app.models.article import Article
 from app.models.user import User
 from app.schemas.article import ArticleCreate, ArticleInsightsResponse, ArticleListResponse, ArticleResponse
-from app.services import article_service, rag_service
+from app.services import article_service, rag_service, thumbnail_service
 
 router = APIRouter(prefix="/api/articles", tags=["articles"])
+
+
+def _to_response(article: Article) -> ArticleResponse:
+    response = ArticleResponse.model_validate(article)
+    response.article_thumbnail_url = thumbnail_service.get_thumbnail_url(article)
+    return response
 
 
 @router.post("", response_model=ArticleResponse, status_code=status.HTTP_201_CREATED)
@@ -46,7 +52,7 @@ def create_article(
         db.commit()
         db.refresh(article)
 
-    return article
+    return _to_response(article)
 
 
 @router.get("", response_model=ArticleListResponse)
@@ -78,7 +84,10 @@ def list_articles(
         .all()
     )
 
-    return ArticleListResponse(articles=articles, total=total)
+    return ArticleListResponse(
+        articles=[_to_response(a) for a in articles],
+        total=total,
+    )
 
 
 @router.get("/categories", response_model=list[str])
@@ -101,12 +110,13 @@ def get_popular_articles(
     db: Session = Depends(get_db),
     _current_user: User = Depends(get_current_user),
 ):
-    return (
+    articles = (
         db.query(Article)
         .order_by(Article.article_view_count.desc(), Article.article_created_at.desc())
         .limit(limit)
         .all()
     )
+    return [_to_response(a) for a in articles]
 
 
 @router.get("/{article_id}/insights", response_model=ArticleInsightsResponse)
@@ -151,4 +161,4 @@ def get_article(
     db.commit()
     db.refresh(article)
 
-    return article
+    return _to_response(article)

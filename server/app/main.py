@@ -1,7 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.routers import ai_output, article, chatbot, curriculum, health, rag, task_submission, user
+from app.services.thumbnail_service import THUMBNAIL_DIR, URL_PREFIX as THUMBNAIL_URL_PREFIX
 
 app = FastAPI(
     title="landfactory API",
@@ -16,6 +18,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+if THUMBNAIL_DIR.exists():
+    app.mount(THUMBNAIL_URL_PREFIX, StaticFiles(directory=THUMBNAIL_DIR), name="thumbnails")
 
 app.include_router(health.router)
 app.include_router(user.router)
