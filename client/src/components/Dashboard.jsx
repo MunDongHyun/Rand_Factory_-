@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import api from '../lib/api';
 import Header from './Header';
 import '../styles/Dashboard.css';
@@ -51,11 +51,22 @@ function Dashboard({ user, onLogout }) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const viewRef = useRef(view);
+  viewRef.current = view;
+
   useEffect(() => {
-    window.history.pushState({ view }, '');
+    if (view !== 'articles') {
+      window.history.pushState({ view, t: Date.now() }, '');
+    }
+  }, [view]);
+
+  useEffect(() => {
+    window.history.pushState({ view: 'articles', t: Date.now() }, '');
+    window.history.pushState({ view: 'articles', t: Date.now() + 1 }, '');
+
     const onPop = () => {
-      if (view === 'articles') {
-        window.history.pushState({ view: 'articles' }, '');
+      if (viewRef.current === 'articles') {
+        window.history.pushState({ view: 'articles', t: Date.now() }, '');
       } else {
         setView('articles');
         setSelectedArticle(null);
@@ -64,7 +75,7 @@ function Dashboard({ user, onLogout }) {
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
-  }, [view]);
+  }, []);
 
   const ArticleListView = () => (
     <>
@@ -135,10 +146,8 @@ function Dashboard({ user, onLogout }) {
         {view === 'articleDetail' &&
           (<ArticleDetailView
             article={selectedArticle}
-            onBack={() => {
-              setView('articles');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }} />
+            onBack={() => window.history.back()}
+          />
           )}
         {view === 'curriculum' && <CurriculumView />}
         {view === 'emailing' && <EmailingView />}
