@@ -26,6 +26,9 @@ dist/
 # Data (로컬 데이터 파일 제외)
 data/
 
+# AI 산출물 압축본 (zip은 git에 두지 않음)
+ai/thumbnails/*.zip
+
 # IDE
 .vscode/
 .idea/
