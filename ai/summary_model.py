@@ -16,7 +16,6 @@ from langchain_classic.retrievers import ParentDocumentRetriever
 from langchain_community.vectorstores.utils import filter_complex_metadata
 from langchain_community.document_loaders import PyMuPDFLoader
 
-  
 # 1. 환경 설정 및 모델 초기화
 BASE_DIR = Path(__file__).resolve().parent
 PROJECT_DIR = BASE_DIR.parent
@@ -31,8 +30,7 @@ if openai_api_key:
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"🚀 시스템 디바이스: {device.upper()}")
 
-
-llm = ChatOpenAI(model=os.getenv("AI_MODEL", "gpt-5.4-mini"), temperature=0.2)
+llm = ChatOpenAI(model=os.getenv("AI_MODEL", "gpt-4o"), temperature=0.2)
 
 # 한국어 특화 임베딩 모델
 embeddings = HuggingFaceEmbeddings(
@@ -41,24 +39,22 @@ embeddings = HuggingFaceEmbeddings(
     encode_kwargs={'normalize_embeddings': True}
 )
 
-
-# 2. 루프를 통한 모든 PDF 개별 처리
+# 2. 폴더 경로 설정 및 생성
 data_path = BASE_DIR / "data"
-summary_dir = BASE_DIR / "summary"  # ✅ 요약문 저장 폴더 지정
+summary_dir = BASE_DIR / "summary"
 
-# 💡 요약문을 저장할 폴더가 없다면 새로 생성합니다.
 if not os.path.exists(summary_dir):
     os.makedirs(summary_dir)
     print(f"📁 '{summary_dir}' 폴더가 존재하지 않아 새로 생성했습니다.")
 
 pdf_files = [f for f in os.listdir(data_path) if f.endswith('.pdf')]
-
 print(f"📂 총 {len(pdf_files)}개의 아티클을 발견했습니다.")
 
 # 스플리터 초기화
 parent_splitter = RecursiveCharacterTextSplitter(chunk_size=1500, chunk_overlap=150)
 child_splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=30)
 
+# 3. 루프를 통한 PDF 개별 처리
 for idx, file_name in enumerate(pdf_files):
     full_path = os.path.join(data_path, file_name)
     print(f"\n[{idx+1}/{len(pdf_files)}] 주제 맞춤형 심층 분석 중: {file_name}")
@@ -82,7 +78,7 @@ for idx, file_name in enumerate(pdf_files):
         )
         retriever.add_documents(docs)
 
-        # 3. 주제 맞춤형 심층 분석 프롬프트
+        # 주제 맞춤형 심층 분석 프롬프트
         prompt_template = """
         당신은 기업의 OJT 및 인터랙티브 교육 콘텐츠 설계를 위한 최고 수준의 AI 경영 멘토입니다.
         제공된 DBR 아티클을 분석하여, 실무진이 해당 '카테고리(주제)'의 핵심을 완벽히 이해하고 실무에 적용할 수 있도록 심층적인 JSON 데이터를 생성하세요.
@@ -116,7 +112,6 @@ for idx, file_name in enumerate(pdf_files):
               "core_message": "이 카드가 전달하려는 가장 중요한 1줄 핵심 주장",
               "detailed_summary": "배경, 원인, 결과를 포함한 300자 이상의 풍부한 서술형 맥락 요약"
             }}
-            최소 3개에서 최대 4개의 Card 작성하도록
           ],
           "ojt_conclusion": {{
             "title": "💡 실무 적용 가이드",
@@ -145,7 +140,7 @@ for idx, file_name in enumerate(pdf_files):
         # 분석 실행
         result = rag_chain.invoke("이 문서의 핵심 카테고리를 파악하고, 그 카테고리를 관통하는 3~4개의 핵심 키워드와 전체 맥락을 상세히 추출해줘.")
 
-        # 4. 파일 저장 처리 (summary 폴더에 저장)
+        # 메타데이터 및 파일명 추출
         meta = result.get("metadata", {})
         title = meta.get("title", "제목없음")
         author = meta.get("author", "저자없음")
@@ -155,13 +150,15 @@ for idx, file_name in enumerate(pdf_files):
         raw_file_name = f"{title}_{author}_{category}.json"
         clean_file_name = re.sub(r'[\\/*?:"<>|]', "", raw_file_name).strip()
         
-        # ✅ 지정된 summary 폴더 경로와 합치기
+        # ==========================================
+        # 4. 파일 저장 처리 (summary 폴더에 JSON 저장)
+        # ==========================================
         save_path = os.path.join(summary_dir, clean_file_name)
 
         with open(save_path, 'w', encoding='utf-8') as f:
             json.dump(result, f, ensure_ascii=False, indent=4)
         
-        print(f"   ✅ 저장 완료: {save_path}")
+        print(f"   ✅ 요약 데이터 저장 완료: {save_path}")
 
         # 메모리 정리를 위해 DB 초기화
         vectorstore.delete_collection()
@@ -169,4 +166,4 @@ for idx, file_name in enumerate(pdf_files):
     except Exception as e:
         print(f"   ❌ {file_name} 처리 중 오류 발생: {e}")
 
-print("\n✨ 모든 아티클 분석 및 파일 생성이 완료되었습니다!")
+print("\n✨ 모든 아티클 분석 및 JSON 생성이 완료되었습니다!")
