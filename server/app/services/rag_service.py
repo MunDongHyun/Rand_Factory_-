@@ -1,11 +1,6 @@
-"""
-RAG 서비스 — article 등록 시 ingest, 질문 시 검색+생성
-vectorstore는 모듈 레벨 싱글톤으로 관리 (요청마다 재생성 방지)
-"""
-
 from typing import Optional
 
-from langchain_community.vectorstores import Chroma
+from langchain_community.vectorstores import Chroma, VectorStore
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.documents import Document
@@ -77,7 +72,7 @@ def query_rag(question: str, k: int = 4) -> dict:
         "답변:"
     )
     llm = ChatOpenAI(
-        model="gpt-4o-mini",
+        model="gpt-5.4",
         temperature=0.3,
         api_key=settings.openai_api_key,
     )
@@ -102,3 +97,19 @@ def query_rag(question: str, k: int = 4) -> dict:
             })
 
     return {"answer": answer, "sources": sources}
+
+
+def search_similar_article_ids(keyword: str, top_k: int = 15) -> list[int]:
+    vs = _get_vectorstore() 
+    results = vs.similarity_search(keyword, k=top_k)
+    
+    article_ids = []
+    seen = set()
+    
+    for doc in results:
+        aid = doc.metadata.get("article_id")
+        if aid and aid not in seen:
+            article_ids.append(int(aid))
+            seen.add(aid)
+            
+    return article_ids
