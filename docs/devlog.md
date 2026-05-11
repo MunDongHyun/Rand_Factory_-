@@ -761,3 +761,96 @@
 - PowerShell 5에서 한글 JSON 요청/응답이 깨질 수 있어 API 테스트는 Swagger 또는 Python `requests` 권장
 - 현재 생성 결과 검증은 기본 JSON 파싱 중심. 추후 `cur_duration_weeks`와 실제 반환 주차 개수 일치 검증을 추가하면 더 안전함
 - `required_content`는 현재 저장 시 `cur_ai_prompt_input`에 보존
+
+---
+
+## 2026-05-11 - Claude (아티클 썸네일 표시 + DB 스키마 모델 동기화)
+
+### 배경
+- 요약문 작성 파이프라인에서 DB 스키마 3건 변경됨 (팀원 작업)
+  - `articles.article_author_email` JSON 컬럼 추가
+  - `ai_outputs.user_id` FK NULL 허용으로 변경 (요약문 추가 시 user_id 없이 INSERT 가능하도록)
+  - `ai_outputs.summary_text` Text → JSON 타입 변경 (요약문이 JSON 구조)
+- `ai/thumbnails/*.png` 30개 파일도 함께 들어옴 (이름 규칙: `{title}_{author}_{category}.png`)
+- DB 변경에 모델 코드가 동기화되지 않은 상태였고, 썸네일을 article 카드에 노출하는 인프라도 없었음
+
+### DB 추가 변경 (이번 작업에서 결정)
+- `articles.article_thumbnail_filename VARCHAR(512) NULL` 컬럼 추가
+  - 처음에는 `{title}_{author}_{category}.png` 조합으로 프론트가 직접 파일명 만들 계획이었으나, DB 카테고리(짧음, 예: `AI`, `경영`)와 PNG 카테고리(길게 LLM 생성, 예: `인재 관리 및 조직 개발`)의 분류 체계 자체가 달라 매칭률 0
+  - 매칭 키를 데이터로 명시하기 위해 PNG 파일명을 article 행이 직접 보유하는 구조로 변경
+
+### 모델 코드 동기화
+- `server/app/models/article.py`
+  - `article_author_email JSON` 추가
+  - `article_thumbnail_filename VARCHAR(512)` 추가
+- `server/app/models/ai_output.py`
+  - `user_id` `nullable=True`, `Mapped[int | None]`로 변경
+  - `summary_text` Text → JSON, `Mapped[dict | list | None]`로 변경
+  - `user` 관계도 `Mapped["User | None"]`
+
+### 썸네일 인프라
+- `server/app/services/thumbnail_service.py` 신규
+  - `THUMBNAIL_DIR = Path(__file__).resolve().parents[3] / "ai" / "thumbnails"` (절대경로 안전)
+  - `get_thumbnail_url(article)` — `article.article_thumbnail_filename` 값을 디스크에서 검사 후 URL 인코딩하여 반환
+- `server/app/main.py`
+  - `StaticFiles`로 `/api/thumbnails` mount (디렉토리 존재 시에만)
+- `server/app/schemas/article.py`
+  - `ArticleResponse.article_thumbnail_url: str | None` 추가 (derived field)
+- `server/app/routers/article.py`
+  - `_to_response(article)` helper 추가, list/get/popular/create 4개 라우터에서 일관 사용
+- `client/src/components/Dashboard.jsx`
+  - 카드 `cardTop`에 `{item.article_thumbnail_url && <img ... />}` 조건부 렌더링
+  - CSS는 기존 `.cardTop img { width:100%; height:100% }` 그대로 활용
+
+### 매핑 작업
+- PNG 30개와 DB 38개 article을 자동 매칭 분석 (제목 유사도 + author 매칭)
+- 1차: AUTO 3건 + AMBIGUOUS 중 title 100% 일치 1건 = 4건 UPDATE
+- 2차: 실제 화면 검증 후 확실도가 높은 12건 추가 UPDATE, 총 16건 유효 매핑
+- 3차: 중복 테스트 산출물로 보이는 후보 중 article당 대표 썸네일 1개만 선택하는 정책으로 4건 추가/정정, 총 **20건** 유효 매핑
+- `2089`는 DB에 ASCII 쌍따옴표(`"`)로 들어가 파일 존재 체크가 실패했으므로 실제 디스크 파일명의 곡선 따옴표(`“”`) 기준으로 수정
+- `2080`은 후보 파일명 2개가 붙은 잘못된 문자열이 들어가 있었으므로 대표 1개(`고객 신뢰를 위한 투명성 전략...`)로 정정
+- 현재 `article_thumbnail_filename` 채워진 20건 모두 디스크 파일 존재 + `article_thumbnail_url` 정상 생성 확인
+  - `2078` — 에이전트 기반 상거래의 신뢰 구축 전략
+  - `2079` — AI와 여행 산업의 혁신적 변화
+  - `2080` — 고객 신뢰를 위한 투명성 전략
+  - `2081` — AI 에이전트 관리의 혁신적 접근
+  - `2082` — AI 음성 시스템의 신뢰성과 충실도 관리
+  - `2083` — 유행을 읽는 눈 두쫀쿠 사례로 본 소비자 욕망의 번역
+  - `2084` — 데이터 기반 조직으로의 전환
+  - `2087` — SMART 업무 설계 모델
+  - `2088` — 긍정적 리뷰에 대한 효과적인 응답 전략
+  - `2089` — 신입 사원 반존대
+  - `2090` — The Art of Misspelling
+  - `2091` — Understanding Customer Grief in Brand Relationships
+  - `2092` — 전쟁이 상수가 된다면
+  - `2094` — 예측 불가능한 전쟁의 시대, 공급망 덮친 리걸 리스크
+  - `2095` — 중동발 에너지 위기와 ESG 전략 재편
+  - `2096` — 우크라이나 전쟁 이후 글로벌 물류 공급망의 진화 가능성
+  - `2097` — 협업의 구조적 전환을 통한 효과적인 프로젝트 관리
+  - `2098` — 절망의 온도 맞추기 대중문화 흥행의 비밀
+  - `2099` — AI 시대 게으른 사람들의 천국
+
+### 발견 (요약문 JSON 구조)
+- 현재 `ai_outputs`에 요약문 1건(output_id=1212) 존재
+- top-level keys: `metadata`, `card_news`(4장), `ojt_conclusion`, `theme_analysis`
+- raw `text(...)` SQL로 가져오면 string으로 오지만 ORM(`db.query(AiOutput)`)으로 가져오면 dict (PyMySQL/SQLAlchemy 정상 동작, 이중 인코딩 아님)
+
+### 검증
+- `python -m compileall -q app` 통과
+- `npm run build` 통과 (98 modules, 844ms)
+- helper 단위 테스트: 컬럼 채워짐 → URL 인코딩 정상, 컬럼 None → None, 디스크 파일 없음 → None
+- 화면 검증: 매핑된 카드에 PNG 정상 표시 확인
+- 백엔드 응답 검증: `_to_response(article)` 기준 `article_thumbnail_url` 생성 row 20건 확인
+
+### 보류
+- 남은 미매핑 PNG 10건: 같은 글의 reframe인지, DB INSERT 누락인지 수동 검토 필요
+  - `고객 신뢰 구축...`, `해상 초크 포인트...`, `컨버터블 리더십...`은 대표 썸네일을 이미 다른 후보로 선택했으므로 보류
+  - 조직/협업/리더십 계열 PNG는 `2073`, `2068`, `2093` 후보가 섞여 있어 원문 확인 필요
+  - 성과관리/AI 학습 계열 PNG는 대응 article이 불명확해 보류
+- 나머지 articles 18건은 아직 `article_thumbnail_filename` NULL
+- 요약문 상세 UI 미구현 (JSON 구조 확정됐으니 다음 단계로 진행 가능): `GET /api/articles/{id}/summary` + 카드뉴스 4장 + ojt_conclusion + theme_analysis 렌더링
+
+### 주의
+- `articles.article_thumbnail_filename`에 UNIQUE 제약은 안 걸음. 같은 PNG가 두 article에 매핑되지 않도록 애플리케이션이 책임
+- DB 컬럼만 채우고 PNG 파일이 디스크에 없으면 `get_thumbnail_url`이 None 반환 (404 안 떨어지고 카드 fallback)
+- `/api/thumbnails`는 mount 시점이 startup이라 변경 후 uvicorn 재시작 필요 (`--reload`로는 안 잡힘)

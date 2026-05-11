@@ -4,9 +4,16 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import get_current_user
+from app.models.ai_output import AiOutput
 from app.models.article import Article
 from app.models.user import User
-from app.schemas.article import ArticleCreate, ArticleInsightsResponse, ArticleListResponse, ArticleResponse
+from app.schemas.article import (
+    ArticleCreate,
+    ArticleInsightsResponse,
+    ArticleListResponse,
+    ArticleResponse,
+    ArticleSummaryResponse,
+)
 from app.services import article_service, rag_service, thumbnail_service
 
 router = APIRouter(prefix="/api/articles", tags=["articles"])
@@ -117,6 +124,27 @@ def get_popular_articles(
         .all()
     )
     return [_to_response(a) for a in articles]
+
+
+@router.get("/{article_id}/summary", response_model=ArticleSummaryResponse)
+def get_article_summary(
+    article_id: int,
+    db: Session = Depends(get_db),
+    _current_user: User = Depends(get_current_user),
+):
+    article = db.query(Article).filter(Article.article_id == article_id).first()
+    if not article:
+        raise HTTPException(status_code=404, detail="Article not found")
+
+    summary = (
+        db.query(AiOutput)
+        .filter(AiOutput.article_id == article_id, AiOutput.output_type == "summary")
+        .order_by(AiOutput.created_at.desc(), AiOutput.output_id.desc())
+        .first()
+    )
+    if not summary:
+        raise HTTPException(status_code=404, detail="Article summary not found")
+    return summary
 
 
 @router.get("/{article_id}/insights", response_model=ArticleInsightsResponse)

@@ -41,6 +41,15 @@ class ArticleListResponse(BaseModel):
     total: int
 
 
+class ArticleSummaryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    output_id: int
+    article_id: int | None = None
+    summary_text: dict | list | None = None
+    created_at: datetime | None = None
+
+
 class InsightItem(BaseModel):
     title: str
     description: str
