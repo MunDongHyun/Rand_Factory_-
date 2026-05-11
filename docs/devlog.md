@@ -854,3 +854,52 @@
 - `articles.article_thumbnail_filename`에 UNIQUE 제약은 안 걸음. 같은 PNG가 두 article에 매핑되지 않도록 애플리케이션이 책임
 - DB 컬럼만 채우고 PNG 파일이 디스크에 없으면 `get_thumbnail_url`이 None 반환 (404 안 떨어지고 카드 fallback)
 - `/api/thumbnails`는 mount 시점이 startup이라 변경 후 uvicorn 재시작 필요 (`--reload`로는 안 잡힘)
+---
+
+## 2026-05-11 - Codex (요약문 상세 표시 + 썸네일/요약문 매핑 정리)
+
+### 작업
+- 아티클 상세 요약문 API/UI 연결
+  - `GET /api/articles/{article_id}/summary` 추가
+  - 같은 article에 summary가 여러 개 있으면 `created_at DESC, output_id DESC` 기준 최신 1건 반환
+  - 요약문이 없으면 404 반환
+  - `ArticleSummaryResponse` 추가
+  - `AiOutputResponse.user_id`를 nullable로, `summary_text`를 `dict | list | None`으로 스키마 정리
+- 프론트 상세 화면 요약문 렌더링
+  - `ArticleDetailView.jsx`에서 상세 진입 시 summary API 호출
+  - `metadata`, `theme_analysis`, `card_news`, `ojt_conclusion` 표시
+  - 상세 썸네일 hero 영역과 요약 카드 스타일 추가
+- 썸네일/요약문 매핑 DB 정리
+  - `2073`의 `article_thumbnail_filename`에 PNG 3개가 이어붙은 오염값 확인 후 `NULL` 처리
+  - `2085`의 잘못된 썸네일(`조직 AI팀...`) `NULL` 처리
+  - `2086`의 잘못된 썸네일/summary(`지정학적 리스크...`) 연결 해제
+  - `2085`에 잘못 연결된 summary 2건(`조직 AI팀...`) 연결 해제
+  - `2089`는 올바른 summary `1214`만 남기고 잘못 최신으로 잡히던 `1237` 연결 해제
+  - `2097`은 잘못 연결된 성과관리 summary 2건과 협업 썸네일 연결 해제
+
+### 검증
+- `server/venv/Scripts/python.exe -m compileall -q server/app` 통과
+- `client` `npm run build` 통과
+- ORM 기준 `summary_text`가 `dict`로 로드됨 확인
+- `thumbnail_service.get_thumbnail_url()` 기준 유효 썸네일 20건 확인 후 오매핑 정리 진행
+- 정리 후 주요 확인
+  - `2086` summary/thumbnail 없음
+  - `2085` summary/thumbnail 없음
+  - `2089` summary 1건 + thumbnail 정상
+  - `2097` summary/thumbnail 없음
+
+### 현재 데이터 기준
+- articles 총 38건
+- summary가 연결된 article 21건
+- 유효 thumbnail article 20건
+- 남은 중복 summary article
+  - `2073`: 3건 (`컨버터블 리더십`, `협업의 구조적 전환`, `휘발되는 소통`)
+  - `2080`: 2건 (`고객 신뢰 구축`, `고객 신뢰를 위한 투명성 전략`)
+  - `2096`: 2건 (`우크라이나 전쟁 이후 글로벌 물류`, `해상 초크 포인트`)
+- `article_chunk_count`는 현재 전체 38건이 0이라 RAG 원문 인덱싱은 아직 별도 작업 필요
+
+### 주의
+- DB 데이터 정리는 Git 커밋에 포함되지 않음. 공유 DB 기준으로 직접 정리된 상태
+- 중복 summary는 삭제하지 않고 보존. 상세 화면은 최신 1개만 표시하는 정책
+- 명확히 다른 글로 판단된 summary는 `article_id = NULL`로 분리해 추후 올바른 article이 생기면 재연결 가능
+- 썸네일/summary 추가 매핑은 자동 처리하지 말고 화면/원문 기준으로 확인 후 진행
