@@ -10,7 +10,7 @@ AiOutputType = Literal["summary", "wordcloud", "framework"]
 class AiOutputCreate(BaseModel):
     article_id: int | None = None
     output_type: AiOutputType
-    summary_text: str | None = None
+    summary_text: dict | list | None = None
     result_json: dict | None = None
     image_url: str | None = None
     framework_type: str | None = None
@@ -38,10 +38,10 @@ class AiOutputResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     output_id: int
-    user_id: int
+    user_id: int | None = None
     article_id: int | None = None
     output_type: AiOutputType
-    summary_text: str | None = None
+    summary_text: dict | list | None = None
     result_json: dict | None = None
     image_url: str | None = None
     framework_type: str | None = None
