@@ -9,7 +9,8 @@ const Intro = ({ onLogin, onSignup }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
+  const handleLogin = async (e) => {
+    if (e) e.preventDefault();
     if (!email || !password) {
       setError('이메일과 비밀번호를 입력해주세요.');
       return;
@@ -66,13 +67,14 @@ const Intro = ({ onLogin, onSignup }) => {
             <h2 className="login-wrap__heading">시작하기</h2>
             <p className="login-wrap__sub">통합 로그인</p>
 
-            <div className="login-form">
+            <form className="login-form" onSubmit={handleLogin} autoComplete="off">
               <div className="form-group">
                 <label className="form-label" htmlFor="email">이메일</label>
                 <input className="form-input"
                   id="email" type="email"
                   placeholder="name@company.com"
                   value={email}
+                  autoComplete="off"
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
@@ -84,18 +86,19 @@ const Intro = ({ onLogin, onSignup }) => {
                   type="password"
                   placeholder="••••••••"
                   value={password}
+                  autoComplete="new-password"
                   onChange={(e) => setPassword(e.target.value)} />
               </div>
               {error && <p style={{ color: 'red', fontSize: '13px', margin: '0' }}>{error}</p>} {/* ✅ 에러 메시지 */}
-              <button className="btn-login" onClick={handleLogin} disabled={loading}>
+              <button type="submit" className="btn-login" disabled={loading}>
                 {loading ? '로그인 중...' : '로그인 →'}
               </button>
               <div className="divider-row"><span>또는</span></div>
               <div className="register-block">
                 <span className="register-block__hint">혹시 회원이 아니신가요?</span>
-                <button className="btn-register" onClick={onSignup}>회원 등록하기</button>
+                <button type="button" className="btn-register" onClick={onSignup}>회원 등록하기</button>
               </div>
-            </div>
+            </form>
           </div>
         </section>
       </div>
