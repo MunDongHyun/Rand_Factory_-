@@ -658,5 +658,46 @@
 ### 참고
 - 메인 articles에서 back을 매우 빠르게 연타하면 React StrictMode 더블 mount + Chrome의 동일 state push 병합 영향으로 드물게 빠져나갈 수 있음. 정식 라우팅이 필요하면 `react-router-dom` 도입 권장
 - Insights 데이터(`/api/articles/{id}/insights`)는 인덱싱이 비어 있어 상세 화면 본문/시각화 연결은 보류
-- 회원가입 화면은 디자인/정책 갭 (회사 + 직원 다건 등록 vs 백엔드 학습자 1명 셀프 가입)으로 보류, 멘토링 후 방향 결정 예정
+- 회원가입 화면은 디자인/정책 갭 (회사 + 디자이너가 만든 직원 다건 등록 vs 백엔드 학습자 1명 셀프 가입)으로 보류, 멘토링 후 방향 결정 예정
+
+---
+
+## 2026-05-11 - chanhui (아티클 조회수 + 인기 엔드포인트 + 뒤로가기 안정화 + 로그인 폼)
+
+### 작업
+- 아티클 조회수 기능
+  - DB `articles` 테이블에 `article_view_count INT NULL DEFAULT 0` 컬럼 추가 (수동 ALTER)
+  - `server/app/models/article.py`, `server/app/schemas/article.py`에 `article_view_count` 필드 추가
+  - `GET /api/articles/{id}` 호출 시 `update(...).values(article_view_count=Article.article_view_count + 1)`로 atomic 증가, `db.refresh()`로 메모리 객체 갱신 후 반환
+- 인기 아티클 엔드포인트
+  - `GET /api/articles/popular?limit=N` 신설 (`limit` 기본 10, 최대 50)
+  - `article_view_count` 내림차순, 동점 시 `article_created_at` 내림차순
+  - 라우터 순서: `/{article_id}` 위에 선언 (정적 경로 우선 규칙)
+  - 인증 필요, 별도 역할 제한 없음
+- 메인 대시보드 뒤로가기 안정화 (`client/src/components/Dashboard.jsx`)
+  - popstate 리스너를 mount-only로 분리, view는 `useRef`로 추적해 stale closure 회피
+  - `pushState` 상태에 `t: Date.now()` 박아 Chrome의 동일 state push 병합 회피
+  - 초기 mount 시 push 2개로 React StrictMode 더블 mount 흡수
+  - 서브뷰(articleDetail/curriculum/emailing) 진입 시 별도 useEffect에서 push
+  - `ArticleDetailView` "← 뒤로가기" 버튼은 `window.history.back()`로 통일
+- 로그인 폼 정리 (`client/src/components/Intro.jsx`)
+  - input들을 `<form onSubmit>`으로 감싸 'Password field is not contained in a form' DOM 경고 해결
+  - 엔터 키로 로그인 가능
+  - `autoComplete` 속성으로 자동 채움 신호 정리 (email은 `off`, password는 `new-password`)
+  - 등록 버튼 `type="button"` 명시해 폼 submit 충돌 방지
+
+### 검증
+- 백엔드 `python -m compileall -q app` 통과
+- 브라우저(Vite 5173, FastAPI 8000) 시나리오:
+  - `GET /api/articles/{id}` 반복 호출 시 응답의 `article_view_count` 1씩 증가
+  - `GET /api/articles/popular`이 view_count 내림차순으로 정렬된 N개 반환
+  - 메인 articles에서 브라우저 back 여러 번 → 페이지 유지(chrome 종료 방지)
+  - 상세→back, 메뉴→back 등 서브뷰 흐름 정상
+  - 엔터 키 로그인 동작
+
+### 참고
+- 디자이너가 push한 `Dashboard.jsx`의 `onBack` 변경(직접 `setView`)을 다시 `window.history.back()`로 통일 — popstate handler와 in-app back 동작 일치 위함. 디자이너가 또 풀해서 손대면 깨질 수 있어 사전 공지 필요
+- 로그인 폼의 `autoComplete="new-password"`는 브라우저 자동 채움 신호 표준값. Chrome의 비밀번호 관리자에 저장된 항목 dropdown은 별도 (Chrome 설정에서 직접 삭제하거나 시크릿 모드 사용)
+- `article_view_count` 컬럼은 어제 발견한 `article_chunk_count` 누락 케이스와 함께 마이그레이션 누락 패턴. 향후 새 컬럼 추가 시 ALTER와 모델/스키마를 한 번에 묶는 워크플로 권장
+- 마스터 페이지의 "많이 본 아티클" UI는 미구현. `/popular` 엔드포인트만 준비된 상태
 
