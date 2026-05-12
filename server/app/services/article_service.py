@@ -55,3 +55,37 @@ def extract_insights(title: str, content: str) -> dict:
         return json.loads(cleaned)
     except json.JSONDecodeError:
         return {"keywords": [], "insights": [], "error": cleaned}
+    
+
+GENERATION_PROMPT = (
+"당신은 비즈니스 전문 에디터입니다. 아래 키워드와 관련된 최신 트렌드와 실무 인사이트를 담은 아티클을 작성하세요.\n"
+"반드시 아래 JSON 형식으로만 답하세요.\n\n"
+"{{\n"
+'  "title": "아티클 제목",\n'
+'  "content": "아티클 전체 본문 (최소 1000자 이상)"\n'
+"}}\n\n"
+"키워드: {keyword}\n"
+"언어: 한국어"
+)
+
+def create_ai_generated_content(keyword: str) -> dict:
+    """키워드를 기반으로 아티클 제목과 본문을 생성합니다."""
+    prompt = ChatPromptTemplate.from_template(
+        "비즈니스 전문가로서 '{keyword}'에 대한 심층 분석 아티클을 작성하세요. "
+        "반드시 JSON 형식으로 응답하세요: {{\"title\": \"제목\", \"content\": \"본문\"}}"
+    )
+    llm = ChatOpenAI(model="gpt-4o-mini", api_key=settings.openai_api_key)
+    chain = prompt | llm | StrOutputParser()
+
+    try:
+        raw = chain.invoke({"keyword": keyword})
+        # JSON 문자열 추출 및 파싱
+        cleaned = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+        return json.loads(cleaned)
+    except Exception as e:
+        print(f"Generation Error: {e}")
+        # 폴백 데이터 반환
+        return {
+            "title": f"{keyword} 관련 비즈니스 리포트",
+            "content": f"{keyword}에 대한 분석 내용이 생성되는 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."
+        }

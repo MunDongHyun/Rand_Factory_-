@@ -15,9 +15,7 @@ class Article(Base):
     article_published_date: Mapped[str | None] = mapped_column(String(7), nullable=True)
     article_category: Mapped[str | None] = mapped_column(String(100), nullable=True)
     article_source_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    article_image_count: Mapped[int | None] = mapped_column(Integer, nullable=True, default=0)
     article_thumbnail_filename: Mapped[str | None] = mapped_column(String(512), nullable=True)
-    article_chunk_count: Mapped[int | None] = mapped_column(Integer, nullable=True, default=0)
     article_view_count: Mapped[int | None] = mapped_column(Integer, nullable=True, default=0)
     article_created_at: Mapped[DateTime | None] = mapped_column(DateTime, nullable=True, server_default=func.now())
     article_updated_at: Mapped[DateTime] = mapped_column(
