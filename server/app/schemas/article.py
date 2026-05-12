@@ -14,7 +14,6 @@ class ArticleCreate(BaseModel):
     article_published_date: str | None = None
     article_category: str | None = None
     article_source_url: str | None = None
-    article_image_count: int = 0
     content: str | None = None
 
 
@@ -28,12 +27,12 @@ class ArticleResponse(BaseModel):
     article_published_date: str | None = None
     article_category: str | None = None
     article_source_url: str | None = None
-    article_image_count: int | None = None
     article_chunk_count: int | None = None
     article_view_count: int | None = None
     article_created_at: datetime | None = None
     article_updated_at: datetime | None = None
     article_thumbnail_url: str | None = None
+    article_has_summary: bool = False
 
 
 class ArticleListResponse(BaseModel):

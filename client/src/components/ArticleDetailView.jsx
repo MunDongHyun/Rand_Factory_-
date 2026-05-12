@@ -10,9 +10,16 @@ function ArticleDetailView({ article, onBack }) {
     if (!article?.article_id) return;
 
     let cancelled = false;
-    setSummaryLoading(true);
-    setSummaryError(null);
     setSummary(null);
+    setSummaryError(null);
+
+    if (article.article_has_summary === false) {
+      setSummaryLoading(false);
+      setSummaryError('아직 등록된 AI 요약문이 없습니다.');
+      return () => { cancelled = true; };
+    }
+
+    setSummaryLoading(true);
 
     api.get(`/articles/${article.article_id}/summary`)
       .then((res) => {
@@ -21,7 +28,7 @@ function ArticleDetailView({ article, onBack }) {
       .catch((err) => {
         if (!cancelled) {
           const detail = err.response?.status === 404
-            ? '등록된 요약문이 아직 없습니다.'
+            ? '아직 등록된 AI 요약문이 없습니다.'
             : err.response?.data?.detail || '요약문을 불러오지 못했어요.';
           setSummaryError(detail);
         }
@@ -31,7 +38,7 @@ function ArticleDetailView({ article, onBack }) {
       });
 
     return () => { cancelled = true; };
-  }, [article?.article_id]);
+  }, [article?.article_id, article?.article_has_summary]);
 
   if (!article) return null;
 
@@ -41,7 +48,7 @@ function ArticleDetailView({ article, onBack }) {
 
   return (
     <div className="articleDetailContainer">
-      <button className="detailBackBtn" onClick={onBack}>← 뒤로가기</button>
+      <button className="detailBackBtn" onClick={onBack}>목록으로</button>
       <div className="articleDetailContent">
         {article.article_thumbnail_url && (
           <div className="articleDetailHero">
@@ -52,9 +59,9 @@ function ArticleDetailView({ article, onBack }) {
         <h1 className="articleDetailTitle">{article.article_title}</h1>
         <div className="articleDetailMeta">
           <span>{article.article_source}</span>
-          {article.article_author && <> <span className="cardDot">•</span> <span>{article.article_author}</span></>}
-          {article.article_published_date && <> <span className="cardDot">•</span> <span>{article.article_published_date}</span></>}
-          {article.article_category && <> <span className="cardDot">•</span> <span># {article.article_category}</span></>}
+          {article.article_author && <> <span className="cardDot">·</span> <span>{article.article_author}</span></>}
+          {article.article_published_date && <> <span className="cardDot">·</span> <span>{article.article_published_date}</span></>}
+          {article.article_category && <> <span className="cardDot">·</span> <span># {article.article_category}</span></>}
         </div>
 
         {summaryLoading && <p className="articleSummaryState">요약문을 불러오는 중...</p>}

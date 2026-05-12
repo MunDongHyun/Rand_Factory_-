@@ -19,10 +19,28 @@ from app.services import article_service, rag_service, thumbnail_service
 router = APIRouter(prefix="/api/articles", tags=["articles"])
 
 
-def _to_response(article: Article) -> ArticleResponse:
+def _to_response(article: Article, summary_article_ids: set[int] | None = None) -> ArticleResponse:
     response = ArticleResponse.model_validate(article)
     response.article_thumbnail_url = thumbnail_service.get_thumbnail_url(article)
+    if summary_article_ids is not None:
+        response.article_has_summary = article.article_id in summary_article_ids
     return response
+
+
+def _summary_article_ids(db: Session, article_ids: list[int]) -> set[int]:
+    if not article_ids:
+        return set()
+
+    rows = (
+        db.query(AiOutput.article_id)
+        .filter(
+            AiOutput.article_id.in_(article_ids),
+            AiOutput.output_type == "summary",
+        )
+        .distinct()
+        .all()
+    )
+    return {article_id for (article_id,) in rows if article_id is not None}
 
 
 @router.post("", response_model=ArticleResponse, status_code=status.HTTP_201_CREATED)
@@ -41,7 +59,6 @@ def create_article(
         article_published_date=body.article_published_date,
         article_category=body.article_category,
         article_source_url=body.article_source_url,
-        article_image_count=body.article_image_count,
     )
     db.add(article)
     db.commit()
@@ -91,8 +108,10 @@ def list_articles(
         .all()
     )
 
+    summary_article_ids = _summary_article_ids(db, [a.article_id for a in articles])
+
     return ArticleListResponse(
-        articles=[_to_response(a) for a in articles],
+        articles=[_to_response(a, summary_article_ids) for a in articles],
         total=total,
     )
 
@@ -123,7 +142,8 @@ def get_popular_articles(
         .limit(limit)
         .all()
     )
-    return [_to_response(a) for a in articles]
+    summary_article_ids = _summary_article_ids(db, [a.article_id for a in articles])
+    return [_to_response(a, summary_article_ids) for a in articles]
 
 
 @router.get("/{article_id}/summary", response_model=ArticleSummaryResponse)
@@ -189,4 +209,5 @@ def get_article(
     db.commit()
     db.refresh(article)
 
-    return _to_response(article)
+    summary_article_ids = _summary_article_ids(db, [article.article_id])
+    return _to_response(article, summary_article_ids)
