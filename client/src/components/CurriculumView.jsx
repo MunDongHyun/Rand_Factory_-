@@ -208,7 +208,37 @@ function CurriculumView() {
                   <div className="stepWeek">{step.week}주차</div>
                   <div className="stepContent">
                     <p className="stepTitle">{step.theme}</p>
+                    {step.learning_objective && (
+                      <p className="stepObjective" style={{ fontSize: 13, color: '#555', marginTop: 4 }}>
+                        🎯 {step.learning_objective}
+                      </p>
+                    )}
                     <p className="stepDesc">{formatTasks(step.tasks ?? step.task)}</p>
+                    {Array.isArray(step.success_criteria) && step.success_criteria.length > 0 && (
+                      <ul className="stepCriteria" style={{ margin: '6px 0', paddingLeft: 18, fontSize: 13, color: '#666' }}>
+                        {step.success_criteria.map((c, i) => (
+                          <li key={i}>{c}</li>
+                        ))}
+                      </ul>
+                    )}
+                    {Array.isArray(step.recommended_articles) && step.recommended_articles.length > 0 && (
+                      <div className="stepArticles" style={{ marginTop: 8, padding: 8, background: '#f6f8fa', borderRadius: 6 }}>
+                        <p style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>📚 추천 아티클</p>
+                        {step.recommended_articles.map((a, i) => (
+                          <div key={i} style={{ marginTop: 4 }}>
+                            <p style={{ fontSize: 13, fontWeight: 500 }}>{a.title}</p>
+                            {a.why_relevant && (
+                              <p style={{ fontSize: 12, color: '#777' }}>{a.why_relevant}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {step.estimated_hours && (
+                      <p style={{ fontSize: 12, color: '#888', marginTop: 6 }}>
+                        ⏱ 예상 {step.estimated_hours}시간
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}
@@ -326,12 +356,25 @@ function CurriculumView() {
 
             <div className="confirmStepList">
               {previewWeeks.map((step) => (
-                <div key={step.week} className="confirmStepRow">
+                <div key={step.week} className="confirmStepRow" style={{ alignItems: 'flex-start' }}>
                   <span className="confirmStepWeek">week {step.week}</span>
                   <span className="confirmStepDivider" />
-                  <span className="confirmStepTask">{step.theme}</span>
-                  <span className="confirmStepDivider" />
-                  <span className="confirmStepTheme">{formatTasks(step.tasks ?? step.task)}</span>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <span className="confirmStepTask">{step.theme}</span>
+                    {step.learning_objective && (
+                      <span style={{ fontSize: 12, color: '#666' }}>🎯 {step.learning_objective}</span>
+                    )}
+                    <span className="confirmStepTheme">{formatTasks(step.tasks ?? step.task)}</span>
+                    <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#888', marginTop: 2 }}>
+                      {Array.isArray(step.recommended_articles) && step.recommended_articles.length > 0 && (
+                        <span>📚 {step.recommended_articles.length}편</span>
+                      )}
+                      {Array.isArray(step.success_criteria) && step.success_criteria.length > 0 && (
+                        <span>✓ {step.success_criteria.length}개 기준</span>
+                      )}
+                      {step.estimated_hours && <span>⏱ {step.estimated_hours}h</span>}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>

@@ -40,13 +40,29 @@ class CurriculumGenerateRequest(BaseModel):
     required_content: str | None = None
 
 
+class RecommendedArticle(BaseModel):
+    filename: str | None = None
+    title: str | None = None
+    why_relevant: str | None = None
+
+
+class WeekPlanItem(BaseModel):
+    week: int | None = None
+    theme: str | None = None
+    learning_objective: str | None = None
+    tasks: list[str] = []
+    recommended_articles: list[RecommendedArticle] = []
+    success_criteria: list[str] = []
+    estimated_hours: int | None = None
+
+
 class CurriculumGenerateResponse(BaseModel):
     cur_title: str
     cur_duration_weeks: int
     cur_target_job: str | None = None
     cur_target_industry: str | None = None
     cur_learning_goal: str | None = None
-    cur_week_plan: list[dict]
+    cur_week_plan: list[WeekPlanItem]
 
 
 class CurriculumResponse(BaseModel):
