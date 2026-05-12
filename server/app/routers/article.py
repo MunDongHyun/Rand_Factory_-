@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import get_current_user
-from app.models.ai_output import AiOutput
+from app.models.ai_summaries import AiSummary
 from app.models.article import Article
 from app.models.user import User
 from app.schemas.article import (
@@ -32,10 +32,9 @@ def _summary_article_ids(db: Session, article_ids: list[int]) -> set[int]:
         return set()
 
     rows = (
-        db.query(AiOutput.article_id)
+        db.query(AiSummary.article_id)
         .filter(
-            AiOutput.article_id.in_(article_ids),
-            AiOutput.output_type == "summary",
+            AiSummary.article_id.in_(article_ids),
         )
         .distinct()
         .all()
@@ -157,9 +156,9 @@ def get_article_summary(
         raise HTTPException(status_code=404, detail="Article not found")
 
     summary = (
-        db.query(AiOutput)
-        .filter(AiOutput.article_id == article_id, AiOutput.output_type == "summary")
-        .order_by(AiOutput.created_at.desc(), AiOutput.output_id.desc())
+        db.query(AiSummary)
+        .filter(AiSummary.article_id == article_id) 
+        .order_by(AiSummary.created_at.desc(), AiSummary.output_id.desc())
         .first()
     )
     if not summary:

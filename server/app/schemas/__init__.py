@@ -1,4 +1,4 @@
-from app.schemas.ai_output import AiOutputCreate, AiOutputResponse, AiOutputUpdate
+from app.schemas.ai_output import AiSummaryCreate, AiSummaryResponse, AiSummaryUpdate
 from app.schemas.article import (
     ArticleCreate,
     ArticleInsightsResponse,
@@ -21,9 +21,9 @@ from app.schemas.task_submission import (
 from app.schemas.user import TokenResponse, UserCreate, UserLogin, UserResponse
 
 __all__ = [
-    "AiOutputCreate",
-    "AiOutputResponse",
-    "AiOutputUpdate",
+    "AiSummaryCreate",
+    "AiSummaryResponse",
+    "AiSummaryUpdate",
     "ArticleCreate",
     "ArticleInsightsResponse",
     "ArticleListResponse",

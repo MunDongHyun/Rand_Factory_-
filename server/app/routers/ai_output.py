@@ -3,48 +3,48 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import get_current_user
-from app.models.ai_output import AiOutput
+from app.models.ai_summaries import AiSummary
 from app.models.user import User
-from app.schemas.ai_output import AiOutputCreate, AiOutputResponse, AiOutputUpdate
+from app.schemas.ai_output import AiSummaryCreate, AiSummaryResponse, AiSummaryUpdate
 
 router = APIRouter(prefix="/api/ai-outputs", tags=["ai-outputs"])
 
 
-@router.post("", response_model=AiOutputResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=AiSummaryResponse, status_code=status.HTTP_201_CREATED)
 def create_ai_output(
-    body: AiOutputCreate,
+    body: AiSummaryCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    output = AiOutput(user_id=current_user.user_id, **body.model_dump())
+    output = AiSummary(user_id=current_user.user_id, **body.model_dump())
     db.add(output)
     db.commit()
     db.refresh(output)
     return output
 
 
-@router.get("/my", response_model=list[AiOutputResponse])
+@router.get("/my", response_model=list[AiSummaryResponse])
 def get_my_outputs(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     return (
-        db.query(AiOutput)
-        .filter(AiOutput.user_id == current_user.user_id)
-        .order_by(AiOutput.created_at.desc())
+        db.query(AiSummary)
+        .filter(AiSummary.user_id == current_user.user_id)
+        .order_by(AiSummary.created_at.desc())
         .all()
     )
 
 
-@router.get("/{output_id}", response_model=AiOutputResponse)
+@router.get("/{output_id}", response_model=AiSummaryResponse)
 def get_output(
     output_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     output = (
-        db.query(AiOutput)
-        .filter(AiOutput.output_id == output_id, AiOutput.user_id == current_user.user_id)
+        db.query(AiSummary)
+        .filter(AiSummary.output_id == output_id, AiSummary.user_id == current_user.user_id)
         .first()
     )
     if not output:
@@ -52,16 +52,16 @@ def get_output(
     return output
 
 
-@router.patch("/{output_id}", response_model=AiOutputResponse)
+@router.patch("/{output_id}", response_model=AiSummaryResponse)
 def update_output(
     output_id: int,
-    body: AiOutputUpdate,
+    body: AiSummaryUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     output = (
-        db.query(AiOutput)
-        .filter(AiOutput.output_id == output_id, AiOutput.user_id == current_user.user_id)
+        db.query(AiSummary)
+        .filter(AiSummary.output_id == output_id, AiSummary.user_id == current_user.user_id)
         .first()
     )
     if not output:

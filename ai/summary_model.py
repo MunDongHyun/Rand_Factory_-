@@ -30,6 +30,7 @@ if openai_api_key:
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"🚀 시스템 디바이스: {device.upper()}")
 
+# 사용자가 지정한 모델 버전 유지
 llm = ChatOpenAI(model=os.getenv("AI_MODEL", "gpt-5.4"), temperature=0.2)
 
 # 한국어 특화 임베딩 모델
@@ -51,22 +52,41 @@ pdf_files = [f for f in os.listdir(data_path) if f.endswith('.pdf')]
 print(f"📂 총 {len(pdf_files)}개의 아티클을 발견했습니다.")
 
 # 스플리터 초기화
-parent_splitter = RecursiveCharacterTextSplitter(chunk_size=1500, chunk_overlap=150)
-child_splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=30)
+parent_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=200)
+child_splitter = RecursiveCharacterTextSplitter(chunk_size=400, chunk_overlap=50)
 
 # 3. 루프를 통한 PDF 개별 처리
 for idx, file_name in enumerate(pdf_files):
     full_path = os.path.join(data_path, file_name)
     print(f"\n[{idx+1}/{len(pdf_files)}] 주제 맞춤형 심층 분석 중: {file_name}")
 
+    # ==========================================
+    # [추가됨] 파일명에서 정확한 제목과 저자 추출 로직
+    # ==========================================
+    base_name = file_name.replace('.pdf', '')
+    
+    # 1) 마지막 '-'를 기준으로 제목부와 저자부 분리 (제목 안에 '-'가 있어도 안전함)
+    if '-' in base_name:
+        title_part, extracted_author = base_name.rsplit('-', 1)
+        title_part = title_part.strip()
+        extracted_author = extracted_author.strip()
+    else:
+        title_part = base_name.strip()
+        extracted_author = "저자미상"
+        
+    # 2) 괄호로 시작하는 (DBR, 카테고리) 부분 제거 후 순수 아티클 제목 추출
+    match = re.match(r"^\([^)]+\)\s*(.*)", title_part)
+    if match:
+        exact_article_title = match.group(1).strip()
+    else:
+        exact_article_title = title_part.strip()
+
     try:
         loader = PyMuPDFLoader(full_path)
         raw_docs = loader.load()
         
-        # 복잡한 메타데이터 필터링
         docs = filter_complex_metadata(raw_docs)
 
-        # In-memory ChromaDB 생성
         vectorstore = Chroma(embedding_function=embeddings)
         store = InMemoryStore()
 
@@ -78,7 +98,6 @@ for idx, file_name in enumerate(pdf_files):
         )
         retriever.add_documents(docs)
 
-        # 주제 맞춤형 심층 분석 프롬프트
         prompt_template = """
         당신은 기업의 OJT 및 인터랙티브 교육 콘텐츠 설계를 위한 최고 수준의 AI 경영 멘토입니다.
         제공된 DBR 아티클을 분석하여, 실무진이 해당 '카테고리(주제)'의 핵심을 완벽히 이해하고 실무에 적용할 수 있도록 심층적인 JSON 데이터를 생성하세요.
@@ -140,19 +159,16 @@ for idx, file_name in enumerate(pdf_files):
         # 분석 실행
         result = rag_chain.invoke("이 문서의 핵심 카테고리를 파악하고, 그 카테고리를 관통하는 3~4개의 핵심 키워드와 전체 맥락을 상세히 추출해줘.")
 
-        # 메타데이터 및 파일명 추출
-        meta = result.get("metadata", {})
-        title = meta.get("title", "제목없음")
-        author = meta.get("author", "저자없음")
-        category = meta.get("category", "미분류")
-
-        # 파일명 생성 및 특수문자 제거
-        raw_file_name = f"{title}_{author}_{category}.json"
-        clean_file_name = re.sub(r'[\\/*?:"<>|]', "", raw_file_name).strip()
+        if "metadata" not in result:
+            result["metadata"] = {}
         
-        # ==========================================
+        result["metadata"]["title"] = exact_article_title
+        result["metadata"]["author"] = extracted_author
+
+        # 파일명은 오직 '아티클 제목'으로만 생성 (특수문자 제거)
+        clean_file_name = re.sub(r'[\\/*?:"<>|]', "", exact_article_title).strip() + ".json"
+        
         # 4. 파일 저장 처리 (summary 폴더에 JSON 저장)
-        # ==========================================
         save_path = os.path.join(summary_dir, clean_file_name)
 
         with open(save_path, 'w', encoding='utf-8') as f:
