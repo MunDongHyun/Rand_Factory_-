@@ -5,6 +5,8 @@ import '../styles/Dashboard.css';
 import CurriculumView from './CurriculumView';
 import EmailingView from './EmailingView';
 import ArticleDetailView from './ArticleDetailView';
+import HeroBanner from './HeroBanner';
+
 
 const SECTION_THEMES = ['blue', 'green', 'brown'];
 
@@ -138,14 +140,14 @@ function Dashboard({ user, onLogout }) {
 
   const ArticleListView = () => (
     <>
-      <div className="serviceIntroBanner">
+      {/* <div className="serviceIntroBanner">
         <h3>LANDFACTORY</h3>
         <p>DBR 아티클을 통해 비즈니스 인사이트를 요약하고 시각화하여 제공합니다.</p>
         <p>사용자는 제공된 아티클을 기반으로 기업 교육에 필요한 커리큘럼을 생성할 수 있습니다.</p>
         <button className="heroCta" onClick={() => setView('curriculum')}>
           커리큘럼 생성하기
         </button>
-      </div>
+      </div> */}
 
       {loading && <p style={{ padding: '20px' }}>아티클 불러오는 중...</p>}
       {error && <p style={{ padding: '20px', color: '#c33' }}>{error}</p>}
@@ -203,6 +205,9 @@ function Dashboard({ user, onLogout }) {
         onScrollToTop={scrollToTop}
         onSearch={handleSearch} /* Header로 검색 핸들러 전달 */
       />
+
+      {view === 'articles' && <HeroBanner onCreateCurriculum={() => setView('curriculum')} />}
+
 
       <main className="dashMain">
         {view === 'articles' && <ArticleListView />}

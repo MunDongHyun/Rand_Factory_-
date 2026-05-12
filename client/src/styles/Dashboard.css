@@ -244,73 +244,306 @@
 /* ===========================
    서비스 소개 배너
    =========================== */
-.serviceIntroBanner {
-  padding: 24px 40px 60px;
-  margin-bottom: 40px;
-  text-align: center;
+
+.bannerRoot {
   position: relative;
+  width: 100%;
+  height: 420px;
   overflow: hidden;
+  font-family: 'Pretendard', sans-serif;
+  margin: 0;
 }
 
-/* .serviceIntroBanner::before {
-  content: 'Article';
+.bannerNumber {
   font-family: 'Crimson Text', serif;
-  font-size: 260px;
+  font-size: 180px;
+  font-weight: 900;
   line-height: 1;
-  font-weight: 400;
-  color: #D6E4EC;
-  margin-top: 100px;
+  opacity: 0.07;
   position: absolute;
-  left: 50%;
+  margin-left: 450px;
+  left: 0;
   top: 50%;
-  transform: translate(-60%, -50% );
-  pointer-events: none;
-  z-index: 0;
-  white-space: nowrap;
-} */
-
-.serviceIntroBanner > * {
-  position: relative;
-  z-index: 1;
-}
-
-.serviceIntroBanner p {
-  color: var(--ink);
-  font-family: 'Pretendard', sans-serif;
-  font-size: 18px;
-  font-weight: 600;
-  line-height: 1.6;
-  margin: 0 0 8px;
-}
-
-/* 커리큘럼 생성 버튼*/
-.heroCta {
-  display: inline-block;
-  width: 400px;
-  height: 70px;
-  margin-top: 20px;
-  background: #3A4A5C;
-  border: none;
-  border-radius: 20px;
-  font-family: 'Pretendard', sans-serif;
-  font-weight: 700;
-  font-size: 28px;
-  letter-spacing: -0.02em;
-  padding-bottom: 0px;
+  transform: translateY(-50%);
+  user-select: none;
+  letter-spacing: -8px;
   color: #FFFFFF;
-  position: relative;
-  z-index: 1;
-  text-align: center;
-  cursor: pointer;
-  box-shadow: 0 4px 20px rgba(58, 74, 92, 0.2);
-  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  pointer-events: none;
 }
 
-.heroCta:hover {
-  background: #2d3c4d;
-  transform: translateY(-3px);
-  box-shadow: 0 8px 28px rgba(58, 74, 92, 0.35);
+.bannerContent {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 157px;
+  justify-content: space-between;
 }
+
+.bannerText {
+  position: relative;
+  margin-left: 450px;
+  max-width: 500px;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.bannerText.animating-next {
+  opacity: 0;
+  transform: translateX(24px);
+}
+
+.bannerText.animating-prev {
+  opacity: 0;
+  transform: translateX(-24px);
+}
+
+.bannerEyebrow {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--primary);
+}
+
+.bannerEyebrowLine {
+  display: inline-block;
+  width: 28px;
+  height: 1px;
+  background: var(--primary);
+}
+
+.bannerCategory {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  display: inline-block;
+  background: rgba(148, 184, 200, 0.15);
+  color: var(--primary);
+  border: 1px solid rgba(148, 184, 200, 0.3);
+}
+
+.bannerTitle {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #FFFFFF;
+  margin: 0 0 16px;
+  white-space: pre-line;
+  letter-spacing: -0.02em;
+}
+
+.bannerDesc {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.75;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0 0 20px;
+  max-width: 520px;
+}
+
+.bannerTag {
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.35);
+  letter-spacing: 0.04em;
+}
+
+/* 구분선 */
+.bannerDivider {
+  width: 1px;
+  height: 120px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0 40px;
+  flex-shrink: 0;
+}
+
+/* 네비게이션 */
+.bannerNav {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 20px;
+}
+
+.bannerArrows {
+  margin-right: 150px;
+  display: flex;
+  gap: 8px;
+}
+
+.bannerArrow {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bannerArrow:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.5);
+  color: #FFFFFF;
+}
+
+/* 인디케이터 */
+.bannerIndicators {
+  margin-right: 150px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.bannerDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.bannerDot.active {
+  width: 24px;
+  border-radius: 3px;
+  background: #FFFFFF;
+}
+
+.bannerCounter {
+  margin-right: 150px;
+
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.3);
+  letter-spacing: 0.1em;
+  font-family: 'Pretendard', sans-serif;
+}
+
+/* 진행 바 */
+.bannerProgress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  width: 100%;
+  z-index: 3;
+}
+
+.bannerProgressFill {
+  height: 100%;
+  background: var(--primary);
+  animation: bannerProgress 6s linear infinite;
+}
+
+@keyframes bannerProgress {
+  from {
+    width: 0%;
+  }
+
+  to {
+    width: 100%;
+  }
+}
+
+/* ===========================
+   플로팅 CTA 버튼
+   =========================== */
+.floatingCta {
+  position: fixed;
+  bottom: 40px;
+  right: 40px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.floatingCtaLabel {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  padding-right: 4px;
+  font-family: 'Pretendard', sans-serif;
+}
+
+.floatingCtaBtn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 28px;
+  background: var(--ink);
+  border: none;
+  border-radius: 50px;
+  color: var(--card);
+  font-family: 'Pretendard', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 8px 32px rgba(58, 74, 92, 0.35);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.2s ease;
+  letter-spacing: -0.01em;
+}
+
+.floatingCtaBtn:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 40px rgba(58, 74, 92, 0.45);
+  background: var(--ink-muted);
+}
+
+.floatingCtaBtn::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 54px;
+  border: 2px solid rgba(58, 74, 92, 0.2);
+  animation: pulsRing 2.5s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes pulsRing {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.12);
+  }
+}
+
+.floatingCtaIcon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
 
 
 /* ===========================
@@ -319,7 +552,6 @@
 
 
 .dashMain {
-  padding-top: 40px;
   padding-bottom: 80px;
   padding-left: 157px;
   padding-right: 157px;
