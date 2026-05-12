@@ -48,7 +48,6 @@ def create_submission(
         task_curriculum_id=body.task_curriculum_id,
         task_learner_id=current_user.user_id,
         task_week_number=body.task_week_number,
-        task_framework_type=body.task_framework_type,
         task_submitted_content=body.task_submitted_content,
     )
     db.add(submission)

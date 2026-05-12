@@ -961,3 +961,59 @@
 - 권한 정책 섹션의 운영 규칙 항목 갱신
   - 기존: "POST /api/users/signup은 j만 자유 가입"
   - 변경: "POST /api/users/signup/bulk으로 일괄 등록, 단일 `/signup`은 호환성 백업"
+## 2026-05-12 - Codex (커리큘럼 추천 아티클 매핑 + 삭제 테이블 정리)
+
+### 커리큘럼 생성 고도화
+- `server/app/services/curriculum_service.py`
+  - `ai/curr.py` 방식과 동일하게 사용자 입력(과정명/직무/산업/학습목표/필수내용)에서 키워드를 추출
+  - `ai/summary/*.json`을 순회하며 단순 `in` 매칭으로 관련 사내 아티클 요약문 수집
+  - 수집된 요약문을 LLM 프롬프트의 `[참고 자료]` 컨텍스트로 주입
+  - LLM이 각 주차별로 `recommended_articles`를 생성하도록 프롬프트 확장
+  - 응답 후처리에서 실제 매칭된 파일명만 남기도록 필터링해 filename 환각 방지
+- `server/app/schemas/curriculum.py`
+  - `RecommendedArticle`, `WeekPlanItem` 스키마 추가
+  - 생성 응답의 `cur_week_plan`을 단순 dict 리스트에서 구조화된 주차 계획 리스트로 변경
+- `client/src/components/CurriculumView.jsx`
+  - 커리큘럼 미리보기/확정 화면에 학습목표, 성공기준, 추천 아티클 수, 예상 시간 표시 추가
+
+### 모델 설정
+- 서버 설정 기본값과 예시 환경변수는 `AI_MODEL=gpt-5.4-mini` 기준으로 확인
+- 로컬 실행용 `server/.env`, `server/.env.test`에도 `AI_MODEL=gpt-5.4-mini` 적용
+  - 해당 env 파일은 git 추적 대상이 아니므로 커밋에는 포함되지 않음
+
+### 삭제된 `output_article_refs` 테이블 정리
+- DB에서 `output_article_refs` 테이블 삭제 후 백엔드 ORM 참조 제거
+- 삭제/수정 파일
+  - `server/app/models/output_article_ref.py` 삭제
+  - `server/app/models/ai_summaries.py`의 `output_refs` relationship 제거
+  - `server/app/models/article.py`의 `output_refs` relationship 제거
+  - `server/app/models/__init__.py`에서 `OutputArticleRef` import/export 제거
+
+### 삭제된 `task_submissions.task_framework_type` 컬럼 정리
+- 프레임워크 기능을 사용하지 않는 방향으로 정리되면서 DB 컬럼 삭제에 맞춰 백엔드 참조 제거
+- 수정 파일
+  - `server/app/models/task_submission.py`에서 `task_framework_type` 컬럼 제거
+  - `server/app/schemas/task_submission.py`에서 생성/응답 스키마 필드 제거
+  - `server/app/routers/task_submission.py`에서 제출 생성 시 `task_framework_type` 할당 제거
+
+### 검증
+- `retrieve_articles_context()` 단독 검증
+  - `ai/summary` 존재 확인
+  - 마케팅 온보딩 샘플 기준 5개 요약 파일 매칭
+- 실제 `/api/curricula/generate` 호출 검증
+  - 4주 커리큘럼 생성 성공
+  - `theme`, `learning_objective`, `tasks`, `recommended_articles`, `success_criteria`, `estimated_hours` 포함 확인
+  - 추천 아티클 filename이 실제 매칭 파일 안에서만 유지되는 것 확인
+- 프론트엔드 빌드 통과
+  - `npm run build`
+- 백엔드 컴파일 통과
+  - `python -m compileall -q app`
+- `output_article_refs`, `OutputArticleRef`, `output_refs` 서버 코드 검색 결과 없음
+- `task_framework_type` 서버/클라이언트 코드 검색 결과 없음
+
+### 한계 / 다음 개선 후보
+- 현재 아티클 검색은 단순 키워드 `in` 매칭이라 의미 유사 검색은 불가
+- 광범위 키워드가 잡히면 같은 아티클이 여러 주차에 반복 추천될 수 있음
+- V2에서는 아티클 본문/요약문을 ChromaDB에 인덱싱한 임베딩 RAG로 교체하는 것이 적합
+
+---

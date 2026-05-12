@@ -8,7 +8,6 @@ from app.core.database import Base
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from app.models.ai_summaries import AiSummary
-    from app.models.output_article_ref import OutputArticleRef
 
 
 class Article(Base):
@@ -36,4 +35,3 @@ class Article(Base):
 
 
     ai_summaries: Mapped[list["AiSummary"]] = relationship("AiSummary", back_populates="article")
-    output_refs: Mapped[list["OutputArticleRef"]] = relationship("OutputArticleRef", back_populates="article")

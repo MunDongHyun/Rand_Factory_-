@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, DateTime, Enum, ForeignKey, Integer, JSON, String, Text, func
+from sqlalchemy import BigInteger, DateTime, Enum, ForeignKey, Integer, JSON, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -11,7 +11,6 @@ class TaskSubmission(Base):
     task_curriculum_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("curriculum.cur_id"), nullable=False)
     task_learner_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.user_id"), nullable=False)
     task_week_number: Mapped[int] = mapped_column(Integer, nullable=False)
-    task_framework_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
     task_submitted_content: Mapped[dict] = mapped_column(JSON, nullable=False)
     task_submitted_at: Mapped[DateTime | None] = mapped_column(DateTime, nullable=True, server_default=func.now())
     task_manager_feedback: Mapped[str | None] = mapped_column(Text, nullable=True)

@@ -10,7 +10,6 @@ TaskStatus = Literal["submitted", "feedback_given", "resubmit_requested"]
 class TaskSubmissionCreate(BaseModel):
     task_curriculum_id: int
     task_week_number: int
-    task_framework_type: str | None = None
     task_submitted_content: dict
 
 
@@ -26,7 +25,6 @@ class TaskSubmissionResponse(BaseModel):
     task_curriculum_id: int
     task_learner_id: int
     task_week_number: int
-    task_framework_type: str | None = None
     task_submitted_content: dict
     task_submitted_at: datetime | None = None
     task_manager_feedback: str | None = None
