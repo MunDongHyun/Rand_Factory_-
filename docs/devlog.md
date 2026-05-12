@@ -903,3 +903,61 @@
 - 중복 summary는 삭제하지 않고 보존. 상세 화면은 최신 1개만 표시하는 정책
 - 명확히 다른 글로 판단된 summary는 `article_id = NULL`로 분리해 추후 올바른 article이 생기면 재연결 가능
 - 썸네일/summary 추가 매핑은 자동 처리하지 말고 화면/원문 기준으로 확인 후 진행
+
+---
+
+## 2026-05-11 - Claude (회원가입 일괄 등록 — 매니저+학습자 한 번에)
+
+### 배경
+- 기존 회원가입 정책: `j`만 자유 가입, `m`/`a`는 DB 직접 변경
+- 신규 정책 결정 (MVP/발표용): 비로그인 Signup 화면에서 **회사명 + 매니저 1명 + 학습자 N명을 한 번에 등록**
+- 기존 [Signup.jsx](client/src/components/Signup.jsx)는 깡통 UI (state 미연결, `handleJobChange` 미정의 함수 호출 등) → 통째로 재작성
+
+### DB 변경 (팀원이 ALTER)
+- `users.user_company VARCHAR(100) NOT NULL` 추가 (`user_name` 뒤)
+- DEFAULT 없는 NOT NULL이라 MySQL이 기존 31개 행을 `''`로 자동 채움 (데이터 손실 0)
+
+### 백엔드
+- `server/app/models/user.py`
+  - `User.user_company: Mapped[str]` 추가 (`String(100), nullable=False, default=""`)
+- `server/app/schemas/user.py`
+  - `UserCreate.company: str | None = None` 추가 (단일 가입 호환)
+  - `UserResponse.user_company` 노출
+  - 신규 `BulkSignupEmployee`, `BulkSignupRequest`, `BulkSignupResponse`
+- `server/app/routers/user.py`
+  - 신규 `POST /api/users/signup/bulk`
+    - 사전 검증: request 내 이메일 중복, DB 기존 이메일 충돌
+    - 첫 번째 직원 → `user_role="m"`, 나머지 → `"j"` 강제
+    - `body.company` 전원에게 동일 부여
+    - 트랜잭션: `db.commit()` 실패 시 전체 롤백 후 friendly 메시지로 변환
+  - 기존 `POST /api/users/signup`은 호환성 위해 유지 (UI 미사용)
+    - `user_company` 컬럼 채우도록 `body.company or ""` 처리
+
+### 프론트
+- `client/src/components/Signup.jsx` 깡통 → 동작 구현
+  - state 4개 (`company`, `employees`, `error`, `loading`) + 카드 add/remove/updateField helper
+  - 클라이언트 검증: 회사명/이름/이메일/비번 빈 값, 직원 간 이메일 중복
+  - `POST /users/signup/bulk` 호출, 성공 시 `onComplete()`로 Intro 복귀
+  - 에러 메시지는 백엔드 `detail` 그대로 표시
+  - 직무는 자유 텍스트 입력 (기존 select 옵션 1개 하드코딩이라 사실상 기능 부재)
+  - 첫 카드 라벨 "EMPLOYEE #01 · 매니저", 이후 "· 학습자"
+  - `handleJobChange`/`handleRoleChange` 등 미정의 함수 호출 제거
+
+### 검증
+- `python -m compileall -q app` 통과
+- `npm run build` 통과 (100 modules, 963ms)
+- `app.routers.user`에 `/api/users/signup/bulk` POST 라우트 등록 확인
+
+### 알아둘 점 (운영 시 주의)
+- **인증 없음**: 누구나 매니저 가입 가능. MVP/시연용 정책이며 보안 강화는 V2 (admin 사전 등록 / 초대 코드 / 이메일 도메인 화이트리스트 등)
+- **회사명 중복/오타 검증 없음**: "삼성전자" vs "삼정전자"가 별개 회사로 처리됨. 운영 시 admin이 데이터 정리
+- **두 번째 가입 흐름 미구현**: 같은 매니저가 직원 5명 추가 등록하고 싶으면? V1에선 다시 Signup 화면 진입 → 같은 매니저 이메일이라 중복으로 거절됨. V2에서 매니저 로그인 후 Dashboard 내부 메뉴로 추가 흐름 필요
+- **직무 자유 텍스트 입력**: 기존 select 옵션 1개("marketing_sales") 하드코딩이라 사실상 의미 없어서 자유 입력으로 교체. 향후 직무 표준 분류 필요해지면 select로 회귀
+- **기존 31개 user 행의 `user_company`는 모두 `''`**: 운영 시작 후 admin이 정리할 항목
+- **부분 실패 정책**: all-or-nothing 트랜잭션. 하나 실패 시 전체 롤백 → 사용자가 입력값 수정 후 재시도
+- **기존 `POST /api/users/signup`은 UI 미사용**이지만 호환성 위해 살아 있음. 외부에서 호출하면 단일 `j` 가입 가능 (학습자 셀프 가입 백업 경로). 정책 강제하려면 다음 작업에서 제거 또는 인증 추가
+
+### CLAUDE.md 동기 갱신
+- 권한 정책 섹션의 운영 규칙 항목 갱신
+  - 기존: "POST /api/users/signup은 j만 자유 가입"
+  - 변경: "POST /api/users/signup/bulk으로 일괄 등록, 단일 `/signup`은 호환성 백업"

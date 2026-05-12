@@ -7,6 +7,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str
     name: str
+    company: str | None = None
     job_title: str | None = None
     industry: str | None = None
     work_years: int | None = 0
@@ -23,6 +24,7 @@ class UserResponse(BaseModel):
     user_id: int
     user_email: str
     user_name: str
+    user_company: str | None = None
     user_role: str
     user_job_title: str | None = None
     user_industry: str | None = None
@@ -30,6 +32,24 @@ class UserResponse(BaseModel):
     user_created_at: datetime | None = None
     user_updated_at: datetime | None = None
     user_deleted_at: datetime | None = None
+
+
+class BulkSignupEmployee(BaseModel):
+    email: EmailStr
+    password: str
+    name: str
+    job_title: str | None = None
+    industry: str | None = None
+    work_years: int | None = 0
+
+
+class BulkSignupRequest(BaseModel):
+    company: str
+    employees: list[BulkSignupEmployee]
+
+
+class BulkSignupResponse(BaseModel):
+    users: list[UserResponse]
 
 
 class TokenResponse(BaseModel):

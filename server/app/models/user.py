@@ -11,6 +11,7 @@ class User(Base):
     user_email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     user_pw: Mapped[str] = mapped_column(String(255), nullable=False)
     user_name: Mapped[str] = mapped_column(String(50), nullable=False)
+    user_company: Mapped[str] = mapped_column(String(100), nullable=False, default="")
     user_role: Mapped[str] = mapped_column(Enum("j", "m", "a"), nullable=False)
     user_job_title: Mapped[str | None] = mapped_column(String(100), nullable=True)
     user_industry: Mapped[str | None] = mapped_column(String(100), nullable=True)
