@@ -70,7 +70,7 @@ for idx, file_name in enumerate(json_files[:]):
         """
 
         vision_response = openai_client.chat.completions.create(
-            model="gpt-5.4",
+            model="gpt-5.4", # 요청하신 대로 gpt-5.4 버전 유지
             messages=[{"role": "user", "content": vision_prompt}],
             temperature=0.7
         )
@@ -98,8 +98,6 @@ for idx, file_name in enumerate(json_files[:]):
         
         # 이미지 다운로드
         img_data = requests.get(image_url).content
-        
-        # 파일명 변환 (.json -> .png) 및 저장
         img_file_name = file_name.replace(".json", ".png")
         img_save_path = os.path.join(thumbnail_dir, img_file_name)
         

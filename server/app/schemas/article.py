@@ -1,3 +1,5 @@
+from datetime import date
+from pydantic import BaseModel
 from datetime import datetime
 from typing import Literal
 
@@ -11,7 +13,7 @@ class ArticleCreate(BaseModel):
     article_source: ArticleSource
     article_title: str
     article_author: str | None = None
-    article_published_date: str | None = None
+    article_published_date: date | None = None
     article_category: str | None = None
     article_source_url: str | None = None
     content: str | None = None
@@ -24,7 +26,7 @@ class ArticleResponse(BaseModel):
     article_source: ArticleSource
     article_title: str
     article_author: str | None = None
-    article_published_date: str | None = None
+    article_published_date: date | None = None
     article_category: str | None = None
     article_source_url: str | None = None
     article_chunk_count: int | None = None
