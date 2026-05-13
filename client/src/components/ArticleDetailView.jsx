@@ -2,26 +2,9 @@ import { useEffect, useState } from 'react';
 import api from '../lib/api';
 
 function ArticleDetailView({ article, onBack }) {
-  const [viewedArticle, setViewedArticle] = useState(article);
   const [summary, setSummary] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState(null);
-
-  useEffect(() => {
-    setViewedArticle(article);
-    if (!article?.article_id) return;
-
-    let cancelled = false;
-    api.get(`/articles/${article.article_id}`)
-      .then((res) => {
-        if (!cancelled) setViewedArticle(res.data);
-      })
-      .catch(() => {
-        if (!cancelled) setViewedArticle(article);
-      });
-
-    return () => { cancelled = true; };
-  }, [article?.article_id]);
 
   useEffect(() => {
     if (!article?.article_id) return;
@@ -57,7 +40,7 @@ function ArticleDetailView({ article, onBack }) {
     return () => { cancelled = true; };
   }, [article?.article_id, article?.article_has_summary]);
 
-  const displayArticle = viewedArticle || article;
+  const displayArticle = article;
 
   if (!displayArticle) return null;
 
@@ -71,7 +54,7 @@ function ArticleDetailView({ article, onBack }) {
       <div className="articleDetailContent">
         {displayArticle.article_thumbnail_url && (
           <div className="articleDetailHero">
-            <img src={displayArticle.article_thumbnail_url} alt={displayArticle.article_title} />
+            <img src={displayArticle.article_thumbnail_url} alt={displayArticle.article_title} loading="lazy" />
           </div>
         )}
 
