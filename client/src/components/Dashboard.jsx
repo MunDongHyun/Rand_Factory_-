@@ -51,7 +51,7 @@ function Dashboard({ user, onLogout }) {
           .map(([category, items], i) => ({
             category,
             theme: SECTION_THEMES[i % SECTION_THEMES.length],
-            items: items.slice(0, 5),
+            items,
           }));
         setSections(built);
         setOriginalSections(built);
@@ -168,9 +168,12 @@ function Dashboard({ user, onLogout }) {
     if (error) return <p style={{ padding: '20px', color: '#c33' }}>{error}</p>;
     if (sections.length === 0) return <p style={{ padding: '20px' }}>표시할 아티클이 없습니다.</p>;
 
-    const displaySections = selectedCategory 
+    const displaySections = selectedCategory
       ? sections.filter(s => s.category === selectedCategory)
-      : sections;
+      : sections.map((section) => ({
+          ...section,
+          items: section.items.slice(0, 5),
+        }));
 
     return (
       <div className="categoryArticlePage">
