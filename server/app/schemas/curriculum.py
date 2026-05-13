@@ -13,7 +13,7 @@ class CurriculumCreate(BaseModel):
     cur_target_industry: str | None = None
     cur_duration_weeks: int
     cur_learning_goal: str | None = None
-    cur_ai_prompt_input: str | None = None
+    cur_learning_detail_goal: str | None = None
     cur_week_plan: dict | list[dict] | None = None
     cur_assigned_learner_ids: list[int] | None = None
     cur_status: CurriculumStatus | None = "draft"
@@ -25,7 +25,7 @@ class CurriculumUpdate(BaseModel):
     cur_target_industry: str | None = None
     cur_duration_weeks: int | None = None
     cur_learning_goal: str | None = None
-    cur_ai_prompt_input: str | None = None
+    cur_learning_detail_goal: str | None = None
     cur_week_plan: dict | list[dict] | None = None
     cur_assigned_learner_ids: list[int] | None = None
     cur_status: CurriculumStatus | None = None
@@ -75,7 +75,7 @@ class CurriculumResponse(BaseModel):
     cur_target_industry: str | None = None
     cur_duration_weeks: int
     cur_learning_goal: str | None = None
-    cur_ai_prompt_input: str | None = None
+    cur_learning_detail_goal: str | None = None
     cur_week_plan: dict | list[dict] | None = None
     cur_assigned_learner_ids: list[int] | None = None
     cur_status: CurriculumStatus | None = None

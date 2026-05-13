@@ -22,7 +22,7 @@ class ChatbotMessage(Base):
 
     message_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     session_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("chatbot_sessions.cb_session_id"), nullable=False)
-    role: Mapped[str] = mapped_column(Enum("user", "assistant"), nullable=False)
+    talker: Mapped[str] = mapped_column(Enum("user", "assistant"), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[DateTime | None] = mapped_column(DateTime, nullable=True, server_default=func.now())
 

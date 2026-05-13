@@ -21,7 +21,7 @@ class ChatbotSessionResponse(BaseModel):
 
 
 class ChatbotMessageCreate(BaseModel):
-    role: ChatbotRole
+    talker: ChatbotRole
     content: str
 
 
@@ -30,6 +30,6 @@ class ChatbotMessageResponse(BaseModel):
 
     message_id: int
     session_id: int
-    role: ChatbotRole
+    talker: ChatbotRole
     content: str
     created_at: datetime | None = None
