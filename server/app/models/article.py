@@ -1,6 +1,5 @@
-import datetime  
-from app.models.ai_summaries import AiSummary
-from sqlalchemy import BigInteger, DateTime, Enum, Integer, JSON, String, func, Date  # Date 임포트 추가
+import datetime
+from sqlalchemy import BigInteger, DateTime, Enum, Integer, String, func, Date
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base

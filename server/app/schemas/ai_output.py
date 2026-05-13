@@ -32,5 +32,3 @@ class AiSummaryResponse(BaseModel):
     generated_content: dict | None = None
     is_saved: bool | None = None
     created_at: datetime | None = None
-    is_saved: bool | None = None
-    created_at: datetime | None = None
