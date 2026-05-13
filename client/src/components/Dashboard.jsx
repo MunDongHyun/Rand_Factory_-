@@ -10,6 +10,18 @@ import HeroBanner from './HeroBanner';
 
 const SECTION_THEMES = ['blue', 'green', 'brown'];
 
+const CATEGORY_EN = {
+  '마케팅': 'MARKETING',
+  '경영전략': 'MANAGEMENT',
+  '리더쉽': 'LEADERSHIP',
+  'AI': 'AI',
+  '인사조직': 'ORGANIZATION',
+  'HRD': 'HRD',
+  '인문': 'HUMANITIES',
+  '자기계발' : 'Development',
+  '기타': 'OTHERS'
+};
+
 function Dashboard({ user, onLogout }) {
   const [view, setView] = useState('articles');
   const [selectedArticle, setSelectedArticle] = useState(null);
@@ -21,6 +33,7 @@ function Dashboard({ user, onLogout }) {
   const [searchQuery, setSearchQuery] = useState(''); // AI 생성을 위해 보관할 검색어
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalStatus, setModalStatus] = useState('searching');
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [originalSections, setOriginalSections] = useState([]);
 
   const fetchArticles = () => {
@@ -89,14 +102,12 @@ function Dashboard({ user, onLogout }) {
       const res = await api.post('/articles/generate', { keyword: searchQuery });
       const newArticle = res.data.article;
 
-      // 상세 페이지로 이동하기 전에 목록 상태를 원본으로 미리 돌려놓음
       setSections(originalSections);
       setSearchQuery('');
 
       setSelectedArticle(newArticle);
       setView('articleDetail');
       setIsModalOpen(false);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       alert('아티클 생성에 실패했습니다. 다시 시도해주세요.');
       setIsModalOpen(false);
@@ -114,7 +125,6 @@ function Dashboard({ user, onLogout }) {
     }
   }, [view]);
 
-  // Dashboard.jsx 내부의 useEffect (popstate 관련) 수정
   useEffect(() => {
     // 초기 진입 시 히스토리 설정
     window.history.pushState({ view: 'articles', t: Date.now() }, '');
@@ -138,61 +148,101 @@ function Dashboard({ user, onLogout }) {
     return () => window.removeEventListener('popstate', onPop);
   }, [originalSections]); // originalSections가 설정된 후 참조할 수 있도록 의존성 추가
 
-  const ArticleListView = () => (
-    <>
-      {/* <div className="serviceIntroBanner">
-        <h3>LANDFACTORY</h3>
-        <p>DBR 아티클을 통해 비즈니스 인사이트를 요약하고 시각화하여 제공합니다.</p>
-        <p>사용자는 제공된 아티클을 기반으로 기업 교육에 필요한 커리큘럼을 생성할 수 있습니다.</p>
-        <button className="heroCta" onClick={() => setView('curriculum')}>
-          커리큘럼 생성하기
+  const CategoryTabBar = () => (
+    <div className="catTabBarTop">
+    
+      <button
+        className={`catTabTop ${!selectedCategory ? 'active' : ''}`}
+        onClick={() => setSelectedCategory(null)}
+      >전체</button>
+
+
+      {originalSections.map((section) => (
+        <button
+          key={section.category}
+          className={`catTabTop ${selectedCategory === section.category ? 'active' : ''}`}
+          onClick={() => {
+            setSelectedCategory(section.category);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        >
+          {section.category}
         </button>
-      </div> */}
-
-      {loading && <p style={{ padding: '20px' }}>아티클 불러오는 중...</p>}
-      {error && <p style={{ padding: '20px', color: '#c33' }}>{error}</p>}
-      {!loading && !error && sections.length === 0 && (
-        <p style={{ padding: '20px' }}>표시할 아티클이 없습니다.</p>
-      )}
-
-      {sections.map((section) => (
-        <section key={section.category} className={'sectionGroup highlightSection'} data-theme={section.theme}>
-          <h2 className="sectionTitle">{section.category}</h2>
-          <div className="articleGrid">
-            {section.items.map((item) => (
-              <article key={item.article_id || Math.random()}
-                className="articleCard"
-                onClick={() => {
-                  setSelectedArticle(item);
-                  setView('articleDetail');
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-              >
-                <div className="cardTop">
-                  {item.article_thumbnail_url && (
-                    <img src={item.article_thumbnail_url} alt={item.article_title} />
-                  )}
-                  <span className="cardTag"># {item.article_category || '기타'}</span>
-                </div>
-                <div className="cardBottom">
-                  <h3 className="cardTitle">{item.article_title}</h3>
-                  <div className="cardMeta">
-                    <span className="cardSource">{item.article_source || 'AI 맞춤 리포트'}</span>
-                    {item.article_published_date && (
-                      <>
-                        <span className="cardDot">·</span>
-                        <span className="cardTime">{String(item.article_published_date).split('T')[0]}</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
       ))}
-    </>
+    </div>
   );
+
+  const ArticleListView = () => {
+    if (loading) return <p style={{ padding: '20px' }}>아티클 불러오는 중...</p>;
+    if (error) return <p style={{ padding: '20px', color: '#c33' }}>{error}</p>;
+    if (sections.length === 0) return <p style={{ padding: '20px' }}>표시할 아티클이 없습니다.</p>;
+
+    const displaySections = selectedCategory 
+      ? sections.filter(s => s.category === selectedCategory)
+      : sections;
+
+    return (
+      <div className="categoryArticlePage">
+        <div className="catTabBarTop">
+          <button 
+            className={`catTabTop ${!selectedCategory ? 'active' : ''}`}
+            onClick={() => { setSelectedCategory(null);  }}
+          >
+            전체
+          </button>
+          {originalSections.map((s) => (
+            <button
+              key={s.category}
+              className={`catTabTop ${selectedCategory === s.category ? 'active' : ''}`}
+              onClick={() => { setSelectedCategory(s.category); }}
+            >
+              {s.category}
+            </button>
+          ))}
+        </div>
+
+        {displaySections.map((section) => (
+          <section key={section.category} className="sectionGroup highlightSection" data-theme={section.theme}>
+            <div className="catHeroZone">
+              <div className="catWatermark">{CATEGORY_EN[section.category] || 'ARTICLE'}</div>
+              <div className="catEllipse" />
+            </div>
+
+            <h2 className="sectionTitle">{section.category}</h2>
+
+            <div className="articleGrid">
+              {section.items.map((item) => (
+                <article 
+                  key={item.article_id || Math.random()} 
+                  className="articleCard" 
+                  onClick={() => {
+                    setSelectedArticle(item);
+                    setView('articleDetail');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                >
+                  <div className="cardTop">
+                    {item.article_thumbnail_url && <img src={item.article_thumbnail_url} alt="" />}
+                    <span className="cardTag"># {item.article_category || '기타'}</span>
+                  </div>
+                  <div className="cardBottom">
+                    <h3 className="cardTitle">{item.article_title}</h3>
+                    <div className="cardMeta">
+                      <span className="cardSource">{item.article_source || 'AI 리포트'}</span>
+                      <span className="cardDot">·</span>
+                      <span className="cardTime">
+                        {item.article_published_date ? String(item.article_published_date).split('T')[0] : '최근'}
+                      </span>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="dashContainer">
@@ -203,7 +253,7 @@ function Dashboard({ user, onLogout }) {
         }}
         onLogout={onLogout}
         onScrollToTop={scrollToTop}
-        onSearch={handleSearch} /* Header로 검색 핸들러 전달 */
+        onSearch={handleSearch} 
       />
 
       {view === 'articles' && <HeroBanner onCreateCurriculum={() => setView('curriculum')} />}
@@ -221,7 +271,7 @@ function Dashboard({ user, onLogout }) {
         {view === 'emailing' && <EmailingView />}
       </main>
 
-      {/* 모달창 영역 유지 */}
+     
       {isModalOpen && (
         <div className="modalOverlay" style={modalOverlayStyle}>
           <div className="modalContent" style={modalContentStyle}>

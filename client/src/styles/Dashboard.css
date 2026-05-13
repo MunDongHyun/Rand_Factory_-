@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
 /* ===========================
    대시보드 컨테이너
    =========================== */
@@ -544,7 +545,79 @@
   flex-shrink: 0;
 }
 
+.catTabBarTop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  margin-left: -157px;
+  margin-right: -157px;
+  padding: 0 157px;
+  overflow-x: auto;
+}
+.catTabBarTop::-webkit-scrollbar { display: none; } 
 
+.catTabTop {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--ink);
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  padding: 16px 24px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.catTabTop:hover {
+  border-color: var(--primary);
+}
+.catTabTop.active {
+  font-weight: 700;
+  border-bottom: 3px solid var(--ink);
+}
+
+
+.catHeroZone {
+  position: relative;
+  width: 100%;
+  height: 500px;
+  overflow: hidden;
+  margin-bottom: 60px;
+}
+
+.catWatermark {
+  font-family: 'Playfair Display', serif;
+  font-size: 220px;
+  font-weight: 400;
+  color: var(--theme-title);
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  transform: translateX(-50%);
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+  z-index: 2;
+}
+
+.catEllipse {
+  position: absolute;
+  width: 480px;
+  height: 440px;
+  border-radius: 50%;
+  background: #f2f2f2;
+  left: 50%;
+  top: 300px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.5;
+}
 
 /* ===========================
    메인 레이아웃
