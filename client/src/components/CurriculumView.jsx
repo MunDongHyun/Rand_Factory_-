@@ -136,12 +136,13 @@ function CurriculumView() {
       const savePayload = {
         cur_title: preview.cur_title,
         cur_duration_weeks: preview.cur_duration_weeks,
-        cur_target_job: preview.cur_target_job,
-        cur_target_industry: preview.cur_target_industry,
-        cur_learning_goal: preview.cur_learning_goal,
+        cur_target_job: preview.cur_target_job || null,
+        cur_target_industry: preview.cur_target_industry || null,
+        cur_learning_goal: preview.cur_learning_goal || null,
         cur_learning_detail_goal: form.required_content.trim() || null,
         cur_week_plan: preview.cur_week_plan,
-        cur_status: 'draft',
+        cur_assigned_learner_ids: [],
+        cur_status: 'active',
       };
       const res = await api.post('/curricula', savePayload);
       await loadCurriculums();
