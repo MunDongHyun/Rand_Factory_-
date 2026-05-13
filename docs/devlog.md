@@ -2,6 +2,51 @@
 
 ---
 
+## 2026-05-13 - Codex (카테고리 탭 전체 표시 조정)
+
+### 작업
+- 대시보드 아티클 그룹 생성 시 카테고리별 원본 목록을 5개로 자르지 않고 전체 보관하도록 변경.
+- 전체 탭에서는 기존 대시보드 밀도 유지를 위해 카테고리별 5개만 표시.
+- 특정 카테고리 탭 선택 시 해당 카테고리의 전체 아티클을 표시.
+
+### 검증
+- `cd client && npm run build` 통과
+
+---
+
+## 2026-05-13 - Codex (아티클 조회수 API 분리)
+
+### 작업
+- `articles.article_view_count` DB 컬럼 존재 확인
+  - `int`, nullable, default `0`
+  - 현재 전체 53건, NULL 0건, 당시 min/max 모두 0으로 확인
+- 기존 `GET /api/articles/{article_id}` 상세 조회에서 조회수 증가까지 처리하던 구조를 분리
+  - 신규 `POST /api/articles/{article_id}/view` 추가: 조회수 1 증가 후 최신 Article 응답 반환
+  - 기존 `GET /api/articles/{article_id}`는 순수 상세 조회만 수행
+- `client/src/components/Dashboard.jsx`
+  - 아티클 카드 클릭 시 `POST /articles/{id}/view` 호출 후 상세 화면으로 이동
+- `client/src/components/ArticleDetailView.jsx`
+  - 상세 화면에서 최신 아티클 데이터를 조회해 표시
+  - 상세 메타 영역에 `조회 N` 표시 추가
+
+### 결정
+- React 개발 모드 `StrictMode`에서 `useEffect`가 두 번 실행되면 GET 상세 조회 기반 조회수 증가가 +2로 누적될 수 있어, 조회수 증가는 명시적 이벤트 API로 분리.
+
+### 검증
+- `cd server && .\venv\Scripts\python.exe -m compileall -q app` 통과
+- `import app.main` 통과
+- `cd client && npm run build` 통과
+
+---
+
+## 2026-05-13 - Codex (미구현 API 시연 범위 메모)
+
+### 보류 API
+- `/api/ai-outputs/*`는 AI 결과물 저장/관리 확장용 라우터로, 현재 아티클 요약문 조회 흐름(`GET /api/articles/{article_id}/summary`)에서는 사용하지 않음. 현재 `ai_summaries` 모델 스키마와 라우터/스키마가 맞지 않으므로 기능 구현 전까지 시연 범위에서 제외.
+- `POST /api/rag/query`는 질문형 RAG 응답용 라우터로, 현재 프론트/커리큘럼 생성 흐름에서는 직접 호출하지 않음. `rag_service.query_rag` 미구현 상태이므로 기능 구현 전까지 시연 범위에서 제외.
+- 과제 제출/챗봇 관련 검증 보완은 해당 화면/기능 구현 시점에 처리.
+
+---
 ## 2026-05-13 - Claude (DB 컬럼명 동기화)
 
 ### DB 변경 (팀원 작업)

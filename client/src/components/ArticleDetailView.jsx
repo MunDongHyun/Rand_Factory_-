@@ -2,9 +2,26 @@ import { useEffect, useState } from 'react';
 import api from '../lib/api';
 
 function ArticleDetailView({ article, onBack }) {
+  const [viewedArticle, setViewedArticle] = useState(article);
   const [summary, setSummary] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState(null);
+
+  useEffect(() => {
+    setViewedArticle(article);
+    if (!article?.article_id) return;
+
+    let cancelled = false;
+    api.get(`/articles/${article.article_id}`)
+      .then((res) => {
+        if (!cancelled) setViewedArticle(res.data);
+      })
+      .catch(() => {
+        if (!cancelled) setViewedArticle(article);
+      });
+
+    return () => { cancelled = true; };
+  }, [article?.article_id]);
 
   useEffect(() => {
     if (!article?.article_id) return;
@@ -40,7 +57,9 @@ function ArticleDetailView({ article, onBack }) {
     return () => { cancelled = true; };
   }, [article?.article_id, article?.article_has_summary]);
 
-  if (!article) return null;
+  const displayArticle = viewedArticle || article;
+
+  if (!displayArticle) return null;
 
   const metadata = summary?.metadata || {};
   const cardNews = Array.isArray(summary?.card_news) ? summary.card_news : [];
@@ -50,18 +69,20 @@ function ArticleDetailView({ article, onBack }) {
     <div className="articleDetailContainer">
       <button className="detailBackBtn" onClick={onBack}>목록으로</button>
       <div className="articleDetailContent">
-        {article.article_thumbnail_url && (
+        {displayArticle.article_thumbnail_url && (
           <div className="articleDetailHero">
-            <img src={article.article_thumbnail_url} alt={article.article_title} />
+            <img src={displayArticle.article_thumbnail_url} alt={displayArticle.article_title} />
           </div>
         )}
 
-        <h1 className="articleDetailTitle">{article.article_title}</h1>
+        <h1 className="articleDetailTitle">{displayArticle.article_title}</h1>
         <div className="articleDetailMeta">
-          <span>{article.article_source}</span>
-          {article.article_author && <> <span className="cardDot">·</span> <span>{article.article_author}</span></>}
-          {article.article_published_date && <> <span className="cardDot">·</span> <span>{article.article_published_date}</span></>}
-          {article.article_category && <> <span className="cardDot">·</span> <span># {article.article_category}</span></>}
+          <span>{displayArticle.article_source}</span>
+          {displayArticle.article_author && <> <span className="cardDot">·</span> <span>{displayArticle.article_author}</span></>}
+          {displayArticle.article_published_date && <> <span className="cardDot">·</span> <span>{displayArticle.article_published_date}</span></>}
+          {displayArticle.article_category && <> <span className="cardDot">·</span> <span># {displayArticle.article_category}</span></>}
+          <span className="cardDot">·</span>
+          <span>조회 {displayArticle.article_view_count ?? 0}</span>
         </div>
 
         {summaryLoading && <p className="articleSummaryState">요약문을 불러오는 중...</p>}
@@ -71,7 +92,7 @@ function ArticleDetailView({ article, onBack }) {
           <div className="articleSummary">
             <div className="summaryIntro">
               <p className="summaryEyebrow">AI 요약문</p>
-              <h2>{metadata.title || article.article_title}</h2>
+              <h2>{metadata.title || displayArticle.article_title}</h2>
               <p>
                 {[metadata.author, metadata.category].filter(Boolean).join(' · ')}
               </p>
