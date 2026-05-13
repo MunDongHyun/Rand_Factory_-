@@ -209,17 +209,18 @@
 
 .carouselWrapper {
     width: 100%;
-    min-height: 600px; 
+    min-height: 550px; 
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(142.88deg, #9CCAFF 21.54%, #D8A6FF 102.57%);
+    background: var(--bg); 
     padding: 60px 0;
     box-sizing: border-box;
     overflow: hidden;
-    border-radius: 12px; 
-    margin: 20px 0;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    margin: 40px 0;
 }
 
 .sliderStage {
@@ -234,82 +235,143 @@
 
 /* 진행 표시 (인디케이터) */
 .slideProgress {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    z-index: 2;
-}
-
-.progressDot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.4);
-    transition: all 0.3s ease;
+    margin-bottom: 24px;
 }
 
 .progressDot.active {
-    width: 24px;
-    border-radius: 4px;
-    background: #FFFFFF;
+    background: #9CCAFF; /* 포인트 컬러 일치 */
+    width: 20px;
+}
+
+.navGroup {
+    margin-top: 30px;
+}
+
+.navBtn {
+    border-radius: 12px; /* 카드 모서리와 통일감 */
+    font-family: 'Pretendard', sans-serif;
+}
+
+.navBtn.next {
+    background: linear-gradient(142deg, #9CCAFF, #D8A6FF);
+    color: white;
+    box-shadow: 0 4px 15px rgba(156, 202, 255, 0.3);
 }
 
 /* 카드 트랙 */
 .slideCardTrack {
     width: 100%;
+    max-width: 900px;
     position: relative;
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: center;
     overflow: visible;
-    perspective: 1000px;
-    min-height: 400px; /* 카드 높이에 맞게 확보 */
+    perspective: 1200px;
+    min-height: 420px;
 }
 
 /* 카드 공통 스타일 */
 .slideCard {
     position: absolute;
-    width: 90%; /* 모바일 대응을 위해 90% 권장 */
-    max-width: 800px;
-    background: rgba(255, 255, 255, 0.28);
-    backdrop-filter: blur(25px);
-    -webkit-backdrop-filter: blur(25px);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    border-radius: 28px;
+    width: 800px;
+    height: 400px; 
+    background: rgba(255, 255, 255, 0.8); 
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 24px;
     padding: 40px;
     box-sizing: border-box;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 20px 40px rgba(156, 202, 255, 0.15); 
     display: flex;
     flex-direction: column;
-    transition: transform 0.3s ease-out, opacity 0.25s ease-out;
+    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 /* 카드 위치 상태 */
-.slideCard.current { position: relative; opacity: 1; transform: translateX(0) scale(1); z-index: 2; }
-.slideCard.prev { transform: translateX(-60%) scale(0.8); opacity: 0.4; z-index: 1; }
-.slideCard.next { transform: translateX(60%) scale(0.8); opacity: 0.4; z-index: 1; }
+.slideCard.current {
+    opacity: 1;
+    transform: translateZ(0) scale(1);
+    z-index: 5;
+    border: 1px solid #9CCAFF; 
+}
+
+.slideCard.prev {
+    opacity: 0.4;
+    transform: translateX(-50%) translateZ(-200px) rotateY(15deg);
+    z-index: 1;
+    pointer-events: none;
+}
+
+.slideCard.next {
+    opacity: 0.4;
+    transform: translateX(50%) translateZ(-200px) rotateY(-15deg);
+    z-index: 1;
+    pointer-events: none;
+}
 
 /* 카드 내부 레이아웃 */
 .slideCardInner {
     display: flex;
     flex-direction: row;
     gap: 40px;
-    align-items: flex-start;
+    height: 100%;
     width: 100%;
 }
 
-.leftSection { flex: 1; display: flex; flex-direction: column; gap: 16px; }
-.rightSection { flex: 1.2; display: flex; flex-direction: column; gap: 12px; }
+.leftSection {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center; 
+    gap: 12px;
+}
 
-.cardNum { font-size: 42px; font-weight: 800; color: #3A4A5C; line-height: 1; }
-.cardTitle { font-size: 20px; font-weight: 700; color: #111; line-height: 1.4; word-break: keep-all; }
-.cardMain { font-size: 17px; font-weight: 600; color: #FFFFFF; line-height: 1.5; }
+.rightSection {
+    flex: 1.2;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-right: 15px;
+    justify-content: center;
+}
+
+.cardNum {
+    font-size: 32px;
+    font-weight: 800;
+    /* 포인트 컬러 사용 */
+    background: linear-gradient(142deg, #9CCAFF, #D8A6FF);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.cardTitle {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1.35;
+}
+
+.cardMain {
+    font-size: 16px;
+    font-weight: 600;
+    color: #666; 
+    border-left: 3px solid #9CCAFF;
+    padding-left: 12px;
+}
+
+.sentence-item {
+    font-size: 14.5px;
+    line-height: 1.7;
+    color: var(--ink-muted);
+}
 
 .dividerLine {
     width: 1px;
-    height: 180px;
-    background: rgba(255, 255, 255, 0.5);
-    flex-shrink: 0;
+    height: 80%;
+    background: linear-gradient(to bottom, transparent, var(--line), transparent);
+    align-self: center;
 }
 
 .sentence-item {
