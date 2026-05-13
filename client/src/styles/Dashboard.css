@@ -584,19 +584,19 @@
 .catHeroZone {
   position: relative;
   width: 100%;
-  height: 500px;
+  height: 200px;
   overflow: hidden;
-  margin-bottom: 60px;
+  margin-bottom: 10px;
 }
 
 .catWatermark {
   font-family: 'Playfair Display', serif;
-  font-size: 220px;
+  font-size: 100px;
   font-weight: 400;
   color: var(--theme-title);
   position: absolute;
   left: 50%;
-  top: 30%;
+  top: 5%;
   transform: translateX(-50%);
   line-height: 1;
   white-space: nowrap;
@@ -605,10 +605,10 @@
   z-index: 2;
 }
 
-.catEllipse {
+/* .catEllipse {
   position: absolute;
-  width: 480px;
-  height: 440px;
+  width: 180px;
+  height: 140px;
   border-radius: 50%;
   background: #f2f2f2;
   left: 50%;
@@ -617,7 +617,7 @@
   pointer-events: none;
   z-index: 1;
   opacity: 0.5;
-}
+} */
 
 /* ===========================
    메인 레이아웃

@@ -202,7 +202,6 @@ function Dashboard({ user, onLogout }) {
               <div className="catEllipse" />
             </div>
 
-            <h2 className="sectionTitle">{section.category}</h2>
 
             <div className="articleGrid">
               {section.items.map((item) => (
