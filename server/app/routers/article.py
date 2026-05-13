@@ -8,7 +8,15 @@ from app.core.security import get_current_user
 from app.models.ai_summaries import AiSummary
 from app.models.article import Article
 from app.models.user import User
-from app.schemas.article import (ArticleCreate, ArticleInsightsResponse, ArticleListResponse, ArticleResponse, ArticleSummaryResponse,)
+from app.schemas.article import (
+    ArticleCreate,
+    ArticleInsightsResponse,
+    ArticleListResponse,
+    ArticleResponse,
+    ArticleSummaryResponse,
+    CategoryStatItem,
+    CategoryStatsResponse,
+)
 from app.services import article_service, rag_service, thumbnail_service
 
 router = APIRouter(prefix="/api/articles", tags=["articles"])
@@ -135,6 +143,38 @@ def get_popular_articles(
     )
     summary_article_ids = _summary_article_ids(db, [a.article_id for a in articles])
     return [_to_response(a, summary_article_ids) for a in articles]
+
+
+@router.get("/stats/by-category", response_model=CategoryStatsResponse)
+def get_category_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """관리자(a) 전용: 카테고리별 조회수 합과 아티클 수 (도넛 차트용)."""
+    if current_user.user_role != "a":
+        raise HTTPException(status_code=404, detail="Not found")
+
+    rows = (
+        db.query(
+            Article.article_category,
+            func.coalesce(func.sum(Article.article_view_count), 0).label("total_views"),
+            func.count(Article.article_id).label("article_count"),
+        )
+        .filter(Article.article_category.isnot(None))
+        .group_by(Article.article_category)
+        .order_by(func.coalesce(func.sum(Article.article_view_count), 0).desc())
+        .all()
+    )
+    return CategoryStatsResponse(
+        items=[
+            CategoryStatItem(
+                category=category,
+                total_views=int(total_views or 0),
+                article_count=int(article_count or 0),
+            )
+            for category, total_views, article_count in rows
+        ]
+    )
 
 
 @router.get("/{article_id}/summary", response_model=ArticleSummaryResponse)

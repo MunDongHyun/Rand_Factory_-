@@ -46,3 +46,14 @@ class BulkSignupResponse(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+class UserListResponse(BaseModel):
+    users: list[UserResponse]
+    total: int
+
+
+class UserStatsResponse(BaseModel):
+    total_users: int
+    monthly_signups: int
+    top_company: str | None = None

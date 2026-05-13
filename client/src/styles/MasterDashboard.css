@@ -345,3 +345,73 @@
     color: #c0392b;
     background: rgba(192, 57, 43, 0.1);
 }
+/* ===========================
+   카테고리 통계 / 상태 메시지
+   =========================== */
+
+.masterCategoryList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+}
+
+.masterCategoryList > li {
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.masterCategoryList > li:last-child {
+    border-bottom: none;
+}
+
+.masterCategoryRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+}
+
+.masterCategoryName {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.masterCategoryViews {
+    color: rgba(255, 255, 255, 0.6);
+    font-variant-numeric: tabular-nums;
+}
+
+.masterCategoryBar {
+    margin-top: 6px;
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.masterCategoryBarFill {
+    height: 100%;
+    background: linear-gradient(90deg, #4a8fd0, #8a5cf0);
+    transition: width 0.3s ease;
+}
+
+.masterChartEmpty {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 14px;
+    text-align: center;
+    margin: 0;
+}
+
+.masterError {
+    color: #ff6b6b;
+    font-size: 14px;
+    margin: 4px 0 12px;
+}
+
+.masterLoading {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
+    padding: 12px;
+    text-align: center;
+}

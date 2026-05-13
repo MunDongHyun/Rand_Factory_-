@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from datetime import datetime, timezone
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -9,8 +12,10 @@ from app.schemas.user import (
     BulkSignupResponse,
     TokenResponse,
     UserCreate,
+    UserListResponse,
     UserLogin,
     UserResponse,
+    UserStatsResponse,
 )
 
 router = APIRouter(prefix="/api/users", tags=["users"])
@@ -82,6 +87,60 @@ def login(body: UserLogin, db: Session = Depends(get_db)):
 @router.get("/me", response_model=UserResponse)
 def get_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+@router.get("/stats", response_model=UserStatsResponse)
+def get_user_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """관리자(a) 전용: 회원 통계 (총수, 이번 달 가입자, 최다 회사)."""
+    if current_user.user_role != "a":
+        raise HTTPException(status_code=404, detail="Not found")
+
+    active = db.query(User).filter(User.user_deleted_at.is_(None))
+    total_users = active.count()
+
+    now = datetime.now(timezone.utc)
+    month_start = datetime(now.year, now.month, 1, tzinfo=timezone.utc)
+    monthly_signups = active.filter(User.user_created_at >= month_start).count()
+
+    top_row = (
+        db.query(User.user_company, func.count(User.user_id).label("cnt"))
+        .filter(User.user_deleted_at.is_(None), User.user_company != "")
+        .group_by(User.user_company)
+        .order_by(func.count(User.user_id).desc())
+        .first()
+    )
+    top_company = top_row[0] if top_row else None
+
+    return UserStatsResponse(
+        total_users=total_users,
+        monthly_signups=monthly_signups,
+        top_company=top_company,
+    )
+
+
+@router.get("", response_model=UserListResponse)
+def list_users(
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """관리자(a) 전용: 전체 회원 목록 (페이지네이션)."""
+    if current_user.user_role != "a":
+        raise HTTPException(status_code=404, detail="Not found")
+
+    query = db.query(User)
+    total = query.count()
+    users = (
+        query.order_by(User.user_created_at.desc())
+        .offset((page - 1) * limit)
+        .limit(limit)
+        .all()
+    )
+    return UserListResponse(users=users, total=total)
 
 
 @router.get("/{user_id}", response_model=UserResponse)

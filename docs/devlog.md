@@ -2,6 +2,62 @@
 
 ---
 
+## 2026-05-13 - Claude (마스터 페이지 DB 연결)
+
+### 배경
+- 마스터 페이지(`MasterDashboard`)가 통계 카드/회원 목록/카테고리 차트 자리까지 전부 더미 데이터로 표시 중
+- 매핑 가능한 항목부터 실제 DB 데이터로 연결 (산업군/만족도는 DB 스키마 부재로 보류)
+
+### 백엔드 신규 API (모두 admin `a` 전용, 권한 없으면 404 로 숨김)
+- `GET /api/users/stats` — `total_users`, `monthly_signups`, `top_company`
+  - `monthly_signups` 은 UTC 기준 이번 달 1일 이후 created_at
+  - `top_company` 는 빈 문자열 제외하고 가장 많은 user_company
+- `GET /api/users?page=&limit=` — 전체 회원 목록 (페이지네이션, soft delete 포함해서 반환)
+  - 라우터 순서: `/me` `/stats` `""` 정적 경로 → `/{user_id}` 동적 경로 순으로 정렬
+- `GET /api/articles/stats/by-category` — 카테고리별 `total_views` + `article_count`
+  - `func.coalesce(sum(article_view_count), 0)` 로 NULL 안전 처리
+  - `article_category IS NOT NULL` 만 대상
+
+### 스키마
+- `schemas/user.py` — `UserListResponse`, `UserStatsResponse` 신설
+- `schemas/article.py` — `CategoryStatItem`, `CategoryStatsResponse` 신설
+
+### 프론트 (`client/src/components/MasterDashboard.jsx`)
+- `DUMMY_STATS`, `DUMMY_MEMBERS` 제거
+- 마운트 시 `GET /users/stats` + `GET /articles/stats/by-category` 호출, 회원 패널 열릴 때 `GET /users` 호출 (lazy)
+- 상단 통계 카드 3개에 실제 값 매핑 (총수/이번 달 신규/최다 회사)
+- 아티클 조회수 영역:
+  - TOP 5 카테고리: 막대그래프 + 조회수 표시 (`total_views / sum * 100` 비율)
+  - 전체 카테고리: 아티클 수 리스트
+- 회원관리 패널:
+  - `user_name`, `user_email`, `user_company`, `user_created_at(YYYY.MM.DD)` 표시
+  - 상태는 `user_role` 기반 라벨링 (`a`→관리자, `m`→매니저, `j`→학습자), 탈퇴(`user_deleted_at IS NOT NULL`) 만 빨간색 warning
+- 만족도 영역은 DB 모델 부재로 자리만 유지 ("추후 추가 예정" 텍스트로 변경)
+- `MasterDashboard.css` 에 `masterCategoryList`, `masterCategoryBar(Fill)`, `masterChartEmpty`, `masterError`, `masterLoading` 스타일 추가
+
+### 결정 / 의미 변경
+- 더미의 "가장 많은 산업군" → "가장 많은 회사" (DB 에 industry 컬럼 없어서 user_company 로 대체)
+- 더미의 "정상/경고" 상태 → role 라벨 + 탈퇴 여부 (status 컬럼 없음, 경고 개념은 일단 제외)
+- 도넛 차트 → 막대 + 텍스트 리스트 (정식 차트 라이브러리 도입 별건)
+- 만족도 / 의견 수집은 별도 테이블 + API 설계 필요해서 이번 작업 범위 밖
+
+### 검증
+- 백엔드: `compileall -q app` + `import app.main` 통과
+- 백엔드 API 응답 (admin JWT 로 TestClient):
+  - `/api/users/stats` → 200, `{total_users: 33, monthly_signups: 33, top_company: "삼성전자"}`
+  - `/api/users?limit=5` → 200, 회원 5명 정상 응답
+  - `/api/articles/stats/by-category` → 200, 마케팅 51회 / 경영전략 7회 등 8개 카테고리
+- 프론트: `npm run build` 통과
+- 사용자 브라우저에서 admin 계정(`admin01@test.com`) 로 로그인 후 화면 확인 완료
+
+### 다음 / TODO
+- `users` 테이블에 `industry` 컬럼 추가 검토 (정식 산업군 표시)
+- 도넛 차트 라이브러리 도입 (recharts 또는 chart.js)
+- 만족도/의견 수집 테이블 + API 설계
+- 회원 목록 페이지네이션 UI (현재는 limit=50 으로 단일 페이지)
+
+---
+
 ## 2026-05-13 - Claude (헤더 로고 클릭 시 대시보드 초기화)
 
 ### 배경

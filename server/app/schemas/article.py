@@ -61,3 +61,13 @@ class ArticleInsightsResponse(BaseModel):
     title: str
     keywords: list[str]
     insights: list[InsightItem]
+
+
+class CategoryStatItem(BaseModel):
+    category: str
+    total_views: int
+    article_count: int
+
+
+class CategoryStatsResponse(BaseModel):
+    items: list[CategoryStatItem]
