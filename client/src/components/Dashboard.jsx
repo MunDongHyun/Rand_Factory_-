@@ -116,6 +116,21 @@ function Dashboard({ user, onLogout }) {
 
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
+  const openArticleDetail = async (article) => {
+    setSelectedArticle(article);
+    setView('articleDetail');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    if (!article?.article_id) return;
+
+    try {
+      const res = await api.post(`/articles/${article.article_id}/view`);
+      setSelectedArticle(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const viewRef = useRef(view);
   viewRef.current = view;
 
@@ -147,30 +162,6 @@ function Dashboard({ user, onLogout }) {
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, [originalSections]); // originalSections가 설정된 후 참조할 수 있도록 의존성 추가
-
-  const CategoryTabBar = () => (
-    <div className="catTabBarTop">
-    
-      <button
-        className={`catTabTop ${!selectedCategory ? 'active' : ''}`}
-        onClick={() => setSelectedCategory(null)}
-      >전체</button>
-
-
-      {originalSections.map((section) => (
-        <button
-          key={section.category}
-          className={`catTabTop ${selectedCategory === section.category ? 'active' : ''}`}
-          onClick={() => {
-            setSelectedCategory(section.category);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-        >
-          {section.category}
-        </button>
-      ))}
-    </div>
-  );
 
   const ArticleListView = () => {
     if (loading) return <p style={{ padding: '20px' }}>아티클 불러오는 중...</p>;
@@ -215,11 +206,7 @@ function Dashboard({ user, onLogout }) {
                 <article 
                   key={item.article_id || Math.random()} 
                   className="articleCard" 
-                  onClick={() => {
-                    setSelectedArticle(item);
-                    setView('articleDetail');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
+                  onClick={() => openArticleDetail(item)}
                 >
                   <div className="cardTop">
                     {item.article_thumbnail_url && <img src={item.article_thumbnail_url} alt="" />}

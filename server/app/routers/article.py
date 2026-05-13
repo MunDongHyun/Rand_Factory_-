@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import update
+from sqlalchemy import func, update
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -187,8 +187,8 @@ def get_article_insights(
     )
 
 
-@router.get("/{article_id}", response_model=ArticleResponse)
-def get_article(
+@router.post("/{article_id}/view", response_model=ArticleResponse)
+def record_article_view(
     article_id: int,
     db: Session = Depends(get_db),
     _current_user: User = Depends(get_current_user),
@@ -200,10 +200,24 @@ def get_article(
     db.execute(
         update(Article)
         .where(Article.article_id == article_id)
-        .values(article_view_count=Article.article_view_count + 1)
+        .values(article_view_count=func.coalesce(Article.article_view_count, 0) + 1)
     )
     db.commit()
     db.refresh(article)
+
+    summary_article_ids = _summary_article_ids(db, [article.article_id])
+    return _to_response(article, summary_article_ids)
+
+
+@router.get("/{article_id}", response_model=ArticleResponse)
+def get_article(
+    article_id: int,
+    db: Session = Depends(get_db),
+    _current_user: User = Depends(get_current_user),
+):
+    article = db.query(Article).filter(Article.article_id == article_id).first()
+    if not article:
+        raise HTTPException(status_code=404, detail="Article not found")
 
     summary_article_ids = _summary_article_ids(db, [article.article_id])
     return _to_response(article, summary_article_ids)
