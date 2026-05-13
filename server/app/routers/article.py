@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, update
 from sqlalchemy.orm import Session
-from app.schemas.ai_output import AiSummaryResponse 
+
 
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -202,7 +202,6 @@ def record_article_view(
 
     summary_article_ids = _summary_article_ids(db, [article.article_id])
     return _to_response(article, summary_article_ids)
-
 
 @router.get("/{article_id}", response_model=ArticleResponse)
 def get_article(

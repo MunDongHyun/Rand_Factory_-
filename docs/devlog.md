@@ -2,6 +2,18 @@
 
 ---
 
+## 2026-05-13 - Codex (아티클 상세 응답 최적화)
+
+### 작업
+- `ArticleDetailView` 진입 시 중복으로 호출하던 `GET /api/articles/{article_id}` 제거.
+- 카드 클릭 시 `POST /api/articles/{article_id}/view` 응답으로 받은 최신 Article 데이터를 상세 화면에 그대로 사용.
+- 대시보드 카드 썸네일과 상세 히어로 이미지에 `loading="lazy"` 적용.
+
+### 검증
+- `cd client && npm run build` 통과
+
+---
+
 ## 2026-05-13 - Codex (카테고리 탭 전체 표시 조정)
 
 ### 작업
