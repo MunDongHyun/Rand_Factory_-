@@ -49,7 +49,7 @@ def create_curriculum(
         cur_target_industry=body.cur_target_industry,
         cur_duration_weeks=body.cur_duration_weeks,
         cur_learning_goal=body.cur_learning_goal,
-        cur_ai_prompt_input=body.cur_ai_prompt_input,
+        cur_learning_detail_goal=body.cur_learning_detail_goal,
         cur_week_plan=body.cur_week_plan,
         cur_assigned_learner_ids=body.cur_assigned_learner_ids,
         cur_status=body.cur_status,

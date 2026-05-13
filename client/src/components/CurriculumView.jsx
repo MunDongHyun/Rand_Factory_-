@@ -139,7 +139,7 @@ function CurriculumView() {
         cur_target_job: preview.cur_target_job,
         cur_target_industry: preview.cur_target_industry,
         cur_learning_goal: preview.cur_learning_goal,
-        cur_ai_prompt_input: form.required_content.trim() || null,
+        cur_learning_detail_goal: form.required_content.trim() || null,
         cur_week_plan: preview.cur_week_plan,
         cur_status: 'draft',
       };

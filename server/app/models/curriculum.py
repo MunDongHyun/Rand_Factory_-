@@ -14,7 +14,7 @@ class Curriculum(Base):
     cur_target_industry: Mapped[str | None] = mapped_column(String(100), nullable=True)
     cur_duration_weeks: Mapped[int] = mapped_column(Integer, nullable=False)
     cur_learning_goal: Mapped[str | None] = mapped_column(Text, nullable=True)
-    cur_ai_prompt_input: Mapped[str | None] = mapped_column(Text, nullable=True)
+    cur_learning_detail_goal: Mapped[str | None] = mapped_column(JSON, nullable=True)
     cur_week_plan: Mapped[dict | list | None] = mapped_column(JSON, nullable=True)
     cur_assigned_learner_ids: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     cur_status: Mapped[str | None] = mapped_column(Enum("draft", "active", "archived"), nullable=True, default="draft")

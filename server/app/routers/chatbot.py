@@ -72,7 +72,7 @@ def create_message(
     if not session:
         raise HTTPException(status_code=404, detail="Chatbot session not found")
 
-    message = ChatbotMessage(session_id=session_id, role=body.role, content=body.content)
+    message = ChatbotMessage(session_id=session_id, talker=body.talker, content=body.content)
     db.add(message)
     db.commit()
     db.refresh(message)

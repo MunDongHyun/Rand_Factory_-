@@ -1,6 +1,32 @@
 # 개발 로그
 
-팀 레포 오픈 후 git commit message로 이전 예정.
+---
+
+## 2026-05-13 - Claude (DB 컬럼명 동기화)
+
+### DB 변경 (팀원 작업)
+- `curriculum.cur_ai_prompt_input` (TEXT) → `cur_learning_detail_goal` (JSON), 코멘트 "세부 학습 목표"
+- `chatbot_messages.role` → `talker` (ENUM 값 `user`/`assistant` 동일, 코멘트 "발화 주체")
+
+### 코드 동기화
+- `cur_ai_prompt_input` → `cur_learning_detail_goal` (5곳)
+  - `server/app/models/curriculum.py` — 컬럼명 + 타입 `Text → JSON`. Python 측 타입은 일단 `str | None` 유지 (저장 시 JSON-string 으로 직렬화됨)
+  - `server/app/schemas/curriculum.py` — Create/Update/Response 3개 모두
+  - `server/app/routers/curriculum.py` — `create_curriculum` 의 모델 생성자 인자
+  - `client/src/components/CurriculumView.jsx` — 저장 payload 필드명
+- `role` → `talker` (3곳, 프론트 영향 없음)
+  - `server/app/models/chatbot.py`
+  - `server/app/schemas/chatbot.py` — `ChatbotMessageCreate.talker`, `ChatbotMessageResponse.talker` (타입 alias 이름 `ChatbotRole`은 그대로 둠 — 값은 동일)
+  - `server/app/routers/chatbot.py` — `create_message` 의 모델 생성자 인자
+
+### 검증
+- `cd server && .\venv\Scripts\python.exe -m compileall -q app` 통과
+- `import app.main` 통과
+- `cd client && npm run build` 통과 (100 modules, 847ms)
+
+### 보류 (TODO)
+- `cur_learning_detail_goal` JSON 컬럼을 실제로 활용할 구조 (list[str] vs dict 등) — 프론트 폼 설계할 때 결정
+- 현재는 string 그대로 JSON-string 으로 저장됨
 
 ---
 
