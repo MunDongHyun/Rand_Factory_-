@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import '../styles/Dashboard.css';
 
-function Header({ onViewChange, onLogout, onScrollToTop, onScrollToArticle, onSearch }) {
+function Header({ onViewChange, onLogout, onScrollToTop, onScrollToArticle, onSearch, onReset }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [inputValue, setInputValue] = useState(''); // 검색어 상태 추가
 
@@ -25,14 +25,15 @@ function Header({ onViewChange, onLogout, onScrollToTop, onScrollToArticle, onSe
     <>
       <header className="dashHeader">
         <div className="headerContent">
-          <div className="dashLogo" 
-               onClick={() => { 
-                onViewChange('articles'); 
-                setMenuOpen(false); 
-                // 로고 클릭 시 검색어 초기화 (원한다면 제외해도 무방합니다)
-                setInputValue('');
-                if(onSearch) onSearch(''); 
-               }}>
+          <div
+            className="dashLogo"
+            style={{ cursor: 'pointer' }}
+            onClick={() => {
+              setMenuOpen(false);
+              setInputValue('');
+              if (onReset) onReset();
+            }}
+          >
             LANDFACTORY
           </div>
 

@@ -2,6 +2,34 @@
 
 ---
 
+## 2026-05-13 - Claude (헤더 로고 클릭 시 대시보드 초기화)
+
+### 배경
+- 학습자/매니저가 카테고리 탭이나 검색으로 화면을 좁힌 뒤 "처음으로" 돌아갈 명확한 진입점이 없었음
+- 기존 `LANDFACTORY` 로고 클릭은 일부만 reset 했음 (view 전환 + 검색어 input 일부 클리어만, 카테고리/스크롤/selectedArticle은 누락)
+
+### 작업
+- `client/src/components/Dashboard.jsx`
+  - `resetDashboard()` 함수 신규 — view='articles', selectedArticle=null, selectedCategory=null, searchQuery='', sections=originalSections, smooth scroll to top
+  - Header 에 `onReset={resetDashboard}` prop 전달
+- `client/src/components/Header.jsx`
+  - props 에 `onReset` 추가
+  - `LANDFACTORY` 로고 클릭 핸들러를 `onReset()` 호출로 단일화 (기존 `onViewChange`/`onSearch('')` 흐름은 resetDashboard 가 더 폭넓게 처리)
+  - 로고에 `cursor: pointer` 명시
+
+### 결정
+- 진입점 후보로 `HeroBanner` 배너 영역 onClick 도 검토했으나, 스크롤 내리면 화면에서 사라져서 도달성이 낮음. 사용자도 "로고를 의미했다"고 확인. HeroBanner 변경은 원복
+- 로고 클릭이 articleDetail/curriculum 등 다른 view 에서도 보이므로, 그 경우 메인으로 복귀시키기 위해 setView('articles') + setSelectedArticle(null) 도 reset 범위에 포함
+
+### 검증
+- `cd client && npm run build` 통과
+- 브라우저 시나리오 확인:
+  - 카테고리 탭 선택 + 스크롤 내림 → 로고 클릭 → 전체 탭 + 스크롤 최상단 복귀
+  - 검색 결과 보던 중 로고 클릭 → 원본 7개 카테고리 섹션 복원
+  - 콘솔 진단 로그로 scrollY 103 → 0 이동 확인 (그 후 로그 제거)
+
+---
+
 ## 2026-05-13 - Codex (아티클 상세 응답 최적화)
 
 ### 작업

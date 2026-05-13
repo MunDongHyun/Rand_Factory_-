@@ -116,6 +116,15 @@ function Dashboard({ user, onLogout }) {
 
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
+  const resetDashboard = () => {
+    setView('articles');
+    setSelectedArticle(null);
+    setSelectedCategory(null);
+    setSearchQuery('');
+    setSections(originalSections);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const openArticleDetail = async (article) => {
     setSelectedArticle(article);
     setView('articleDetail');
@@ -242,7 +251,8 @@ function Dashboard({ user, onLogout }) {
         }}
         onLogout={onLogout}
         onScrollToTop={scrollToTop}
-        onSearch={handleSearch} 
+        onSearch={handleSearch}
+        onReset={resetDashboard}
       />
 
       {view === 'articles' && <HeroBanner onCreateCurriculum={() => setView('curriculum')} />}
