@@ -59,13 +59,8 @@ child_splitter = RecursiveCharacterTextSplitter(chunk_size=400, chunk_overlap=50
 for idx, file_name in enumerate(pdf_files):
     full_path = os.path.join(data_path, file_name)
     print(f"\n[{idx+1}/{len(pdf_files)}] 주제 맞춤형 심층 분석 중: {file_name}")
-
-    # ==========================================
-    # [추가됨] 파일명에서 정확한 제목과 저자 추출 로직
-    # ==========================================
     base_name = file_name.replace('.pdf', '')
     
-    # 1) 마지막 '-'를 기준으로 제목부와 저자부 분리 (제목 안에 '-'가 있어도 안전함)
     if '-' in base_name:
         title_part, extracted_author = base_name.rsplit('-', 1)
         title_part = title_part.strip()
@@ -74,7 +69,6 @@ for idx, file_name in enumerate(pdf_files):
         title_part = base_name.strip()
         extracted_author = "저자미상"
         
-    # 2) 괄호로 시작하는 (DBR, 카테고리) 부분 제거 후 순수 아티클 제목 추출
     match = re.match(r"^\([^)]+\)\s*(.*)", title_part)
     if match:
         exact_article_title = match.group(1).strip()
