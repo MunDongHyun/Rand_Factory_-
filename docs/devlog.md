@@ -2,6 +2,43 @@
 
 ---
 
+## 2026-05-13 - Claude (새로고침 시 view 복원 — sessionStorage)
+
+### 배경
+- SPA 라 F5 누르면 React state 초기화 → `view` 가 항상 기본값 `'articles'` 로 돌아가 메인으로 가버림
+- 학습자가 아티클 상세 / 커리큘럼 / 이메일링 화면 보다가 새로고침하면 답답함
+
+### 작업
+- `client/src/components/Dashboard.jsx`
+  - 마운트 시 sessionStorage 읽어서 view 복원하는 `useEffect` 추가
+    - `dash:view === 'articleDetail'` + `dash:articleId` 있으면 `GET /api/articles/{id}` 로 다시 fetch 해서 상세 화면 진입
+    - 404 등 catch 시 키 정리 후 기본 흐름
+    - `curriculum` / `emailing` 은 단순 `setView` 만
+  - view / selectedArticle.article_id 변경 시 sessionStorage 에 영속화하는 `useEffect` 추가
+  - `resetDashboard` 는 그대로. 로고 클릭 시 view='articles' 로 가면 persist useEffect 가 자동으로 `dash:articleId` 제거 + `dash:view='articles'` 로 동기화
+
+### 결정
+- 후보 3가지 (sessionStorage / react-router-dom / 그대로) 중 sessionStorage 채택
+  - 코드 변경 최소 + 현재 popstate/history 흐름과 자연스럽게 맞물림
+  - 다른 팀원 작업 영역 (App/Header/Dashboard 등) 과 충돌 위험 적음
+  - URL 공유는 현재 학습 시나리오의 핵심이 아님
+- 키 prefix 는 `dash:` — Dashboard 컴포넌트 영역만 관리. user_id 별 분리는 안 함 (sessionStorage 가 탭 단위라 실용적 충돌 거의 없음)
+- 로그아웃 시 sessionStorage 정리는 별도로 안 함 — 탭 닫으면 자동 정리되고, 같은 탭에서 재로그인 시 같은 view 복원되어도 무해
+
+### 검증
+- `cd client && npm run build` 통과
+- 브라우저 시나리오:
+  - 아티클 상세 → F5 → 같은 상세 화면 복원
+  - 커리큘럼/이메일링 → F5 → 같은 메뉴 유지
+  - 메인 articles → F5 → 그대로
+  - 로고 클릭 → 메인 + sessionStorage 자동 동기화 확인
+
+### 한계 / TODO
+- URL 이 바뀌지 않으므로 북마크/링크 공유 불가능. 추후 외부 공유 시나리오가 생기면 `react-router-dom` 도입 재검토
+- 탭 닫으면 사라짐 (localStorage 가 아니라 sessionStorage 선택) — 의도된 동작
+
+---
+
 ## 2026-05-13 - Claude (마스터 페이지 DB 연결)
 
 ### 배경

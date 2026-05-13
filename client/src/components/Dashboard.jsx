@@ -66,6 +66,37 @@ function Dashboard({ user, onLogout }) {
     fetchArticles();
   }, []);
 
+  // 새로고침 시 view 복원: sessionStorage 에 저장된 view/articleId 가 있으면 그대로 진입
+  useEffect(() => {
+    const savedView = sessionStorage.getItem('dash:view');
+    const savedArticleId = sessionStorage.getItem('dash:articleId');
+    if (!savedView || savedView === 'articles') return;
+
+    if (savedView === 'articleDetail' && savedArticleId) {
+      api.get(`/articles/${savedArticleId}`)
+        .then((res) => {
+          setSelectedArticle(res.data);
+          setView('articleDetail');
+        })
+        .catch(() => {
+          sessionStorage.removeItem('dash:view');
+          sessionStorage.removeItem('dash:articleId');
+        });
+    } else if (savedView === 'curriculum' || savedView === 'emailing') {
+      setView(savedView);
+    }
+  }, []);
+
+  // view / 선택 아티클 변경 시 sessionStorage 에 영속화
+  useEffect(() => {
+    sessionStorage.setItem('dash:view', view);
+    if (view === 'articleDetail' && selectedArticle?.article_id) {
+      sessionStorage.setItem('dash:articleId', String(selectedArticle.article_id));
+    } else {
+      sessionStorage.removeItem('dash:articleId');
+    }
+  }, [view, selectedArticle?.article_id]);
+
   const handleSearch = async (query) => {
     if (!query || !query.trim()) {
       setSections(originalSections);
