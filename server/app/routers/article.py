@@ -204,37 +204,6 @@ def record_article_view(
     return _to_response(article, summary_article_ids)
 
 
-<<<<<<< HEAD
-
-
-# 기존에 ai_output에 있던 라우터 article.py파일로 이동
-@router.get("/{article_id}/summary", response_model=AiSummaryResponse)
-def get_article_summary(
-    article_id: int, 
-    db: Session = Depends(get_db)
-):
-    """
-    특정 아티클의 AI 요약 데이터를 가져옵니다.
-    프론트엔드의 api.get(`/articles/${article.article_id}/summary`) 요청에 대응합니다.
-    """
-    # DB 구조에 맞춰 article_id로 필터링
-    summary = (
-        db.query(AiSummary)
-        .filter(AiSummary.article_id == article_id)
-        .order_by(AiSummary.created_at.desc())  # 최신 요약본 우선
-        .first()
-    )
-
-    if not summary:
-        raise HTTPException(
-            status_code=404, 
-            detail="이 아티클에 대한 요약문이 아직 생성되지 않았습니다."
-        )
-        
-    return summary
-
-
-=======
 @router.get("/{article_id}", response_model=ArticleResponse)
 def get_article(
     article_id: int,
@@ -247,4 +216,3 @@ def get_article(
 
     summary_article_ids = _summary_article_ids(db, [article.article_id])
     return _to_response(article, summary_article_ids)
->>>>>>> facee5d25a5215e7e5183461b3d578148a50ed5d
