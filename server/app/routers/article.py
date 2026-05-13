@@ -59,16 +59,13 @@ def create_article(
     db.refresh(article)
 
     if body.content:
-        chunk_count = rag_service.ingest_article(
+        rag_service.ingest_article(
             article_id=article.article_id,
             title=article.article_title,
             content=body.content,
             category=article.article_category,
             author=article.article_author,
         )
-        article.article_chunk_count = chunk_count
-        db.commit()
-        db.refresh(article)
 
     return _to_response(article)
 

@@ -27,9 +27,6 @@ def signup(body: UserCreate, db: Session = Depends(get_db)):
         user_name=body.name,
         user_company=body.company or "",
         user_role="j",
-        user_job_title=body.job_title,
-        user_industry=body.industry,
-        user_work_years=body.work_years,
     )
     db.add(user)
     db.commit()
@@ -59,9 +56,6 @@ def signup_bulk(body: BulkSignupRequest, db: Session = Depends(get_db)):
             user_name=emp.name,
             user_company=body.company,
             user_role="m" if i == 0 else "j",
-            user_job_title=emp.job_title,
-            user_industry=emp.industry,
-            user_work_years=emp.work_years or 0,
         )
         db.add(user)
         users.append(user)

@@ -4,6 +4,33 @@
 
 ---
 
+## 2026-05-13 - Claude (백엔드 정합성 점검 + 잔재 정리)
+
+### 점검
+- 작업 로그 + 현 코드 정합성 전수 점검
+- 발견된 큰 이슈 (당장 수정 안 함, 사용 시점에 같이 손보기로 결정)
+  - `POST /api/rag/query` — `rag_service.query_rag` 함수 부재 (라우터에서 호출하지만 서비스에 없음)
+  - `/api/ai-outputs/*` 4종 — `AiSummary` 모델 컬럼(`output_id`, `article_id`, `summary_text`, `created_at`)과 라우터/스키마가 참조하는 컬럼(`user_id`, `result_json`, `image_url`, `framework_type`, `user_input`, `generated_content`, `is_saved`) 불일치
+  - `article_author_email` — devlog는 JSON 컬럼, 실제 모델은 `String(200)` (DB 마이그레이션 영향 있어 보류)
+
+### 수정 (가벼운 정리 3건)
+- `server/app/schemas/ai_output.py` — `AiSummaryResponse`의 `is_saved`/`created_at` 중복 필드 제거
+- `server/app/models/article.py` — `AiSummary` top-level import 제거 (TYPE_CHECKING만 유지), 미사용 `JSON` import 정리
+- 삭제된 `article_chunk_count` 컬럼 참조 제거
+  - `server/app/routers/article.py` — `article.article_chunk_count = chunk_count` 대입 + 뒤따르는 commit/refresh 제거 (벡터스토어 ingest 호출은 유지)
+  - `server/app/schemas/article.py` — `ArticleResponse.article_chunk_count` 필드 제거
+
+### 검증
+- `cd server && .\venv\Scripts\python.exe -m compileall -q app` 통과
+- `import app.main` 통과
+- 프론트(`client/`)에 `article_chunk_count` 사용처 없음 확인
+
+### 참고
+- `server/scripts/ingest_pdfs.py`는 `article['chunk_count']`와 `/api/rag/query`를 호출하는 부분이 남아 있어 그대로 돌리면 깨짐. 스크립트는 운영 코드가 아니라 보류
+- RAG/ai_outputs 라우터는 등록 상태 유지 (Swagger에 노출). 발표/시연 일정 가까워지면 `main.py`에서 임시 주석 처리 고려
+
+---
+
 ## 2026-05-06 - Claude
 
 ### 작업
@@ -90,7 +117,7 @@
 
 | 구분 | 현재 사용 |
 |------|-----------|
-| 모델 | `users`, `articles`, `curriculum`, `ai_outputs`, `output_article_refs`, `task_submissions`, `chatbot_sessions`, `chatbot_messages` |
+| 모델 | `users`, `articles`, `curriculum`, `ai_summaries`, `task_submissions`, `chatbot_sessions`, `chatbot_messages` |
 | 라우터 | `user`, `article`, `rag`, `curriculum`, `ai_output`, `chatbot`, `task_submission`, `health` |
 | 제거된 예전 구조 | `mentor`, `mentoring`, `point`, `framework`, `chat` |
 
@@ -1015,5 +1042,36 @@
 - 현재 아티클 검색은 단순 키워드 `in` 매칭이라 의미 유사 검색은 불가
 - 광범위 키워드가 잡히면 같은 아티클이 여러 주차에 반복 추천될 수 있음
 - V2에서는 아티클 본문/요약문을 ChromaDB에 인덱싱한 임베딩 RAG로 교체하는 것이 적합
+
+---
+
+## 2026-05-13 - Codex (DB 삭제 컬럼 추가 정리)
+
+### 삭제된 `users` 직무/산업/연차 컬럼 정리
+- DB에서 아래 컬럼이 삭제된 상태에 맞춰 백엔드와 가입 화면 참조 제거
+  - `users.user_job_title`
+  - `users.user_industry`
+  - `users.user_work_years`
+- 수정 파일
+  - `server/app/models/user.py`에서 컬럼 제거
+  - `server/app/schemas/user.py`에서 생성/응답 스키마 필드 제거
+  - `server/app/routers/user.py`에서 회원 생성 시 해당 필드 할당 제거
+  - `client/src/components/Signup.jsx`에서 직무 입력값과 `job_title` payload 제거
+
+### 삭제된 `ai_summaries.model_used` 컬럼 정리
+- `server/app/models/ai_summaries.py`에서 `model_used` 컬럼 제거
+- `server/app/schemas/ai_output.py`에서 생성/응답 스키마의 `model_used` 필드 제거
+
+### 문서 동기화
+- `CLAUDE.md`, `README.md`, `docs/devlog.md`의 현재 핵심 테이블 목록에서 삭제된 `output_article_refs` 제거
+- 현재 ORM 기준 AI 요약 테이블명을 `ai_summaries`로 표기
+
+### 검증
+- 현재 코드/현재 문서 기준 삭제 컬럼 잔여 참조 없음
+  - `user_job_title`, `user_industry`, `user_work_years`, `job_title`, `work_years`, `model_used`, `output_article_refs`, `task_framework_type`
+- 백엔드 컴파일 통과
+  - `python -m compileall -q app`
+- 프론트엔드 빌드 통과
+  - `npm run build`
 
 ---

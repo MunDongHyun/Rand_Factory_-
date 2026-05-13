@@ -75,8 +75,7 @@ landfactory/
 - `users`
 - `articles`
 - `curriculum`
-- `ai_outputs`
-- `output_article_refs`
+- `ai_summaries`
 - `task_submissions`
 - `chatbot_sessions`
 - `chatbot_messages`
