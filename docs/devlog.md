@@ -4,6 +4,33 @@
 
 ---
 
+## 2026-05-13 - Claude (백엔드 정합성 점검 + 잔재 정리)
+
+### 점검
+- 작업 로그 + 현 코드 정합성 전수 점검
+- 발견된 큰 이슈 (당장 수정 안 함, 사용 시점에 같이 손보기로 결정)
+  - `POST /api/rag/query` — `rag_service.query_rag` 함수 부재 (라우터에서 호출하지만 서비스에 없음)
+  - `/api/ai-outputs/*` 4종 — `AiSummary` 모델 컬럼(`output_id`, `article_id`, `summary_text`, `created_at`)과 라우터/스키마가 참조하는 컬럼(`user_id`, `result_json`, `image_url`, `framework_type`, `user_input`, `generated_content`, `is_saved`) 불일치
+  - `article_author_email` — devlog는 JSON 컬럼, 실제 모델은 `String(200)` (DB 마이그레이션 영향 있어 보류)
+
+### 수정 (가벼운 정리 3건)
+- `server/app/schemas/ai_output.py` — `AiSummaryResponse`의 `is_saved`/`created_at` 중복 필드 제거
+- `server/app/models/article.py` — `AiSummary` top-level import 제거 (TYPE_CHECKING만 유지), 미사용 `JSON` import 정리
+- 삭제된 `article_chunk_count` 컬럼 참조 제거
+  - `server/app/routers/article.py` — `article.article_chunk_count = chunk_count` 대입 + 뒤따르는 commit/refresh 제거 (벡터스토어 ingest 호출은 유지)
+  - `server/app/schemas/article.py` — `ArticleResponse.article_chunk_count` 필드 제거
+
+### 검증
+- `cd server && .\venv\Scripts\python.exe -m compileall -q app` 통과
+- `import app.main` 통과
+- 프론트(`client/`)에 `article_chunk_count` 사용처 없음 확인
+
+### 참고
+- `server/scripts/ingest_pdfs.py`는 `article['chunk_count']`와 `/api/rag/query`를 호출하는 부분이 남아 있어 그대로 돌리면 깨짐. 스크립트는 운영 코드가 아니라 보류
+- RAG/ai_outputs 라우터는 등록 상태 유지 (Swagger에 노출). 발표/시연 일정 가까워지면 `main.py`에서 임시 주석 처리 고려
+
+---
+
 ## 2026-05-06 - Claude
 
 ### 작업
