@@ -11,7 +11,6 @@ class AiSummaryCreate(BaseModel):
     user_input: str | None = None
     generated_content: dict | None = None
     is_saved: bool = False
-    model_used: str | None = None
 
 
 # 수정 2: AiOutputUpdate -> AiSummaryUpdate 로 이름만 변경
@@ -32,8 +31,6 @@ class AiSummaryResponse(BaseModel):
     user_input: str | None = None
     generated_content: dict | None = None
     is_saved: bool | None = None
-    model_used: str | None = None
     created_at: datetime | None = None
     is_saved: bool | None = None
-    model_used: str | None = None
     created_at: datetime | None = None

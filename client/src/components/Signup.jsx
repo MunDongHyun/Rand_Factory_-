@@ -6,7 +6,6 @@ const makeEmptyEmployee = () => ({
   name: '',
   email: '',
   password: '',
-  job_title: '',
 });
 
 const Signup = ({ onBack, onComplete }) => {
@@ -58,7 +57,6 @@ const Signup = ({ onBack, onComplete }) => {
           name: e.name.trim(),
           email: e.email.trim(),
           password: e.password,
-          job_title: e.job_title.trim() || null,
         })),
       });
       onComplete();
@@ -124,17 +122,6 @@ const Signup = ({ onBack, onComplete }) => {
                     placeholder="성함 입력"
                     value={emp.name}
                     onChange={(e) => updateField(emp.id, 'name', e.target.value)}
-                  />
-                </div>
-
-                <div className="field-group">
-                  <div className="field-label">직무</div>
-                  <input
-                    className="f-input"
-                    type="text"
-                    placeholder="예: 마케팅, 영업, 기획"
-                    value={emp.job_title}
-                    onChange={(e) => updateField(emp.id, 'job_title', e.target.value)}
                   />
                 </div>
 

@@ -8,9 +8,6 @@ class UserCreate(BaseModel):
     password: str
     name: str
     company: str | None = None
-    job_title: str | None = None
-    industry: str | None = None
-    work_years: int | None = 0
 
 
 class UserLogin(BaseModel):
@@ -26,9 +23,6 @@ class UserResponse(BaseModel):
     user_name: str
     user_company: str | None = None
     user_role: str
-    user_job_title: str | None = None
-    user_industry: str | None = None
-    user_work_years: int | None = None
     user_created_at: datetime | None = None
     user_updated_at: datetime | None = None
     user_deleted_at: datetime | None = None
@@ -38,9 +32,6 @@ class BulkSignupEmployee(BaseModel):
     email: EmailStr
     password: str
     name: str
-    job_title: str | None = None
-    industry: str | None = None
-    work_years: int | None = 0
 
 
 class BulkSignupRequest(BaseModel):
