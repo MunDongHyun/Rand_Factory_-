@@ -18,7 +18,7 @@ openai_api_key = os.getenv("OPENAI_API_KEY")
 if openai_api_key:
     os.environ["OPENAI_API_KEY"] = openai_api_key
 
-llm = ChatOpenAI(model=os.getenv("AI_MODEL", "gpt-5.4-mini"), temperature=0.2)
+llm = ChatOpenAI(model=os.getenv("AI_MODEL", "gpt-5.4"), temperature=0.2)
 
 # 임시 Vector DB 역할을 할 로컬 요약 폴더 경로
 SUMMARY_DIR = BASE_DIR / "summary"
@@ -71,9 +71,7 @@ def retrieve_and_supplement_context(course_name: str, training_goal: str, requir
         
     return combined_context
 
-# ==========================================
 # 3. 커리큘럼 생성 프롬프트 및 파서 설계 (내용 심화 적용)
-# ==========================================
 curriculum_prompt_template = """
 당신은 대기업 HRD(인적자원개발) 교육 담당자이자 최고 수준의 체계적 OJT(S-OJT) 설계 전문가입니다.
 제공된 양식(표)을 엄격히 준수하되, 표 내부의 내용은 절대 단순 명사나 단답형으로 적지 마세요. 멘토가 당장 이 문서를 보고 실무 교육을 진행할 수 있도록 매우 구체적이고 실천적인 행동 지침(세부 스크립트, 체크리스트, 구체적 사례 등)으로 풍성하게 채워야 합니다.
@@ -151,9 +149,7 @@ prompt = PromptTemplate.from_template(curriculum_prompt_template)
 output_parser = StrOutputParser() 
 curriculum_chain = prompt | llm | output_parser
 
-# ==========================================
 # 4. 챗봇 엔진 실행 함수
-# ==========================================
 def generate_chatbot_curriculum(user_input: dict):
     print(f"\n[{user_input['course_name']}] 커리큘럼 설계를 시작합니다...")
     
