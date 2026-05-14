@@ -2,6 +2,27 @@
 
 ---
 
+## 2026-05-14 - Claude (settings .env 경로를 cwd 독립적으로 변경)
+
+### 배경
+- `server/scripts/ingest_summaries.py`를 repo root에서 실행하면 `Settings`가 `openai_api_key / db_password / secret_key` missing 에러
+- 원인: `app/core/config.py`의 `env_file=".env"`가 **상대경로**라 cwd 기준으로 `.env`를 찾는데, `.env`는 `server/`에만 존재 → root cwd에선 못 찾음
+- 정상 서버 실행(`cd server && uvicorn ...`)은 cwd가 server라 우연히 동작했지만, 스크립트·테스트 도구는 깨졌었음
+
+### 작업
+- `server/app/core/config.py`
+  - `env_file` 경로를 `Path(__file__).resolve().parent.parent.parent / ".env"`로 변경 (서버 루트 `server/.env` 절대경로)
+
+### 결정
+- pydantic-settings의 `env_file`이 상대경로일 때 cwd 의존적이라는 게 명확한 함정 — 어디서든 동일 동작하도록 절대경로화
+- 정상 서버 실행 경로는 영향 없음 (오히려 동일하게 안전해짐)
+
+### 검증
+- repo root에서 `from app.core.config import settings` → openai_api_key / db_password 정상 로드 확인
+- `cd server && compileall -q app` 통과, `import app.main` 통과 (첫 시도에 MySQL 일시 네트워크 이슈가 있었지만 우리 변경과 무관, 재시도 즉시 통과)
+
+---
+
 ## 2026-05-14 - Claude (DB 변경 동기화 — Author 모델 추가 + ai_output 잔존 제거)
 
 ### 배경
