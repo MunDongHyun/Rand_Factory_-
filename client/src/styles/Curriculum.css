@@ -730,3 +730,928 @@
 .confirmBtnCreate:hover {
   opacity: 0.8;
 }
+
+/* ===========================
+   학습자용 커리큘럼 (LearnerCurriculumView)
+   =========================== */
+
+.learnerCurriculumGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.learnerCurriculumCard {
+  position: relative;
+  background: #ffffff;
+  border: 1px solid #e1e4e8;
+  border-radius: 14px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.learnerCurriculumCard:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  border-color: #0366d6;
+}
+
+.learnerCurriculumCardHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.learnerCurriculumCardSubtitle {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 12px;
+  color: #888;
+  margin: 0;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.learnerCurriculumCardTitle {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #24292e;
+  margin: 0;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+.learnerCurriculumCardMeta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.learnerCurriculumCardBadge {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0366d6;
+  background: rgba(3, 102, 214, 0.08);
+  border: 1px solid rgba(3, 102, 214, 0.2);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.learnerCurriculumCardBadge.active {
+  color: #1a7f37;
+  background: rgba(26, 127, 55, 0.08);
+  border-color: rgba(26, 127, 55, 0.25);
+}
+
+.learnerCurriculumCardGoal {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  color: #555;
+  margin: 0;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.learnerCurriculumCardFooter {
+  margin-top: auto;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0366d6;
+  padding-top: 10px;
+  border-top: 1px dashed #e1e4e8;
+}
+
+/* 상세 */
+.learnerDetailHeader {
+  margin-top: 20px;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e1e4e8;
+}
+
+.learnerDetailSubtitle {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 12px;
+  color: #888;
+  margin: 0 0 6px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.learnerDetailTitle {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: #24292e;
+  margin: 0 0 10px;
+  letter-spacing: -0.02em;
+}
+
+.learnerDetailGoal {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  color: #444;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* 주차 스텝퍼 */
+.learnerWeekStepper {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.learnerWeekStep {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 56px;
+  height: 56px;
+  padding: 4px;
+  border: 1px solid #e1e4e8;
+  border-radius: 10px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Pretendard', sans-serif;
+}
+
+.learnerWeekStep:hover {
+  border-color: #0366d6;
+}
+
+.learnerWeekStep.active {
+  background: linear-gradient(135deg, #0366d6, #6f42c1);
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(3, 102, 214, 0.3);
+}
+
+.learnerWeekStepNum {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.learnerWeekStepLabel {
+  font-size: 11px;
+  margin-top: 2px;
+  opacity: 0.7;
+}
+
+/* 주차 카드 */
+.learnerWeekList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.learnerWeekCard {
+  border: 1px solid #e1e4e8;
+  border-radius: 12px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.learnerWeekCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.learnerWeekCardHeader:hover {
+  background: #fafbfc;
+}
+
+.learnerWeekCardWeek {
+  display: inline-block;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0366d6;
+  min-width: 56px;
+}
+
+.learnerWeekCardTheme {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: #24292e;
+}
+
+.learnerWeekCardToggle {
+  color: #888;
+  font-size: 12px;
+}
+
+.learnerWeekCardBody {
+  padding: 20px;
+  background: #fafbfc;
+  border-top: 1px solid #e1e4e8;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.learnerWeekSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.learnerWeekSectionTitle {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #24292e;
+  margin: 0;
+}
+
+.learnerWeekSectionText {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  color: #444;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.learnerWeekSectionList {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  color: #444;
+  line-height: 1.6;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.learnerWeekSectionList > li {
+  margin-bottom: 4px;
+}
+
+.learnerWeekArticle {
+  margin-bottom: 8px;
+}
+
+.learnerWeekArticleLink {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0366d6;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s ease;
+}
+
+.learnerWeekArticleLink:hover {
+  border-color: #0366d6;
+}
+
+.learnerWeekArticleReason {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 12px;
+  color: #777;
+  margin: 4px 0 0 16px;
+  line-height: 1.5;
+}
+
+.learnerWeekFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px dashed #e1e4e8;
+}
+
+.learnerWeekBadge {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 12px;
+  color: #666;
+  background: #e1e4e8;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.learnerWeekSubmitBtn {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  background: linear-gradient(135deg, #0366d6, #6f42c1);
+  border: none;
+  padding: 8px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.learnerWeekSubmitBtn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.learnerWeekSubmitBtn:disabled {
+  background: #e1e4e8;
+  color: #888;
+  cursor: not-allowed;
+}
+
+/* 진행률 바 */
+.learnerProgressBar {
+  width: 100%;
+  height: 6px;
+  background: #e1e4e8;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.learnerProgressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #0366d6, #6f42c1);
+  transition: width 0.3s ease;
+}
+
+.learnerDetailProgress {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.learnerDetailProgress .learnerProgressBar {
+  flex: 1;
+  max-width: 400px;
+}
+
+.learnerDetailProgressText {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0366d6;
+  white-space: nowrap;
+}
+
+/* 스텝퍼 상태별 색 */
+.learnerWeekStep {
+  position: relative;
+}
+
+.learnerWeekStepDot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #1a7f37;
+  box-shadow: 0 0 0 2px #ffffff;
+}
+
+.learnerWeekStep.submitted {
+  border-color: #1a7f37;
+  background: rgba(26, 127, 55, 0.04);
+}
+
+.learnerWeekStep.submitted.feedback_given {
+  border-color: #0366d6;
+  background: rgba(3, 102, 214, 0.06);
+}
+
+.learnerWeekStep.submitted.feedback_given .learnerWeekStepDot {
+  background: #0366d6;
+}
+
+.learnerWeekStep.submitted.resubmit_requested {
+  border-color: #d29922;
+  background: rgba(210, 153, 34, 0.06);
+}
+
+.learnerWeekStep.submitted.resubmit_requested .learnerWeekStepDot {
+  background: #d29922;
+}
+
+.learnerWeekStep.active .learnerWeekStepDot {
+  background: #ffffff;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+}
+
+/* 카드 헤더 우측 상태 뱃지 */
+.learnerWeekCardHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.learnerWeekStatusBadge {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: #1a7f37;
+  background: rgba(26, 127, 55, 0.1);
+  border: 1px solid rgba(26, 127, 55, 0.25);
+  letter-spacing: -0.01em;
+}
+
+.learnerWeekStatusBadge.feedback_given {
+  color: #0366d6;
+  background: rgba(3, 102, 214, 0.1);
+  border-color: rgba(3, 102, 214, 0.25);
+}
+
+.learnerWeekStatusBadge.resubmit_requested {
+  color: #b8861b;
+  background: rgba(210, 153, 34, 0.12);
+  border-color: rgba(210, 153, 34, 0.35);
+}
+
+/* 제출 / 피드백 영역 */
+.learnerWeekSubmission {
+  background: #ffffff;
+  border: 1px solid #e1e4e8;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.learnerWeekSubmissionMeta {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 12px;
+  color: #888;
+  margin: 0;
+}
+
+.learnerWeekSubmissionBody {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  color: #333;
+  line-height: 1.6;
+  background: #fafbfc;
+  border: 1px solid #e1e4e8;
+  border-radius: 8px;
+  padding: 12px;
+  white-space: pre-wrap;
+}
+
+.learnerWeekFeedback {
+  margin-top: 8px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, rgba(3, 102, 214, 0.04), rgba(111, 66, 193, 0.04));
+  border-left: 3px solid #0366d6;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.learnerWeekFeedbackTitle {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0366d6;
+  margin: 0;
+}
+
+.learnerWeekFeedbackMeta {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 11px;
+  color: #888;
+  margin: 0;
+}
+
+.learnerWeekFeedbackBody {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  color: #24292e;
+  line-height: 1.6;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.learnerWeekFeedbackPending {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 12px;
+  color: #888;
+  margin: 0;
+  padding: 8px 0 0;
+  font-style: italic;
+}
+
+.learnerSubmitModalTitle {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #24292e;
+  padding: 0 4px;
+  letter-spacing: -0.01em;
+}
+
+/* ===========================
+   학습자 배정 (매니저 화면)
+   =========================== */
+
+.assignSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.assignSectionTitle {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #24292e;
+  margin: 0;
+}
+
+.assignSectionHint {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 12px;
+  color: #888;
+  margin: 0 0 8px;
+  line-height: 1.5;
+}
+
+.assignEmpty {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  color: #888;
+  padding: 16px;
+  text-align: center;
+  background: #fafbfc;
+  border: 1px dashed #e1e4e8;
+  border-radius: 8px;
+  margin: 0;
+}
+
+.assignCheckList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.assignCheckItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #ffffff;
+  border: 1px solid #e1e4e8;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: 'Pretendard', sans-serif;
+}
+
+.assignCheckItem:hover {
+  border-color: #0366d6;
+  background: #fafbfc;
+}
+
+.assignCheckItem.checked {
+  border-color: #0366d6;
+  background: rgba(3, 102, 214, 0.05);
+}
+
+.assignCheckItem input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+  accent-color: #0366d6;
+}
+
+.assignName {
+  font-size: 13px;
+  font-weight: 600;
+  color: #24292e;
+}
+
+.assignEmail {
+  font-size: 11px;
+  color: #888;
+  margin-left: auto;
+}
+
+/* 상세 화면의 배정 학습자 박스 */
+.assignedLearnersBox {
+  background: #fafbfc;
+  border: 1px solid #e1e4e8;
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.assignedLearnersHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.assignedLearnersLabel {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #24292e;
+}
+
+.assignedLearnersEditBtn {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0366d6;
+  background: transparent;
+  border: 1px solid #0366d6;
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.assignedLearnersEditBtn:hover {
+  background: #0366d6;
+  color: #ffffff;
+}
+
+.assignedLearnersList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.assignedLearnerChip {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0366d6;
+  background: rgba(3, 102, 214, 0.08);
+  border: 1px solid rgba(3, 102, 214, 0.2);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.assignEmptyInline {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 12px;
+  color: #888;
+  font-style: italic;
+}
+
+/* ===========================
+   매니저용 제출 과제 / 피드백
+   =========================== */
+
+.managerSubmissionSection {
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid #e1e4e8;
+}
+
+.managerSubmissionHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.managerSubmissionTitle {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #24292e;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.managerSubmissionCount {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0366d6;
+  background: rgba(3, 102, 214, 0.08);
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.managerSubmissionEmpty {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  color: #888;
+  padding: 20px;
+  text-align: center;
+  background: #fafbfc;
+  border: 1px dashed #e1e4e8;
+  border-radius: 8px;
+  margin: 0;
+}
+
+.managerSubmissionList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.managerSubmissionItem {
+  background: #ffffff;
+  border: 1px solid #e1e4e8;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.managerSubmissionItemHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.managerSubmissionItemHeader:hover {
+  background: #fafbfc;
+}
+
+.managerSubmissionItemMain {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.managerSubmissionWeek {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0366d6;
+  min-width: 48px;
+}
+
+.managerSubmissionLearner {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #24292e;
+}
+
+.managerSubmissionTime {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 12px;
+  color: #888;
+  font-variant-numeric: tabular-nums;
+}
+
+.managerSubmissionItemRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.managerSubmissionStatus {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: #d29922;
+  background: rgba(210, 153, 34, 0.1);
+  border: 1px solid rgba(210, 153, 34, 0.3);
+}
+
+.managerSubmissionStatus.feedback_given {
+  color: #1a7f37;
+  background: rgba(26, 127, 55, 0.1);
+  border-color: rgba(26, 127, 55, 0.3);
+}
+
+.managerSubmissionStatus.resubmit_requested {
+  color: #cb2431;
+  background: rgba(203, 36, 49, 0.1);
+  border-color: rgba(203, 36, 49, 0.3);
+}
+
+.managerSubmissionToggle {
+  color: #888;
+  font-size: 12px;
+}
+
+.managerSubmissionItemBody {
+  padding: 18px;
+  background: #fafbfc;
+  border-top: 1px solid #e1e4e8;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.managerSubmissionContent,
+.managerSubmissionExistingFeedback,
+.managerFeedbackForm {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.managerSubmissionContentLabel {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #586069;
+  margin: 0;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.managerSubmissionContentBody {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  color: #24292e;
+  line-height: 1.6;
+  background: #ffffff;
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+  padding: 12px;
+  white-space: pre-wrap;
+}
+
+.managerSubmissionExistingFeedback .managerSubmissionContentBody {
+  background: rgba(3, 102, 214, 0.04);
+  border-color: rgba(3, 102, 214, 0.2);
+}
+
+.managerFeedbackTextarea {
+  width: 100%;
+  min-height: 100px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  color: #24292e;
+  background: #ffffff;
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+  padding: 12px;
+  resize: vertical;
+  box-sizing: border-box;
+  line-height: 1.6;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.managerFeedbackTextarea:focus {
+  border-color: #0366d6;
+}
+
+.managerFeedbackBtns {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.managerFeedbackBtn {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.managerFeedbackBtn.primary {
+  background: linear-gradient(135deg, #0366d6, #6f42c1);
+  color: #ffffff;
+  border: none;
+}
+
+.managerFeedbackBtn.secondary {
+  background: transparent;
+  color: #cb2431;
+  border: 1px solid rgba(203, 36, 49, 0.3);
+}
+
+.managerFeedbackBtn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.managerFeedbackBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

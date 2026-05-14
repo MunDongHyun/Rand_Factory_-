@@ -2,6 +2,62 @@
 
 ---
 
+## 2026-05-14 - Codex (학습자 커리큘럼 제출/피드백 흐름 추가)
+
+### 학습자 전용 커리큘럼 화면 추가
+- `client/src/components/LearnerCurriculumView.jsx` 신규 추가
+  - 학습자(`user_role === 'j'`)가 본인에게 배정된 커리큘럼 목록만 확인
+  - 커리큘럼별 주차 수, 제출 주차 수, 진행률 바 표시
+  - 상세 화면에서 주차별 학습 목표/실습 과제/추천 자료/체크리스트/예상 시간을 아코디언으로 확인
+  - 주차별 과제 제출 모달 추가
+  - 본인 제출 내용, 제출 시각, 매니저 피드백, 재제출 요청 상태 표시
+- `client/src/components/Dashboard.jsx`
+  - 커리큘럼 메뉴 진입 시 학습자 역할은 `LearnerCurriculumView`, 매니저/관리자는 기존 `CurriculumView`로 분기
+
+### 매니저 커리큘럼 관리 기능 확장
+- `client/src/components/CurriculumView.jsx`
+  - 커리큘럼 생성 확정 단계에서 같은 회사 학습자를 선택해 즉시 배정 가능
+  - 커리큘럼 상세 화면에 배정 학습자 목록/배정 변경 모달 추가
+  - 선택된 커리큘럼의 제출 과제 목록 조회
+  - 제출 과제별 학습자명, 주차, 제출 시각, 제출 내용, 상태 표시
+  - 매니저 피드백 저장 및 재제출 요청 버튼 추가
+
+### 백엔드 API 추가
+- `server/app/routers/user.py`
+  - `GET /api/users/learners` 추가
+  - 매니저는 본인과 같은 회사의 활성 학습자만 조회
+  - 관리자는 전체 활성 학습자 조회
+  - 학습자 역할은 404로 차단
+- `server/app/routers/curriculum.py`
+  - 커리큘럼 생성/수정 시 배정 학습자 ID를 서버에서 재검증
+  - 매니저는 같은 회사 활성 학습자만 배정 가능
+  - 관리자는 전체 활성 학습자 배정 가능
+- `server/app/routers/task_submission.py`
+  - `GET /api/task-submissions/by-curriculum/{cur_id}` 추가
+  - 매니저/관리자가 커리큘럼별 제출 과제와 학습자 정보를 함께 조회
+  - 매니저는 본인이 만든 커리큘럼만 접근 가능
+  - 과제 제출은 학습자 역할만 가능하며, 배정된 활성 커리큘럼과 실제 주차인지 검증
+- `server/app/schemas/task_submission.py`
+  - 제출 정보에 `learner_name`, `learner_email`을 포함하는 `TaskSubmissionWithLearnerResponse` 추가
+
+### 스타일
+- `client/src/styles/Curriculum.css`
+  - 학습자 커리큘럼 카드/상세/주차 스텝퍼/제출 상태/피드백 영역 스타일 추가
+  - 매니저 학습자 배정 UI, 제출 과제 목록, 피드백 작성 영역 스타일 추가
+
+### 검증
+- 프론트엔드 빌드 통과
+  - `npm run build`
+- 백엔드 컴파일 통과
+  - `python -m compileall -q app`
+
+### 한계 / 다음 개선 후보
+- 학습자 제출은 현재 텍스트 본문 중심이며 파일 첨부는 미지원
+- 매니저 피드백 작성 후 목록은 즉시 갱신되지만, 토스트/알림 UX는 아직 없음
+- `LearnerCurriculumView`와 `CurriculumView`에 날짜 포맷/주차 정규화 helper가 중복되어 추후 공통 유틸로 분리 가능
+
+---
+
 ## 2026-05-14 - Claude (저자 이메일링 기능 — API + 화면 + Gmail SMTP 발송)
 
 ### 배경

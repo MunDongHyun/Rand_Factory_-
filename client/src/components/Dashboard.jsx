@@ -3,6 +3,7 @@ import api from '../lib/api';
 import Header from './Header';
 import '../styles/Dashboard.css';
 import CurriculumView from './CurriculumView';
+import LearnerCurriculumView from './LearnerCurriculumView';
 import EmailingView from './EmailingView';
 import ArticleDetailView from './ArticleDetailView';
 import HeroBanner from './HeroBanner';
@@ -318,7 +319,11 @@ function Dashboard({ user, onLogout }) {
         )}
 
         {/* 🔥 변경: onOpenArticle props를 추가하여 함수를 넘겨줍니다 */}
-        {view === 'curriculum' && <CurriculumView onOpenArticle={openArticleDetail} />}
+        {view === 'curriculum' && (
+          user?.user_role === 'j'
+            ? <LearnerCurriculumView />
+            : <CurriculumView onOpenArticle={openArticleDetail} />
+        )}
 
         {view === 'emailing' && <EmailingView onOpenArticle={openArticleDetail} emailingDetailRef={emailingDetailRef} />}
       </main>

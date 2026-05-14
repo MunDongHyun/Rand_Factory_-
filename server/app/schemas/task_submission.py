@@ -30,3 +30,19 @@ class TaskSubmissionResponse(BaseModel):
     task_manager_feedback: str | None = None
     task_feedback_at: datetime | None = None
     task_status: TaskStatus | None = None
+
+
+class TaskSubmissionWithLearnerResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    task_submission_id: int
+    task_curriculum_id: int
+    task_learner_id: int
+    learner_name: str | None = None
+    learner_email: str | None = None
+    task_week_number: int
+    task_submitted_content: dict
+    task_submitted_at: datetime | None = None
+    task_manager_feedback: str | None = None
+    task_feedback_at: datetime | None = None
+    task_status: TaskStatus | None = None

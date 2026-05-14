@@ -20,6 +20,34 @@ from app.services import curriculum_service
 router = APIRouter(prefix="/api/curricula", tags=["curricula"])
 
 
+def _validate_assigned_learners(
+    learner_ids: list[int] | None,
+    user: User,
+    db: Session,
+) -> list[int] | None:
+    if learner_ids is None:
+        return None
+
+    unique_ids = list(dict.fromkeys(learner_ids))
+    if not unique_ids:
+        return []
+
+    query = db.query(User).filter(
+        User.user_id.in_(unique_ids),
+        User.user_role == "j",
+        User.user_deleted_at.is_(None),
+    )
+    if user.user_role == "m":
+        query = query.filter(User.user_company == user.user_company)
+
+    valid_ids = {learner.user_id for learner in query.all()}
+    invalid_ids = [learner_id for learner_id in unique_ids if learner_id not in valid_ids]
+    if invalid_ids:
+        raise HTTPException(status_code=400, detail="배정할 수 없는 학습자가 포함되어 있습니다.")
+
+    return unique_ids
+
+
 def _scope_curriculum_query(query: Query, user: User) -> Query:
     """Role 기반으로 curriculum 조회 범위를 제한 (soft delete 제외).
 
@@ -53,7 +81,7 @@ def create_curriculum(
         cur_learning_goal=body.cur_learning_goal,
         cur_learning_detail_goal=body.cur_learning_detail_goal,
         cur_week_plan=body.cur_week_plan,
-        cur_assigned_learner_ids=body.cur_assigned_learner_ids,
+        cur_assigned_learner_ids=_validate_assigned_learners(body.cur_assigned_learner_ids, current_user, db),
         cur_status=body.cur_status,
     )
     db.add(curriculum)
@@ -176,7 +204,15 @@ def update_curriculum(
     if not curriculum:
         raise HTTPException(status_code=404, detail="Curriculum not found")
 
-    for field, value in body.model_dump(exclude_unset=True).items():
+    update_data = body.model_dump(exclude_unset=True)
+    if "cur_assigned_learner_ids" in update_data:
+        update_data["cur_assigned_learner_ids"] = _validate_assigned_learners(
+            update_data["cur_assigned_learner_ids"],
+            current_user,
+            db,
+        )
+
+    for field, value in update_data.items():
         setattr(curriculum, field, value)
 
     db.commit()

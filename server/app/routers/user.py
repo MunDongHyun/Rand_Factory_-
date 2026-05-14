@@ -143,6 +143,29 @@ def list_users(
     return UserListResponse(users=users, total=total)
 
 
+@router.get("/learners", response_model=list[UserResponse])
+def list_learners(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """매니저/관리자 전용: 학습자(j) 목록.
+
+    - m (manager): 본인과 같은 회사의 활성 학습자
+    - a (admin): 전체 활성 학습자
+    """
+    if current_user.user_role not in {"m", "a"}:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    query = db.query(User).filter(
+        User.user_role == "j",
+        User.user_deleted_at.is_(None),
+    )
+    if current_user.user_role == "m":
+        query = query.filter(User.user_company == current_user.user_company)
+
+    return query.order_by(User.user_name.asc()).all()
+
+
 @router.get("/{user_id}", response_model=UserResponse)
 def get_user(user_id: int, db: Session = Depends(get_db), _current_user: User = Depends(get_current_user)):
     user = db.query(User).filter(User.user_id == user_id, User.user_deleted_at.is_(None)).first()
