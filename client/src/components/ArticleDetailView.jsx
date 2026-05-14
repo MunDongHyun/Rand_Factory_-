@@ -18,14 +18,7 @@ function CollapsibleText({ paragraphs }) {
         ))}
         {!expanded && needsToggle && <div className="fadeOverlay" />}
       </div>
-      {needsToggle && (
-        <button
-          className="toggleBtn"
-          onClick={() => setExpanded(prev => !prev)}
-        >
-          {expanded ? '▲' : '▼'}
-        </button>
-      )}
+
     </div>
   );
 }
