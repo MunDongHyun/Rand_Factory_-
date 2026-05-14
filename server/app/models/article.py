@@ -15,7 +15,7 @@ class Article(Base):
     __tablename__ = "articles"
 
     article_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    article_source: Mapped[str] = mapped_column(Enum("DBR", "HBR", "AI"), nullable=False)
+    article_source: Mapped[str] = mapped_column(Enum("DBR", "HBR"), nullable=False)
     article_title: Mapped[str] = mapped_column(String(500), nullable=False)
     article_author: Mapped[str] = mapped_column(String(200), nullable=False)
     article_published_date: Mapped[datetime.date] = mapped_column(Date, nullable=False)

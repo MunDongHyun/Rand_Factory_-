@@ -20,10 +20,6 @@ from app.schemas.article import (
 )
 from app.services import article_service, rag_service, thumbnail_service
 from app.models.user_activity import UserActivity
-from pydantic import BaseModel
-
-class GenerateRequest(BaseModel):
-    keyword: str
 
 router = APIRouter(prefix="/api/articles", tags=["articles"])
 
@@ -95,7 +91,7 @@ def list_articles(
     current_user: User = Depends(get_current_user), 
 ):
     # 🌟 1. 기본 쿼리에서 'AI' 출처 제외
-    query = db.query(Article).filter(Article.article_source != 'AI')
+    query = db.query(Article)
 
     if keyword:
         recent_logs = db.query(UserActivity.category)\
@@ -114,8 +110,7 @@ def list_articles(
 
         # 🌟 2. 키워드 직접 매칭 시 'AI' 제외
         exact_matches = db.query(Article.article_id).filter(
-            Article.article_title.ilike(f"%{keyword}%"),
-            Article.article_source != 'AI'
+            Article.article_title.ilike(f"%{keyword}%")
         ).all()
         exact_match_ids = [row[0] for row in exact_matches]
 
@@ -131,7 +126,7 @@ def list_articles(
             else:
                 merged_distances[aid] = dist
 
-        DISTANCE_THRESHOLD = 0.40  
+        DISTANCE_THRESHOLD = 0.35  
         filtered_results = [(aid, dist) for aid, dist in merged_distances.items() if dist <= DISTANCE_THRESHOLD]
         
         # 필터링 후 남은 게 없다면 빈 리스트 반환 -> 팝업 띄움!
@@ -143,8 +138,7 @@ def list_articles(
         
         # 🌟 3. 점수 계산을 위한 DB 조회 시 'AI' 제외
         db_articles = db.query(Article).filter(
-            Article.article_id.in_(matched_article_ids),
-            Article.article_source != 'AI'
+            Article.article_id.in_(matched_article_ids)
         ).all()
         article_map = {a.article_id: a for a in db_articles}
 
@@ -333,36 +327,3 @@ def get_article(
 
     summary_article_ids = _summary_article_ids(db, [article.article_id])
     return _to_response(article, summary_article_ids)
-
-
-@router.post("/generate")
-def generate_article(
-    req: GenerateRequest,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    ai_result = article_service.create_ai_generated_content(req.keyword)
-    
-    new_article = Article(
-        article_source="AI", 
-        article_title=ai_result.get("title", f"'{req.keyword}' 분석 리포트"),
-        article_author="AI Assistant",
-        article_category="AI",
-        article_source_url="",
-    )
-    db.add(new_article)
-    db.commit()
-    db.refresh(new_article)
-    
-    # 벡터 DB 적재는 동일하게 진행
-    content = ai_result.get("content", "")
-    if content:
-        rag_service.ingest_article(
-            article_id=new_article.article_id,
-            title=new_article.article_title,
-            content=content,
-            category=new_article.article_category,
-            author=new_article.article_author,
-        )
-        
-    return {"message": "success", "article": _to_response(new_article)}

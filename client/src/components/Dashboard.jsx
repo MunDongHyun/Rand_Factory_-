@@ -18,7 +18,7 @@ const CATEGORY_EN = {
   '인사조직': 'ORGANIZATION',
   'HRD': 'HRD',
   '인문': 'HUMANITIES',
-  '자기계발' : 'Development',
+  '자기계발': 'Development',
   '기타': 'OTHERS'
 };
 
@@ -211,16 +211,16 @@ function Dashboard({ user, onLogout }) {
     const displaySections = selectedCategory
       ? sections.filter(s => s.category === selectedCategory)
       : sections.map((section) => ({
-          ...section,
-          items: section.items.slice(0, 5),
-        }));
+        ...section,
+        items: section.items.slice(0, 5),
+      }));
 
     return (
       <div className="categoryArticlePage">
         <div className="catTabBarTop">
-          <button 
+          <button
             className={`catTabTop ${!selectedCategory ? 'active' : ''}`}
-            onClick={() => { setSelectedCategory(null);  }}
+            onClick={() => { setSelectedCategory(null); }}
           >
             전체
           </button>
@@ -245,9 +245,9 @@ function Dashboard({ user, onLogout }) {
 
             <div className="articleGrid">
               {section.items.map((item) => (
-                <article 
-                  key={item.article_id || Math.random()} 
-                  className="articleCard" 
+                <article
+                  key={item.article_id || Math.random()}
+                  className="articleCard"
                   onClick={() => openArticleDetail(item)}
                 >
                   <div className="cardTop">
@@ -289,7 +289,7 @@ function Dashboard({ user, onLogout }) {
       {view === 'articles' && <HeroBanner onCreateCurriculum={() => setView('curriculum')} onOpenArticle={openArticleDetail} />}
 
 
-<main className="dashMain">
+      <main className="dashMain">
         {view === 'articles' && <ArticleListView />}
         {view === 'articleDetail' && (
           <ArticleDetailView
@@ -297,14 +297,14 @@ function Dashboard({ user, onLogout }) {
             onBack={() => window.history.back()}
           />
         )}
-        
+
         {/* 🔥 변경: onOpenArticle props를 추가하여 함수를 넘겨줍니다 */}
         {view === 'curriculum' && <CurriculumView onOpenArticle={openArticleDetail} />}
-        
+
         {view === 'emailing' && <EmailingView />}
       </main>
 
-     
+
       {isModalOpen && (
         <div className="modalOverlay" style={modalOverlayStyle}>
           <div className="modalContent" style={modalContentStyle}>
@@ -316,22 +316,29 @@ function Dashboard({ user, onLogout }) {
             )}
 
             {modalStatus === 'not_found' && (
-              <div style={{ textAlign: 'center' }}>
-                <h3 style={{ color: '#d9534f' }}>검색 결과 없음</h3>
-                
-                {/* 👇 요청하신 문구로 수정된 부분 */}
-                <p style={{ color: '#555', marginTop: '10px', fontSize: '1.1rem' }}>
-                  <strong style={{color: '#000'}}>"{searchQuery}"</strong>와(과) 연관된 아티클이 존재하지 않습니다.<br/>
-                  다른 검색어로 검색해주세요.
-                </p>
-                {/* 👆 수정 끝 */}
+              <div style={{ textAlign: 'center', padding: '20px' }}>
+                <h3 style={{ color: '#d9534f', marginBottom: '15px' }}>검색 결과 없음</h3>
 
-                <p style={{ fontWeight: 'bold', marginTop: '25px', color: '#333' }}>
-                  해당 검색어를 기반으로 새로운 아티클 요약문을<br />생성해드릴까요?
+                <p style={{ color: '#555', fontSize: '1.1rem', lineHeight: '1.6' }}>
+                  <strong style={{ color: '#000' }}>"{searchQuery}"</strong>와(과) 연관된 전문 아티클이 존재하지 않습니다.<br />
+                  다른 키워드나 문장으로 검색해 보시겠어요?
                 </p>
-                <div style={{ marginTop: '25px', display: 'flex', gap: '15px', justifyContent: 'center' }}>
-                  <button onClick={handleGenerate} style={{ padding: '10px 30px', background: '#4CAF50', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>예</button>
-                  <button onClick={() => setIsModalOpen(false)} style={{ padding: '10px 30px', background: '#ccc', color: '#333', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>아니오</button>
+
+                <div style={{ marginTop: '30px' }}>
+                  <button
+                    onClick={() => setIsModalOpen(false)}
+                    style={{
+                      padding: '10px 40px',
+                      background: '#333',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '5px',
+                      cursor: 'pointer',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    확인
+                  </button>
                 </div>
               </div>
             )}
