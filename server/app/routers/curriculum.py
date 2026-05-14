@@ -1,6 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Body
+from fastapi.responses import StreamingResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Query, Session
+import io
+import json
+from fpdf import FPDF
 
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -17,6 +21,7 @@ from app.schemas.curriculum import (
 )
 from app.services import curriculum_service
 
+# 원본 코드에 있던 빈 router 선언을 제거하여 Prefix 충돌 에러를 해결했습니다.
 router = APIRouter(prefix="/api/curricula", tags=["curricula"])
 
 
@@ -218,3 +223,76 @@ def update_curriculum(
     db.commit()
     db.refresh(curriculum)
     return curriculum
+
+
+@router.post("/download/txt")
+async def download_curriculum_txt(curriculum_data: list = Body(...)):
+    """
+    클라이언트(또는 DB)에서 커리큘럼 JSON 데이터를 받아 TXT 파일로 변환하여 다운로드
+    """
+    # 프론트엔드에서 문자열 형태로 데이터가 넘어올 경우를 대비한 안전 장치
+    if isinstance(curriculum_data, str):
+        curriculum_data = json.loads(curriculum_data)
+
+    lines = []
+    for week in curriculum_data:
+        lines.append(f"[{week.get('week')}주차] {week.get('theme')}")
+        lines.append(f"목표: {week.get('learning_objective')}")
+        lines.append("-" * 30)
+        
+        lines.append("■ 주요 학습 과제:")
+        for t in week.get('tasks', []):
+            lines.append(f" - {t}")
+            
+        lines.append("\n■ 제출 과제:")
+        for a in week.get('assignments', []):
+            lines.append(f" [과제명: {a.get('title')}]\n   설명: {a.get('description')}\n   제출: {a.get('submission')}")
+        
+        lines.append("\n" + "=" * 50 + "\n")
+    
+    txt_content = "\n".join(lines)
+    
+    # 메모리상에서 파일을 만들어 바로 전송
+    file_stream = io.StringIO(txt_content)
+    
+    return StreamingResponse(
+        iter([file_stream.getvalue()]), 
+        media_type="text/plain", 
+        headers={"Content-Disposition": "attachment; filename=curriculum.txt"}
+    )
+
+
+@router.post("/download/pdf")
+async def download_curriculum_pdf(curriculum_data: list = Body(...)):
+    """
+    클라이언트(또는 DB)에서 커리큘럼 JSON 데이터를 받아 PDF 파일로 변환하여 다운로드
+    """
+    if isinstance(curriculum_data, str):
+        curriculum_data = json.loads(curriculum_data)
+
+    pdf = FPDF()
+    pdf.add_page()
+    
+    # 한글 폰트가 셋팅되어 있어야 깨지지 않습니다. (폰트 파일 필요)
+    # pdf.add_font('Nanum', '', 'fonts/NanumGothic.ttf', uni=True)
+    # pdf.set_font('Nanum', size=12)
+    
+    pdf.set_font("Arial", size=16) # 임시 영문 폰트
+    pdf.cell(200, 10, txt="Onboarding Curriculum Guide", ln=True, align='C')
+    
+    for week in curriculum_data:
+        pdf.set_font("Arial", size=14)
+        pdf.cell(200, 10, txt=f"Week {week.get('week')}: {week.get('theme')}", ln=True)
+        pdf.set_font("Arial", size=10)
+        pdf.multi_cell(0, 5, txt=f"Objective: {week.get('learning_objective')}")
+        pdf.ln(5)
+    
+    # PDF를 메모리 바이트로 변환하여 바로 전송
+    pdf_bytes = bytes(pdf.output())
+    file_stream = io.BytesIO(pdf_bytes)
+    
+    return StreamingResponse(
+        file_stream, 
+        media_type="application/pdf", 
+        headers={"Content-Disposition": "attachment; filename=curriculum.pdf"}
+    )
