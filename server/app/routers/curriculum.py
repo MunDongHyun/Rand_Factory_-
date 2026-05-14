@@ -5,12 +5,14 @@ from sqlalchemy.orm import Query, Session
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.curriculum import Curriculum
+from app.models.task_submission import TaskSubmission
 from app.models.user import User
 from app.schemas.curriculum import (
     CurriculumCreate,
     CurriculumGenerateRequest,
     CurriculumGenerateResponse,
     CurriculumResponse,
+    CurriculumStatsResponse,
     CurriculumUpdate,
 )
 from app.services import curriculum_service
@@ -97,6 +99,49 @@ def list_curricula(
 ):
     query = _scope_curriculum_query(db.query(Curriculum), current_user)
     return query.order_by(Curriculum.cur_created_at.desc()).all()
+
+
+@router.get("/stats", response_model=CurriculumStatsResponse)
+def get_curriculum_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """관리자(a) 전용: 커리큘럼/학습자/과제 제출 통계."""
+    if current_user.user_role != "a":
+        raise HTTPException(status_code=404, detail="Not found")
+
+    total_curricula = (
+        db.query(func.count(Curriculum.cur_id))
+        .filter(Curriculum.cur_deleted_at.is_(None))
+        .scalar()
+        or 0
+    )
+
+    assigned_rows = (
+        db.query(Curriculum.cur_assigned_learner_ids)
+        .filter(
+            Curriculum.cur_deleted_at.is_(None),
+            Curriculum.cur_status == "active",
+        )
+        .all()
+    )
+    learner_set: set[int] = set()
+    for (ids,) in assigned_rows:
+        if isinstance(ids, list):
+            for lid in ids:
+                if isinstance(lid, int):
+                    learner_set.add(lid)
+    active_learners = len(learner_set)
+
+    total_submissions = (
+        db.query(func.count(TaskSubmission.task_submission_id)).scalar() or 0
+    )
+
+    return CurriculumStatsResponse(
+        total_curricula=total_curricula,
+        active_learners=active_learners,
+        total_submissions=total_submissions,
+    )
 
 
 @router.get("/{cur_id}", response_model=CurriculumResponse)

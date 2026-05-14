@@ -2,6 +2,70 @@
 
 ---
 
+## 2026-05-14 - Claude (마스터 페이지 고도화 — 도넛 차트 / 인기 아티클 / 학습 활동 통계 / 회원 검색 / 디자인 리뉴얼)
+
+### 배경
+- 마스터 페이지가 더미 → DB 연결까지는 됐지만 시각화·기능·디자인이 빈약 (수동 막대 그래프, 단조로운 카드, 라이트 박스가 다크 본문과 어색하게 분리)
+- 학습 플랫폼인데 정작 "학습 활동" 통계(커리큘럼·과제)가 없어 사용자 통계만 보여줌
+- 회원관리 패널이 검색·필터 없이 50명 일렬 나열
+
+### 백엔드
+- `server/app/schemas/curriculum.py` — `CurriculumStatsResponse` 신설 (`total_curricula`, `active_learners`, `total_submissions`)
+- `server/app/routers/curriculum.py`
+  - `GET /api/curricula/stats` 신규 (admin `a` 전용, 권한 없으면 404로 숨김)
+  - 정적 경로 `/stats`를 동적 `/{cur_id}`보다 위에 등록 (CLAUDE.md 규칙)
+  - `active_learners`는 active 커리큘럼들의 `cur_assigned_learner_ids` JSON을 Python `set`으로 합쳐 unique 카운트
+  - `total_submissions`은 `task_submissions` 전체 row 수
+
+### 프론트 (MasterDashboard.jsx)
+- 도넛 차트 도입 (`chart.js` + `react-chartjs-2`, 의존성은 이미 설치돼 있어 추가 없음)
+  - 카테고리별 조회수 TOP 5를 막대 → 도넛으로 교체
+  - 다크 톤 옵션: legend 흰색, tooltip 다크 글래스, cutout 65%, 보더 다크 처리
+- 인기 아티클 TOP 5 섹션 신설
+  - `/api/articles/popular?limit=5` 호출, 카드 5열 그리드
+  - 순위 그라데이션 배지, 썸네일 + 카테고리 태그 + 제목(2줄 clamp) + 👁 조회수
+- 학습 활동 현황 통계 카드 3장 추가
+  - 총 커리큘럼 수 / 진행 중 학습자 수 / 누적 과제 제출 수
+- 회원 검색·필터 컨트롤
+  - 검색창: 이름·이메일·회사 어디든 부분 일치 (대소문자 무시)
+  - 역할 필터: 전체 / 관리자 / 매니저 / 학습자 / 탈퇴
+  - 결과 카운트 표시 (`X / Y명`)
+  - 클라이언트 측 필터 (이미 받아온 50명에 적용, 추가 API 호출 없음)
+- 만족도 영역: "☆☆☆☆☆" 정체불명 헤딩 → 정상 섹션 타이틀로, 박스 700px → 200px 점선 placeholder
+
+### 디자인 리뉴얼 (MasterDashboard.css 전면 재작성)
+- 색상 토큰 도입 (`:root` 변수: `--m-surface`, `--m-accent-grad`, `--m-text-dim` 등)
+- 컨테이너: 단색 → 블루·퍼플 radial 글로우 + 깊은 다크 (`#0a0e14`)
+- 헤더: 라이트 회색 → 다크 글래스 (`backdrop-filter: blur(16px)`) + sticky
+- 로고: 검정 단색 → 그라데이션 텍스트
+- 회원관리 버튼: 텍스트 → 글래스 버튼
+- 섹션 타이틀: 가운데 → 좌측 정렬 + 좌측 그라데이션 액센트 바
+- 통계 카드: 흰 보더 평면 → 다크 글래스, hover 시 상단 빛 line + lift + 보더 글로우
+- 차트 박스: 라이트 회색 → 다크 글래스로 통일
+- 회원관리 패널: 라이트(`#F4F4F4`) → 다크 글래스 (`rgba(15,20,28,0.92)` + blur 24px), 1141px → `min(720px, 92vw)`
+- 회원 행·상태 뱃지·검색/필터 input 모두 다크 글래스로 통일
+- 로그아웃 버튼: 빨간 텍스트 → 빨간 글래스 버튼
+
+### 결정
+- 통계 API는 자원별 분리 (`/users/stats`, `/articles/stats/by-category`)와 일관성 맞춰 `/curricula/stats`로 분리
+- 회원 검색은 백엔드가 아닌 클라이언트 필터링 — 현재 데이터량(50명)에 추가 API 호출 비용이 더 비효율
+- chart.js를 도입한 이유는 `package.json`에 이미 설치돼 있어 의존성 변화 없음
+- 디자인은 "한 영역만 손대면 톤이 더 안 맞을 것 같다"는 판단으로 CSS 전체 재작성
+
+### 검증
+- `cd server && .\venv\Scripts\python.exe -m compileall -q app` 통과
+- `import app.main` 통과
+- `cd client && npm run build` 통과 (105 modules, 1.21s, CSS 53KB / JS 381KB)
+- 사용자 브라우저에서 admin 로그인 후 통계·도넛·인기 아티클·검색/필터 모두 정상 표시 확인
+
+### 다음 / TODO
+- 시계열 차트 (일별·월별 가입자 추이, 조회수 추이) — 백엔드 집계 API 필요
+- 회원 정렬 (가입일·이름·역할 토글)
+- 회원 상세 모달 (선택 회원의 커리큘럼·과제 이력)
+- 만족도/의견 수집 테이블 + API + 입력 폼
+
+---
+
 ## 2026-05-14 - Claude (아티클 목록 정렬 기준 통일 — 발행일자 최신순)
 
 ### 배경
