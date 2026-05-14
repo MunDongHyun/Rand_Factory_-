@@ -1,4 +1,9 @@
+/* ===========================
+   전체 레이아웃 
+=========================== */
 .articleDetailContainer {
+  align-self: center;
+  width: 60%;
   padding: 40px 0;
 }
 
@@ -8,7 +13,6 @@
   border-radius: 12px;
   padding: 48px;
 }
-
 
 .detailBackBtn {
   background: none;
@@ -23,14 +27,13 @@
   transition: color 0.2s ease;
 }
 
-
 .detailBackBtn:hover {
   color: var(--ink);
 }
 
-
-
-
+/* ===========================
+   기사 헤더
+=========================== */
 .articleDetailHero {
   width: 100%;
   max-height: 360px;
@@ -75,6 +78,9 @@
   line-height: 1.8;
 }
 
+/* ===========================
+   AI 요약문 전체 래퍼
+=========================== */
 .articleSummary {
   display: flex;
   flex-direction: column;
@@ -88,33 +94,75 @@
   font-size: 15px;
 }
 
-.summaryIntro {
-  padding: 24px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--bg);
+/* ===========================
+   인트로 헤더 
+=========================== */
+.summaryHeader {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 0 0;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 50px;
 }
 
 .summaryEyebrow {
-  margin: 0 0 8px;
+  margin: 0 0 12px;
   color: var(--primary);
   font-size: 13px;
   font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-.summaryIntro h2 {
-  margin: 0;
-  color: var(--ink);
-  font-size: 22px;
-  line-height: 1.4;
+
+.summaryTitle {
+  margin: 0 0 8px;
+  font-size: 32px;
+  font-weight: 700;
+  color: #3A4A5C;
+  line-height: 1.3;
 }
 
-.summaryIntro p:last-child {
-  margin: 10px 0 0;
+.summaryMeta {
+  margin: 0 0 24px;
   color: var(--ink-muted);
-  font-size: 14px;
+  font-size: 15px;
 }
 
+.topDivider {
+  width: 100%;
+  height: 1px;
+  background: var(--line);
+  margin-bottom: 50px;
+}
+
+
+
+
+/* ===========================
+   구분선 
+=========================== */
+.summaryDivider {
+  width: 100px;
+  height: 5px;
+  background: var(--ink);
+  border-radius: 2px;
+  margin: 50px 0 24px;
+}
+
+
+.summaryTheme {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+  color: #3A4A5C;
+  line-height: 1.6;
+}
+
+/* ===========================
+   섹션 공통
+=========================== */
 .summarySection {
   display: flex;
   flex-direction: column;
@@ -125,6 +173,7 @@
   margin: 0;
   color: var(--ink);
   font-size: 19px;
+  font-weight: 700;
 }
 
 .summarySection > p {
@@ -134,273 +183,353 @@
   line-height: 1.8;
 }
 
-.summaryCardGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.summaryCard {
-  padding: 20px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+/* ===========================
+   카드뉴스 슬라이더 
+=========================== */
+.carouselWrapper {
+  width: 100%;
+  min-height: 700px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   background: var(--bg);
+  padding: 60px 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  margin: 40px 0;
 }
 
-.summaryCard span {
-  display: inline-block;
-  margin-bottom: 10px;
-  color: var(--primary);
-  font-size: 12px;
+.sliderStage {
+  width: 100%;
+  max-width: 860px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  row-gap: 24px;
+  position: relative;
+}
+
+.slideProgress {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.progressDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--line);
+  transition: all 0.3s ease;
+}
+
+.progressDot.active {
+  background: #9CCAFF;
+  width: 20px;
+}
+
+.slideCardTrack {
+  width: 100%;
+  max-width: 900px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+  perspective: 1200px;
+  min-height: 600px;
+}
+
+.slideCard {
+  position: absolute;
+  width: 800px;
+  min-height: 380px;       
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 24px;
+  padding: 40px;
+  box-sizing: border-box;
+  box-shadow: 0 20px 40px rgba(156, 202, 255, 0.15);
+  display: flex;
+  flex-direction: column;
+  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.slideCard.current {
+  opacity: 1;
+  transform: translateZ(0) scale(1);
+  z-index: 5;
+  border: 1px solid #9CCAFF;
+}
+
+.slideCard.prev {
+  opacity: 0.4;
+  transform: translateX(-50%) translateZ(-200px) rotateY(15deg);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.slideCard.next {
+  opacity: 0.4;
+  transform: translateX(50%) translateZ(-200px) rotateY(-15deg);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.slideCardInner {
+  display: flex;
+  flex-direction: row;
+  gap: 40px;
+  width: 100%;
+  flex: 1;
+}
+
+.leftSection {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+.rightSection {
+  flex: 1.2;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 15px;
+  justify-content: flex-start; 
+}
+
+.cardNum {
+  font-size: 32px;
+  font-weight: 800;
+  background: linear-gradient(142deg, #9CCAFF, #D8A6FF);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.cardTitle {
+  font-size: 22px;
   font-weight: 700;
-}
-
-.summaryCard h4 {
-  margin: 0 0 8px;
   color: var(--ink);
-  font-size: 17px;
-  line-height: 1.5;
+  line-height: 1.35;
 }
 
-.summaryCard p {
-  margin: 0;
-  color: var(--ink-muted);
-  font-size: 14px;
-  line-height: 1.7;
-}
-
-.summaryCard .summaryKeyword {
-  margin-bottom: 12px;
-  color: var(--primary);
-  font-weight: 700;
-}
-
-.summaryCard .summaryCore {
-  margin-bottom: 10px;
-  color: var(--ink);
+.cardMain {
+  font-size: 16px;
   font-weight: 600;
+  color: #666;
+  border-left: 3px solid #9CCAFF;
+  padding-left: 12px;
+  margin: 0;
+}
+
+.dividerLine {
+  width: 1px;
+  background: linear-gradient(to bottom, transparent, var(--line), transparent);
+  align-self: stretch;
+}
+
+.carouselWrapper .cardKeyTag {
+  color: #9CCAFF;         
+  text-align: right;
+  margin-top: auto;
+  margin-bottom: -20px;
+  font-size: 13px;
+  font-weight: 600;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+/* ===========================
+   토글
+=========================== */
+.collapsibleText {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.collapsibleInner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+}
+
+
+.collapsibleInner.clamped {
+  max-height: 140px; 
+  overflow: hidden;
+}
+
+.fadeOverlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 48px;
+  background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.85));
+  pointer-events: none;
+}
+
+.sentence-item {
+  font-size: 15px;
+  line-height: 1.7;
+  color: #222;
+  display: block;
+}
+
+.toggleBtn {
+  align-self: stretch;
+  margin-top: 4px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 30px;
+  font-weight: 600;
+  color: #9CCAFF;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.toggleBtn:hover {
+  opacity: 0.7;
+}
+
+/* ===========================
+   네비게이션 버튼
+=========================== */
+.navGroup {
+  display: flex;
+  gap: 16px;
+  margin-top: 20px;
+  z-index: 3;
+}
+
+.navBtn {
+  height: 48px;
+  padding: 0 28px;
+  border-radius: 24px;
+  border: none;
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.navBtn.prev {
+  background: rgba(255, 255, 255, 0.5);
+  color: #3A4A5C;
+}
+
+.navBtn.next {
+  background: linear-gradient(142deg, #9CCAFF, #D8A6FF);
+  color: white;
+  box-shadow: 0 4px 15px rgba(156, 202, 255, 0.3);
+}
+
+.navBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 .summaryConclusion {
-  padding: 24px;
-  border-radius: 10px;
-  background: var(--bg-alt);
+  display: block;
+  gap: 5px;
+  border: none;
+  background: transparent;
+  border-radius: 0;
+  overflow: visible;
 }
 
-.summaryConclusion div {
+.conclusionHeader {
+  display: flex;
+  align-items: left;
+  gap: 12px;
+  padding: 0 0 16px;
+  border-bottom: 2px solid #3A4A5C;
+  border-top: none;
+}
+
+.conclusionEyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #9CCAFF;
+}
+
+.conclusionHeader h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: #3A4A5C;
+}
+
+.ojtGrid {
+  display: grid !important;
+  gap: 8px;
+  width: 100%;
+  margin: 0 auto;
+  margin-top: 24px;
+  align-items: start;
+}
+
+.ojtCard {
+  display: flex;
+  flex-direction: row;
+  gap: 12px ;
+  padding: 20px 24px;
+  background: #F8FBFF;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  max-width: 500px;
+  min-height: 150px;
+  box-sizing: border-box;
+  align-items: flex-start;
+}
+
+.ojtCard:first-child { border-color: #9CCAFF33; }
+.ojtCard:last-child { border-color: #D8A6FF33; }
+
+.ojtCardNum {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.ojtCard:first-child .ojtCardNum { color: #9CCAFF; }
+.ojtCard:last-child .ojtCardNum { color: #D8A6FF; }
+
+.ojtCardBody {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.summaryConclusion strong {
-  color: var(--ink);
-  font-size: 14px;
+.ojtCardLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: #3A4A5C;
 }
 
-.summaryConclusion p {
+.ojtCard p {
   margin: 0;
-  color: var(--ink-muted);
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.7;
+  color: #666;
 }
-
-
-
-.carouselWrapper {
-    width: 100%;
-    min-height: 550px; 
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background: var(--bg); 
-    padding: 60px 0;
-    box-sizing: border-box;
-    overflow: hidden;
-    border-top: 1px solid var(--line);
-    border-bottom: 1px solid var(--line);
-    margin: 40px 0;
-}
-
-.sliderStage {
-    width: 100%;
-    max-width: 860px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 32px;
-    position: relative;
-}
-
-/* 진행 표시 (인디케이터) */
-.slideProgress {
-    margin-bottom: 24px;
-}
-
-.progressDot.active {
-    background: #9CCAFF; /* 포인트 컬러 일치 */
-    width: 20px;
-}
-
-.navGroup {
-    margin-top: 30px;
-}
-
-.navBtn {
-    border-radius: 12px; /* 카드 모서리와 통일감 */
-    font-family: 'Pretendard', sans-serif;
-}
-
-.navBtn.next {
-    background: linear-gradient(142deg, #9CCAFF, #D8A6FF);
-    color: white;
-    box-shadow: 0 4px 15px rgba(156, 202, 255, 0.3);
-}
-
-/* 카드 트랙 */
-.slideCardTrack {
-    width: 100%;
-    max-width: 900px;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: visible;
-    perspective: 1200px;
-    min-height: 420px;
-}
-
-/* 카드 공통 스타일 */
-.slideCard {
-    position: absolute;
-    width: 800px;
-    height: 400px; 
-    background: rgba(255, 255, 255, 0.8); 
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    border-radius: 24px;
-    padding: 40px;
-    box-sizing: border-box;
-    box-shadow: 0 20px 40px rgba(156, 202, 255, 0.15); 
-    display: flex;
-    flex-direction: column;
-    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-}
-
-/* 카드 위치 상태 */
-.slideCard.current {
-    opacity: 1;
-    transform: translateZ(0) scale(1);
-    z-index: 5;
-    border: 1px solid #9CCAFF; 
-}
-
-.slideCard.prev {
-    opacity: 0.4;
-    transform: translateX(-50%) translateZ(-200px) rotateY(15deg);
-    z-index: 1;
-    pointer-events: none;
-}
-
-.slideCard.next {
-    opacity: 0.4;
-    transform: translateX(50%) translateZ(-200px) rotateY(-15deg);
-    z-index: 1;
-    pointer-events: none;
-}
-
-/* 카드 내부 레이아웃 */
-.slideCardInner {
-    display: flex;
-    flex-direction: row;
-    gap: 40px;
-    height: 100%;
-    width: 100%;
-}
-
-.leftSection {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center; 
-    gap: 12px;
-}
-
-.rightSection {
-    flex: 1.2;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding-right: 15px;
-    justify-content: center;
-}
-
-.cardNum {
-    font-size: 32px;
-    font-weight: 800;
-    /* 포인트 컬러 사용 */
-    background: linear-gradient(142deg, #9CCAFF, #D8A6FF);
-    background-clip: text;
-    color: transparent;
-}
-
-.cardTitle {
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--ink);
-    line-height: 1.35;
-}
-
-.cardMain {
-    font-size: 16px;
-    font-weight: 600;
-    color: #666; 
-    border-left: 3px solid #9CCAFF;
-    padding-left: 12px;
-}
-
-.sentence-item {
-    font-size: 14.5px;
-    line-height: 1.7;
-    color: var(--ink-muted);
-}
-
-.dividerLine {
-    width: 1px;
-    height: 80%;
-    background: linear-gradient(to bottom, transparent, var(--line), transparent);
-    align-self: center;
-}
-
-.sentence-item {
-    font-size: 15px;
-    line-height: 1.7;
-    color: #222;
-    display: block;
-    margin-bottom: 8px;
-}
-
-.carouselWrapper .cardTag {
-    text-align: right;
-    margin-top: 20px;
-    font-size: 13px;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.8);
-}
-
-/* 네비게이션 버튼 */
-.navGroup { display: flex; gap: 16px; margin-top: 20px; z-index: 3; }
-.navBtn {
-    height: 48px;
-    padding: 0 28px;
-    border-radius: 24px;
-    border: none;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-.navBtn.prev { background: rgba(255, 255, 255, 0.5); color: #3A4A5C; }
-.navBtn.next { background: #3A4A5C; color: #FFF; }
-.navBtn:disabled { opacity: 0.3; cursor: not-allowed; }
