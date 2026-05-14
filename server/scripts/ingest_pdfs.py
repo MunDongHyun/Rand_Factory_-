@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-import time
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -13,11 +12,6 @@ from urllib import error, parse, request
 import fitz
 
 
-DEFAULT_RAG_QUESTIONS = [
-    "신입사원이 B2B 마케팅을 시작할 때 알아야 할 핵심 전략은?",
-    "OKR을 처음 도입하는 팀에서 주의할 점은?",
-    "고객 이탈을 줄이기 위한 프레임워크를 추천해줘",
-]
 MIN_TEXT_LENGTH = 200
 
 
@@ -139,34 +133,7 @@ def ingest_pdf(base_url: str, token: str, pdf_path: Path) -> tuple[str, str]:
         payload=create_article_payload(title, text),
         token=token,
     )
-    return "ok", f"article_id={article['article_id']} chunk_count={article['chunk_count']}"
-
-
-def query_rag(base_url: str, token: str, question: str) -> dict[str, Any]:
-    started = time.perf_counter()
-    response = api_request(
-        "POST",
-        f"{base_url}/api/rag/query",
-        payload={"question": question},
-        token=token,
-    )
-    elapsed = time.perf_counter() - started
-    return {
-        "question": question,
-        "answer": response.get("answer", ""),
-        "sources": response.get("sources", []),
-        "elapsed": elapsed,
-    }
-
-
-def print_rag_result(result: dict[str, Any]) -> None:
-    print("\n[RAG TEST]")
-    print(f"질문: {result['question']}")
-    print(f"응답 시간: {result['elapsed']:.2f}초")
-    print(f"답변: {result['answer']}")
-    print(f"참조 아티클: {result['sources']}")
-    if "관련 아티클을 찾을 수 없습니다" in result["answer"]:
-        print("안내: 인덱싱된 PDF 내용과 질문 주제가 잘 맞지 않을 수 있습니다.")
+    return "ok", f"article_id={article['article_id']}"
 
 
 def parse_args() -> argparse.Namespace:
@@ -215,15 +182,6 @@ def main() -> int:
     print(f"성공 수: {counters.success}")
     print(f"스킵 수: {counters.skipped}")
     print(f"실패 수: {counters.failed}")
-
-    for question in DEFAULT_RAG_QUESTIONS:
-        try:
-            result = query_rag(args.base_url, token, question)
-            print_rag_result(result)
-        except Exception as exc:
-            print("\n[RAG TEST]")
-            print(f"질문: {question}")
-            print(f"실패: {exc}")
 
     return 0 if counters.failed == 0 else 1
 

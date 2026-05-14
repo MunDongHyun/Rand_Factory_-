@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.routers import ai_output, article, chatbot, curriculum, health, rag, task_submission, user
+from app.routers import article, chatbot, curriculum, health, rag, task_submission, user
 from app.services.thumbnail_service import THUMBNAIL_DIR, URL_PREFIX as THUMBNAIL_URL_PREFIX
 
 
@@ -34,6 +34,5 @@ app.include_router(user.router)
 app.include_router(article.router)
 app.include_router(rag.router)
 app.include_router(curriculum.router)
-app.include_router(ai_output.router)
 app.include_router(chatbot.router)
 app.include_router(task_submission.router)

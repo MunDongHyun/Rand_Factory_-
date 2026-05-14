@@ -2,6 +2,55 @@
 
 ---
 
+## 2026-05-14 - Claude (DB 변경 동기화 — Author 모델 추가 + ai_output 잔존 제거)
+
+### 배경
+- 팀 DB 변경 (`05.14 CREATE문 수정 버전.sql`) 적용됨
+  - `authors` 테이블 신설 (저자 메일링 기능 대비, articles에서 저자 정보 분리)
+  - `article_authors_mapping` 매핑 테이블 신설 (Article ↔ Author N:M)
+  - `articles.article_author_email` 컬럼 삭제 (authors로 이관)
+  - `articles.article_source` ENUM에 'AI' 추가
+  - `user_activities` 로그 테이블 신설
+- 코드는 위 변경에 부분적으로만 동기화돼 있었고, 잔존 파일(ai_output 라우터·스키마)이 존재하지 않는 컬럼 참조 중
+
+### 작업
+- 신규 모델
+  - `server/app/models/author.py` 신설 — `Author` 클래스 (`author_numb`, `author_name`, `author_from`, `author_email`)
+  - 같은 파일에 `article_authors_mapping` secondary `Table` 정의 (article_id ↔ author_numb 복합 PK, ON DELETE CASCADE)
+- `server/app/models/article.py`
+  - `authors` relationship 추가 (`secondary="article_authors_mapping"`, back_populates)
+  - DB CREATE문(NOT NULL) 기준으로 nullable 정정: `article_author`, `article_published_date`, `article_category`, `article_view_count`, `article_source_url`, `article_created_at`, `article_updated_at`
+  - 타입 hint도 `Mapped[str]` 등으로 정리
+- `server/app/models/__init__.py` — `Author`, `article_authors_mapping` 등록
+- 잔존 제거
+  - `server/app/routers/ai_output.py` **삭제** (DB의 `ai_summaries` 4개 컬럼 vs 라우터가 참조하던 user_id/result_json/image_url/framework_type/user_input/generated_content/is_saved 불일치, 프론트도 미사용)
+  - `server/app/schemas/ai_output.py` **삭제**
+  - `server/app/main.py` — `ai_output` import + `include_router(ai_output.router)` 제거
+  - `server/app/schemas/__init__.py` — `AiSummaryCreate/Response/Update` import + __all__ 항목 제거
+  - `server/scripts/ingest_pdfs.py`
+    - 삭제된 `chunk_count` 컬럼 참조 제거
+    - 미구현 `POST /api/rag/query` 호출하는 `query_rag` / `print_rag_result` + `DEFAULT_RAG_QUESTIONS` + main의 RAG 테스트 루프 제거
+    - 더 이상 사용 안 하는 `import time` 정리
+
+### 결정
+- `article_authors_mapping`은 추가 컬럼 없는 순수 매핑 테이블이라 SQLAlchemy `secondary=Table()` 패턴 채택 (별도 Association 모델 클래스 X)
+- relationship의 secondary는 문자열 `"article_authors_mapping"`로 지정 → 순환 import 회피
+- ai_output 라우터는 정리 옵션 (DB 4개 컬럼에 맞춰 CRUD 재작성) 대신 라우터·스키마 자체 삭제 선택 — 프론트가 안 쓰고 `/api/articles/{id}/summary`로 대체 가능, 가장 깔끔
+- `articles.article_author` 컬럼은 DB에 그대로 남아있어서 유지 (호환성·기존 데이터). 저자 메일링 기능 구현 시 매핑 테이블을 정식 소스로 쓰면 됨
+
+### 검증
+- `cd server && .\venv\Scripts\python.exe -m compileall -q app scripts` 통과
+- `import app.main` 통과
+- TestClient로 라우터 경로 enumerate — `ai-output` 흔적 없음, 총 33개 라우트 정상
+- DB 직접 조회로 SQL 적용 상태 확인: `authors` 40행, `article_authors_mapping` 26행, `articles`에서 `article_author_email` 컬럼 삭제 확인 완료
+
+### 다음 / TODO
+- `article_authors_mapping`이 53건 중 26건만 매핑됨 — 데이터 마이그레이션 누락 (콤마 다중 저자, 미등록 저자, 이메일 불일치) → 메일링 기능 구현 시 누락분 처리 방침 결정
+- Author 관련 스키마(`AuthorResponse`) + 라우터는 메일링 기능 구현 시 별도 추가
+- `GET /api/articles` 응답에 `authors` 포함 여부 — 프론트 화면 설계에 맞춰 결정
+
+---
+
 ## 2026-05-14 - Claude (마스터 페이지 고도화 — 도넛 차트 / 인기 아티클 / 학습 활동 통계 / 회원 검색 / 디자인 리뉴얼)
 
 ### 배경
