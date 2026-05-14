@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.routers import article, chatbot, curriculum, health, rag, task_submission, user
+from app.routers import article, author, chatbot, curriculum, health, rag, task_submission, user
 from app.services.thumbnail_service import THUMBNAIL_DIR, URL_PREFIX as THUMBNAIL_URL_PREFIX
 
 
@@ -32,6 +32,7 @@ if THUMBNAIL_DIR.exists():
 app.include_router(health.router)
 app.include_router(user.router)
 app.include_router(article.router)
+app.include_router(author.router)
 app.include_router(rag.router)
 app.include_router(curriculum.router)
 app.include_router(chatbot.router)

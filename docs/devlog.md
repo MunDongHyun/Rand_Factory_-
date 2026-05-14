@@ -2,6 +2,66 @@
 
 ---
 
+## 2026-05-14 - Claude (저자 이메일링 기능 — API + 화면 + Gmail SMTP 발송)
+
+### 배경
+- 새로 분리된 `authors` / `article_authors_mapping` 테이블을 활용한 저자 이메일링 기능 구현
+- 화면(EmailingView)은 기존에 더미 데이터로 골격만 있었음 → 실제 API 연결 + 발송 로직 + 인터랙션 보강
+- DB 적재: authors 40명, mapping 26건 (이전 작업에서 완료)
+
+### 백엔드
+- `server/app/core/config.py` — SMTP 설정 5개 추가 (`smtp_host`, `smtp_port`, `smtp_user`, `smtp_password`, `smtp_from_name`)
+- `server/.env.example` — Gmail SMTP 섹션 추가 (host/port/user/password/from_name, port 기본 465)
+- `server/app/services/email_service.py` 신설 — `smtplib.SMTP_SSL` 기반 발송 유틸. `EmailNotConfiguredError` 예외 정의
+- `server/app/schemas/author.py` 신설 — `AuthorListItem`, `AuthorListResponse`, `AuthorDetailResponse`, `AuthorArticleSummary`, `EmailSendRequest`, `EmailSendResponse`
+- `server/app/routers/author.py` 신설
+  - `GET /api/authors` — 저자 전체 + 카테고리/아티클 수 집계
+  - `GET /api/authors/{author_numb}` — 저자 상세 + 작성 아티클 목록 (발행일 내림차순)
+  - `POST /api/authors/{author_numb}/email` — Gmail SMTP 발송. 이메일 없는 저자는 400, SMTP 미설정 503
+- `server/app/main.py` — author router import + `include_router`
+
+### 프론트
+- `client/src/components/EmailingView.jsx` 전면 재작성
+  - `DUMMY_AUTHORS` 제거 → 실제 API 호출 (`/authors`, `/authors/{numb}`)
+  - 카드: `author_from`(소속) + `author_email`/아티클 수 + 카테고리 태그 상위 3개
+  - 상세: 저자가 작성한 아티클 카드 그리드, 썸네일 `<img>` 포함, 카드 클릭 시 아티클 상세로 이동
+  - 모달: 제목 / 답장받을 이메일(선택, 비우면 본인 user_email) / 내용 → `POST .../email`
+  - 발송 중 비활성화, 성공/실패 메시지, 이메일 없는 저자는 작성 버튼 비활성화
+- `client/src/components/Dashboard.jsx`
+  - `emailingDetailRef` (useRef) 추가
+  - popstate 핸들러 분기: ref가 true면 early return (EmailingView가 자체 처리하도록 양보)
+  - `<EmailingView>`에 `onOpenArticle={openArticleDetail}`, `emailingDetailRef={emailingDetailRef}` 전달
+- `client/src/components/EmailingView.jsx`
+  - `selectedAuthor` 변화에 따라 ref 동기화
+  - 상세 진입 시 `history.pushState`, 자체 popstate 핸들러로 `setSelectedAuthor(null)`
+  - 결과: 상세에서 뒤로가기 → 목록 복귀 (대시보드로 튕기지 않음)
+- `client/src/styles/EmailingView.css` — `emailingHint`, `emailingError` 클래스 추가
+
+### 결정
+- **From은 항상 `SMTP_USER`** (Gmail SMTP가 인증 계정 외 발신 차단). 사용자가 입력한 "답장받을 이메일"은 **Reply-To 헤더**로 처리 → 답장이 폼 입력 주소로 가도록
+- 폼 비우면 백엔드가 자동으로 `current_user.user_email`을 Reply-To에 사용
+- 발송 권한 체크 없음 — 사용자 요청에 따라 인증된 모든 역할 사용 가능
+- 발송 로그 DB 저장 안 함 — 발표 범위 최소화 (서버 로그로 충분)
+- 26/53 매핑 누락분은 데이터 측 이슈로 분리 — 메일 발송 자체는 author_email 보유 저자에 한정되므로 기능적으로 무해
+
+### 검증
+- `compileall -q app` 통과 + `import app.main` 통과
+- TestClient로 author 라우트 3개 등록 확인
+- `email_service.send_email`로 본인→본인 직접 발송 테스트 성공 (Gmail SMTP 465 SSL)
+- `cd client && npm run build` 통과 (105 modules)
+- 사용자 브라우저에서 실제 발송 흐름 확인 (서버 재시작 후 .env 새 값 반영됨)
+
+### 안내
+- `.env.example`에 SMTP 5개 항목 추가 — 팀원도 `.env`에 동일 5개 추가 필요 (또는 발송 기능 안 쓰면 비워둬도 OK)
+- pydantic-settings는 import 시점에 `.env`를 1회만 읽으므로 SMTP 설정 변경 후엔 서버 재시작 필요 (uvicorn `--reload`는 .py만 감지)
+
+### 다음 / TODO
+- 발송 이력 페이지 (선택) — 누구에게 무엇을 보냈는지
+- 매핑 누락 26건 보강 — 콤마 다중 저자, 미등록 저자 등 데이터 정리
+- 첨부파일 / HTML 본문 지원 (지금은 plain text)
+
+---
+
 ## 2026-05-14 - Claude (settings .env 경로를 cwd 독립적으로 변경)
 
 ### 배경

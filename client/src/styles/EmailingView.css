@@ -5,6 +5,20 @@
   padding: 40px 0;
 }
 
+.emailingHint {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  color: #666;
+  padding: 12px 0;
+}
+
+.emailingError {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  color: #c0392b;
+  padding: 12px 0;
+}
+
 .emailingTitle {
   font-family: 'Pretendard', sans-serif;
   font-size: 36px;

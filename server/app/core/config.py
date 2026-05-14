@@ -27,6 +27,13 @@ class Settings(BaseSettings):
     # RAG
     chroma_persist_dir: str = "./chroma_db"
 
+    # SMTP (이메일 발송)
+    smtp_host: str = "smtp.gmail.com"
+    smtp_port: int = 465
+    smtp_user: str | None = None
+    smtp_password: str | None = None
+    smtp_from_name: str = "LandFactory"
+
     @property
     def database_url(self) -> str:
         return (

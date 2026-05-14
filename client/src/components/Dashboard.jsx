@@ -36,6 +36,9 @@ function Dashboard({ user, onLogout }) {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [originalSections, setOriginalSections] = useState([]);
 
+  // EmailingView가 상세 화면에 들어가 있는지 알리기 위한 ref (popstate 처리 분기용)
+  const emailingDetailRef = useRef(false);
+
   const fetchArticles = () => {
     setLoading(true);
     api.get('/articles', { params: { limit: 100 } })
@@ -186,6 +189,10 @@ function Dashboard({ user, onLogout }) {
     window.history.pushState({ view: 'articles', t: Date.now() + 1 }, '');
 
     const onPop = () => {
+      // EmailingView 상세 화면에서 뒤로가기는 EmailingView가 자체 처리
+      if (emailingDetailRef.current) {
+        return;
+      }
       if (viewRef.current === 'articles') {
         window.history.pushState({ view: 'articles', t: Date.now() }, '');
       } else {
@@ -312,7 +319,7 @@ function Dashboard({ user, onLogout }) {
         {/* 🔥 변경: onOpenArticle props를 추가하여 함수를 넘겨줍니다 */}
         {view === 'curriculum' && <CurriculumView onOpenArticle={openArticleDetail} />}
 
-        {view === 'emailing' && <EmailingView />}
+        {view === 'emailing' && <EmailingView onOpenArticle={openArticleDetail} emailingDetailRef={emailingDetailRef} />}
       </main>
 
 
