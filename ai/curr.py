@@ -18,7 +18,7 @@ openai_api_key = os.getenv("OPENAI_API_KEY")
 if openai_api_key:
     os.environ["OPENAI_API_KEY"] = openai_api_key
 
-llm = ChatOpenAI(model=os.getenv("AI_MODEL", "gpt-5.4"), temperature=0.2)
+llm = ChatOpenAI(model=os.getenv("AI_MODEL", "gpt-5.4-mini"), temperature=0.2)
 
 # 임시 Vector DB 역할을 할 로컬 요약 폴더 경로
 SUMMARY_DIR = BASE_DIR / "summary"
