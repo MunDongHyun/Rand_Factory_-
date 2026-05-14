@@ -11,6 +11,7 @@ class AuthorArticleSummary(BaseModel):
     article_category: str | None = None
     article_source: str | None = None
     article_published_date: date | None = None
+    article_view_count: int | None = None
     article_thumbnail_url: str | None = None
 
 

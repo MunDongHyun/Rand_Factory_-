@@ -713,7 +713,7 @@
 
 .articleCardShell {
   cursor: pointer;
-  height: 380px;
+  height: 400px;
   position: relative;
 }
 
@@ -790,7 +790,7 @@
    카드 하단 (텍스트 영역)
    =========================== */
 .cardBottom {
-  height: 130px;
+  height: 155px;
   background: var(--card);
   padding: 14px 18px;
   display: flex;
@@ -830,8 +830,8 @@
   word-break: keep-all;
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
   overflow: hidden;
 }
 
@@ -846,6 +846,13 @@
 
 .cardDot {
   opacity: 0.5;
+}
+
+.cardViews {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
 }
 
 

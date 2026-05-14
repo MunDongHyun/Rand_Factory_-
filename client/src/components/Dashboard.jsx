@@ -162,6 +162,23 @@ function Dashboard({ user, onLogout }) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const replaceArticleInSections = (article) => {
+    if (!article?.article_id) return;
+
+    const replaceInList = (list) =>
+      list.map((section) => ({
+        ...section,
+        items: section.items.map((item) =>
+          item.article_id === article.article_id
+            ? { ...item, ...article }
+            : item
+        ),
+      }));
+
+    setSections((prev) => replaceInList(prev));
+    setOriginalSections((prev) => replaceInList(prev));
+  };
+
   const openArticleDetail = async (article) => {
     setSelectedArticle(article);
     setView('articleDetail');
@@ -172,6 +189,7 @@ function Dashboard({ user, onLogout }) {
     try {
       const res = await api.post(`/articles/${article.article_id}/view`);
       setSelectedArticle(res.data);
+      replaceArticleInSections(res.data);
     } catch (err) {
       console.error(err);
     }
@@ -293,6 +311,8 @@ function Dashboard({ user, onLogout }) {
                         <span className="cardTime">
                           {item.article_published_date ? String(item.article_published_date).split('T')[0] : '최근'}
                         </span>
+                        <span className="cardDot">·</span>
+                        <span className="cardViews">👁 {(item.article_view_count ?? 0).toLocaleString()}</span>
                       </div>
                     </div>
                   </article>

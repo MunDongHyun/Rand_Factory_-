@@ -121,7 +121,7 @@ function ArticleDetailView({ article, onBack }) {
           {displayArticle.article_published_date && <> <span className="cardDot">·</span> <span>{displayArticle.article_published_date}</span></>}
           {displayArticle.article_category && <> <span className="cardDot">·</span> <span># {displayArticle.article_category}</span></>}
           <span className="cardDot">·</span>
-          <span className="summaryView">조회 {displayArticle.article_view_count ?? 0}</span>
+          <span className="summaryView">👁 조회 {(displayArticle.article_view_count ?? 0).toLocaleString()}</span>
         </div>
 
         {summaryLoading && <p className="articleSummaryState">요약문을 불러오는 중...</p>}

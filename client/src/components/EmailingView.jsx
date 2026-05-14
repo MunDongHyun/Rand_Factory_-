@@ -205,6 +205,8 @@ function EmailingView({ onOpenArticle, emailingDetailRef }) {
                     <span className="cardSource">{work.article_source || '-'}</span>
                     <span className="cardDot">·</span>
                     <span className="cardTime">{formatPublishedDate(work.article_published_date)}</span>
+                    <span className="cardDot">·</span>
+                    <span className="cardViews">👁 {(work.article_view_count ?? 0).toLocaleString()}</span>
                   </div>
                 </div>
               </article>
