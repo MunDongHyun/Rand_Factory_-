@@ -2,6 +2,50 @@
 
 ---
 
+## 2026-05-14 - Claude (HeroBanner 슬라이드 클릭 시 아티클 상세 이동)
+
+### 배경
+- 메인 상단 배너에 "AI 자동화 위험을 줄이기 위한 새로운 HRD 전략" / "DBR과 함께 학습하는 조직 소개" 두 슬라이드가 정적 데이터로만 표시되고 있었음
+- 배너 문구와 실제 아티클(DB의 article_id 28, 42)이 분리돼 있어 사용자가 배너를 보고도 아티클 본문으로 진입할 경로가 없음
+
+### 작업
+- `client/src/components/HeroBanner.jsx`
+  - `SLIDES` 각 항목에 `articleId` 필드 추가 (1번 → 28, 2번 → 42)
+  - `onOpenArticle` prop 추가
+  - `bannerText` 영역에 `onClick` 핸들러 + `cursor: pointer` + `role="button"` 부여 → 텍스트 영역만 클릭 가능 (좌우 화살표·점 인디케이터와 이벤트 분리)
+- `client/src/components/Dashboard.jsx`
+  - `<HeroBanner>`에 `onOpenArticle={openArticleDetail}` 전달
+  - 기존 `openArticleDetail`이 이미 `POST /articles/{id}/view`까지 처리하므로 별도 핸들러 추가 불필요
+
+### 결정
+- 클릭 영역 후보 (A) 텍스트 영역만 / (B) 배너 전체 중 **A 채택**
+  - 좌우 화살표·인디케이터와의 이벤트 충돌 방지
+  - stopPropagation 없이도 안전하게 동작
+- 슬라이드↔아티클 매핑은 하드코딩
+  - 발표용/데모용이라 동적 로드 불필요
+  - DB의 `article_title`을 키워드로 검색해서 ID 확정 (28, 42)
+
+### 검증
+- `cd client && npm run build` 통과 (101 modules, 928ms)
+- 브라우저 직접 클릭 테스트는 사용자 측에서 진행
+
+---
+
+## 2026-05-14 - Claude (CLAUDE.md — Pull 전 체크리스트 섹션 추가)
+
+### 배경
+- 기존 CLAUDE.md에는 "커밋 전 체크리스트"만 있고 pull 전 충돌 가능성 점검 절차는 정의돼 있지 않았음
+- 로컬 수정 중인 파일이 원격 변경과 겹쳐 충돌이 발생하는 경우를 사전에 막을 가이드 부재
+
+### 작업
+- `CLAUDE.md` — "커밋 전 체크리스트" 섹션 바로 위에 "Pull 전 체크리스트" 7단계 추가
+  - `git status` → `git fetch` → `git log HEAD..origin/<branch> --oneline` → `git diff --stat` → 겹침 여부 확인 → `git pull` → pull 이후 `.env.example` / `requirements.txt` / `package.json` 변경 동기화
+
+### 결정
+- 별도 문서가 아닌 CLAUDE.md에 통합 — 기존 "커밋 전 체크리스트"와 짝을 이루도록 인접 배치
+
+---
+
 ## 2026-05-13 - Claude (새로고침 시 view 복원 — sessionStorage)
 
 ### 배경
