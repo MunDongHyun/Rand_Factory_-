@@ -799,6 +799,13 @@
   border-top: 1px solid var(--line);
 }
 
+.cardTextGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+
 .cardTitle {
   font-size: 16px;
   font-weight: 600;
@@ -808,6 +815,19 @@
   margin: 0;
 
   /* 2줄 말줄임 */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.cardPreviewTitle {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-muted);
+  margin: 0;
+  word-break: keep-all;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -861,6 +881,13 @@
   font-size: 22px;
   font-weight: 700;
   line-height: 1.4;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+.articleCardShell:first-child .cardPreviewTitle {
+  font-size: 14px;
+  line-height: 1.55;
   -webkit-line-clamp: 3;
   line-clamp: 3;
 }

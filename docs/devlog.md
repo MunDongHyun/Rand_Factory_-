@@ -2,6 +2,51 @@
 
 ---
 
+## 2026-05-14 - Codex (대시보드 UX 안정화 + 아티클 카드 미리보기)
+
+### 대시보드/헤더 UI 정리
+- `client/src/components/Dashboard.jsx`, `client/src/styles/Dashboard.css`
+  - 아티클 카드 hover 시 카드 자체가 움직이며 커서 경계에서 떨리던 문제 수정
+  - 고정된 `articleCardShell` wrapper를 추가하고 내부 카드만 `translateY` 되도록 변경
+  - 첫 번째 와이드 카드 레이아웃 규칙도 wrapper 기준으로 조정
+- `client/src/components/HeroBanner.jsx`
+  - 플로팅 CTA의 `핵심 기능` 라벨 제거
+- `client/src/components/Header.jsx`
+  - 햄버거 버튼 옆 프로필 원(`avatarCircle`) 제거
+
+### 커리큘럼 화면 뒤로가기/로그아웃 상태 보정
+- `client/src/components/Dashboard.jsx`
+  - 학습자 커리큘럼 상세 화면의 브라우저 뒤로가기를 전역 대시보드 복귀 로직이 가로채지 않도록 `curriculumDetailRef` 추가
+- `client/src/components/LearnerCurriculumView.jsx`
+  - 학습자 커리큘럼 상세 진입 시 브라우저 히스토리에 상세 상태를 추가
+  - 상세 화면에서 뒤로가기를 누르면 메인 대시보드가 아니라 커리큘럼 목록으로 복귀
+- `client/src/App.jsx`
+  - 로그아웃, 자동 로그아웃, 로그인 시 `dash:view`, `dash:articleId` 세션 값을 초기화
+  - 매니저가 커리큘럼 관리에서 로그아웃한 뒤 재로그인 시 커리큘럼 화면이 그대로 복원되던 문제 수정
+
+### 아티클 카드 미리보기/정렬
+- `server/app/schemas/article.py`
+  - `ArticleResponse.article_preview_summary_title` 필드 추가
+- `server/app/routers/article.py`
+  - 최신 `ai_summaries.summary_text.card_news[0]`에서 미리보기 텍스트 추출
+  - 우선순위: `detailed_summary` 앞 160자 → `core_message` → `card_title`
+  - `/api/articles`, `/api/articles/popular`, `/api/articles/{article_id}`, 조회수 증가 응답에 미리보기 필드 포함
+  - 기본 아티클 목록 정렬을 `article_published_date desc`, `article_created_at desc`, `article_id desc`로 변경
+- `client/src/components/Dashboard.jsx`, `client/src/styles/Dashboard.css`
+  - 각 카테고리 섹션의 첫 번째 와이드 카드에만 요약 미리보기 표시
+  - 와이드 카드 미리보기는 최대 3줄 clamp로 표시
+
+### 검증
+- 백엔드 컴파일 통과
+  - `python -m compileall -q app`
+- 프론트엔드 빌드 통과
+  - `npm run build`
+- 실제 API 응답 확인
+  - `/api/articles?limit=10` 발행일 최신순 정렬 확인
+  - `/api/articles?limit=3` 미리보기 텍스트 응답 확인
+
+---
+
 ## 2026-05-14 - Codex (학습자 커리큘럼 제출/피드백 흐름 추가)
 
 ### 학습자 전용 커리큘럼 화면 추가

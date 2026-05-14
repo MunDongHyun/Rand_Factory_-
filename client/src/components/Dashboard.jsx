@@ -39,6 +39,7 @@ function Dashboard({ user, onLogout }) {
 
   // EmailingView가 상세 화면에 들어가 있는지 알리기 위한 ref (popstate 처리 분기용)
   const emailingDetailRef = useRef(false);
+  const curriculumDetailRef = useRef(false);
 
   const fetchArticles = () => {
     setLoading(true);
@@ -195,6 +196,10 @@ function Dashboard({ user, onLogout }) {
       if (emailingDetailRef.current) {
         return;
       }
+      // LearnerCurriculumView 상세 화면에서 뒤로가기는 커리큘럼 목록 복귀로 자체 처리
+      if (curriculumDetailRef.current) {
+        return;
+      }
       if (viewRef.current === 'articles') {
         window.history.pushState({ view: 'articles', t: Date.now() }, '');
       } else {
@@ -264,7 +269,7 @@ function Dashboard({ user, onLogout }) {
 
 
             <div className="articleGrid">
-              {section.items.map((item) => (
+              {section.items.map((item, index) => (
                 <div
                   key={item.article_id || Math.random()}
                   className="articleCardShell"
@@ -276,7 +281,12 @@ function Dashboard({ user, onLogout }) {
                       <span className="cardTag"># {item.article_category || '기타'}</span>
                     </div>
                     <div className="cardBottom">
-                      <h3 className="cardTitle">{item.article_title}</h3>
+                      <div className="cardTextGroup">
+                        <h3 className="cardTitle">{item.article_title}</h3>
+                        {index === 0 && item.article_preview_summary_title && (
+                          <p className="cardPreviewTitle">{item.article_preview_summary_title}</p>
+                        )}
+                      </div>
                       <div className="cardMeta">
                         <span className="cardSource">{item.article_source || 'AI 리포트'}</span>
                         <span className="cardDot">·</span>
@@ -323,7 +333,7 @@ function Dashboard({ user, onLogout }) {
         {/* 🔥 변경: onOpenArticle props를 추가하여 함수를 넘겨줍니다 */}
         {view === 'curriculum' && (
           user?.user_role === 'j'
-            ? <LearnerCurriculumView />
+            ? <LearnerCurriculumView curriculumDetailRef={curriculumDetailRef} />
             : <CurriculumView onOpenArticle={openArticleDetail} />
         )}
 

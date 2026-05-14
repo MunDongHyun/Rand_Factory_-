@@ -9,6 +9,11 @@ import MasterDashboard from './components/MasterDashboard';
 
 const screenForRole = (role) => (role === 'a' ? 'master' : 'dashboard');
 
+const clearDashboardSession = () => {
+  sessionStorage.removeItem('dash:view');
+  sessionStorage.removeItem('dash:articleId');
+};
+
 function App() {
   const [screen, setScreen] = useState('intro');
   const [user, setUser] = useState(null);
@@ -31,23 +36,27 @@ function App() {
       })
       .catch(() => {
         clearToken();
+        clearDashboardSession();
       })
       .finally(() => setRestoring(false));
   }, []);
 
   const handleLogin = (loggedInUser) => {
+    clearDashboardSession();
     setUser(loggedInUser);
     setScreen(screenForRole(loggedInUser.user_role));
   };
 
   const handleLogout = () => {
     clearToken();
+    clearDashboardSession();
     setUser(null);
     setScreen('intro');
   };
 
   useEffect(() => {
     const onAuthLogout = () => {
+      clearDashboardSession();
       setUser(null);
       setScreen('intro');
     };

@@ -24,11 +24,42 @@ from app.models.user_activity import UserActivity
 router = APIRouter(prefix="/api/articles", tags=["articles"])
 
 
-def _to_response(article: Article, summary_article_ids: set[int] | None = None) -> ArticleResponse:
+def _extract_preview_summary_title(summary_text: dict | list | None) -> str | None:
+    if not isinstance(summary_text, dict):
+        return None
+
+    card_news = summary_text.get("card_news")
+    if not isinstance(card_news, list) or not card_news:
+        return None
+
+    first_card = card_news[0]
+    if not isinstance(first_card, dict):
+        return None
+
+    detailed_summary = first_card.get("detailed_summary")
+    if isinstance(detailed_summary, str) and detailed_summary.strip():
+        summary = " ".join(detailed_summary.split())
+        return summary[:160] + ("..." if len(summary) > 160 else "")
+
+    core_message = first_card.get("core_message")
+    if isinstance(core_message, str) and core_message.strip():
+        return core_message
+
+    title = first_card.get("card_title")
+    return title if isinstance(title, str) and title.strip() else None
+
+
+def _to_response(
+    article: Article,
+    summary_article_ids: set[int] | None = None,
+    preview_summary_titles: dict[int, str] | None = None,
+) -> ArticleResponse:
     response = ArticleResponse.model_validate(article)
     response.article_thumbnail_url = thumbnail_service.get_thumbnail_url(article)
     if summary_article_ids is not None:
         response.article_has_summary = article.article_id in summary_article_ids
+    if preview_summary_titles is not None:
+        response.article_preview_summary_title = preview_summary_titles.get(article.article_id)
     return response
 
 
@@ -45,6 +76,27 @@ def _summary_article_ids(db: Session, article_ids: list[int]) -> set[int]:
         .all()
     )
     return {article_id for (article_id,) in rows if article_id is not None}
+
+
+def _preview_summary_titles(db: Session, article_ids: list[int]) -> dict[int, str]:
+    if not article_ids:
+        return {}
+
+    rows = (
+        db.query(AiSummary)
+        .filter(AiSummary.article_id.in_(article_ids))
+        .order_by(AiSummary.article_id.asc(), AiSummary.created_at.desc(), AiSummary.output_id.desc())
+        .all()
+    )
+
+    previews: dict[int, str] = {}
+    for row in rows:
+        if row.article_id is None or row.article_id in previews:
+            continue
+        title = _extract_preview_summary_title(row.summary_text)
+        if title:
+            previews[row.article_id] = title
+    return previews
 
 
 @router.post("", response_model=ArticleResponse, status_code=status.HTTP_201_CREATED)
@@ -166,14 +218,20 @@ def list_articles(
         query = query.filter(Article.article_source == source)
 
     if not keyword:
-        query = query.order_by(Article.article_created_at.desc())
+        query = query.order_by(
+            Article.article_published_date.desc(),
+            Article.article_created_at.desc(),
+            Article.article_id.desc(),
+        )
 
     total = query.count()
     articles = query.offset((page - 1) * limit).limit(limit).all()
-    summary_article_ids = _summary_article_ids(db, [a.article_id for a in articles])
+    article_ids = [a.article_id for a in articles]
+    summary_article_ids = _summary_article_ids(db, article_ids)
+    preview_summary_titles = _preview_summary_titles(db, article_ids)
 
     return ArticleListResponse(
-        articles=[_to_response(a, summary_article_ids) for a in articles],
+        articles=[_to_response(a, summary_article_ids, preview_summary_titles) for a in articles],
         total=total,
     )
 
@@ -203,8 +261,10 @@ def get_popular_articles(
         .limit(limit)
         .all()
     )
-    summary_article_ids = _summary_article_ids(db, [a.article_id for a in articles])
-    return [_to_response(a, summary_article_ids) for a in articles]
+    article_ids = [a.article_id for a in articles]
+    summary_article_ids = _summary_article_ids(db, article_ids)
+    preview_summary_titles = _preview_summary_titles(db, article_ids)
+    return [_to_response(a, summary_article_ids, preview_summary_titles) for a in articles]
 
 
 @router.get("/stats/by-category", response_model=CategoryStatsResponse)
@@ -312,8 +372,10 @@ def record_article_view(
     db.commit()
     db.refresh(article)
 
-    summary_article_ids = _summary_article_ids(db, [article.article_id])
-    return _to_response(article, summary_article_ids)
+    article_ids = [article.article_id]
+    summary_article_ids = _summary_article_ids(db, article_ids)
+    preview_summary_titles = _preview_summary_titles(db, article_ids)
+    return _to_response(article, summary_article_ids, preview_summary_titles)
 
 @router.get("/{article_id}", response_model=ArticleResponse)
 def get_article(
@@ -325,5 +387,7 @@ def get_article(
     if not article:
         raise HTTPException(status_code=404, detail="Article not found")
 
-    summary_article_ids = _summary_article_ids(db, [article.article_id])
-    return _to_response(article, summary_article_ids)
+    article_ids = [article.article_id]
+    summary_article_ids = _summary_article_ids(db, article_ids)
+    preview_summary_titles = _preview_summary_titles(db, article_ids)
+    return _to_response(article, summary_article_ids, preview_summary_titles)

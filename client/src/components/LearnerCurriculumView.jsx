@@ -21,7 +21,7 @@ const STATUS_LABEL = {
   resubmit_requested: '재제출 요청됨',
 };
 
-function LearnerCurriculumView() {
+function LearnerCurriculumView({ curriculumDetailRef }) {
   const [curriculums, setCurriculums] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -52,6 +52,29 @@ function LearnerCurriculumView() {
     ]).finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    if (curriculumDetailRef) {
+      curriculumDetailRef.current = Boolean(selectedId);
+    }
+
+    const onPop = () => {
+      if (!selectedId) return;
+      setSelectedId(null);
+      setExpandedWeek(null);
+      if (curriculumDetailRef) {
+        curriculumDetailRef.current = false;
+      }
+    };
+
+    window.addEventListener('popstate', onPop);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      if (curriculumDetailRef) {
+        curriculumDetailRef.current = false;
+      }
+    };
+  }, [selectedId, curriculumDetailRef]);
+
   const selected = curriculums.find((c) => c.cur_id === selectedId) || null;
 
   // 특정 (커리큘럼, 주차)의 가장 최근 제출만 반환
@@ -80,6 +103,7 @@ function LearnerCurriculumView() {
   const handleSelect = (curId) => {
     setSelectedId(curId);
     setExpandedWeek(null);
+    window.history.pushState({ view: 'curriculum', curriculumDetail: true, curId }, '');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
