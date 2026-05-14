@@ -342,8 +342,8 @@
     font-weight: 800;
     /* 포인트 컬러 사용 */
     background: linear-gradient(142deg, #9CCAFF, #D8A6FF);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
 }
 
 .cardTitle {
