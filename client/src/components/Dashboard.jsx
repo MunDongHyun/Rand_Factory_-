@@ -109,8 +109,9 @@ function Dashboard({ user, onLogout }) {
     setSearchQuery(query);
     setIsModalOpen(true);
     setModalStatus('searching');
+    setSelectedCategory(null);
 
-    try {
+  try {
       const res = await api.get('/articles', { params: { keyword: query } });
       const foundArticles = res.data.articles;
 
@@ -118,7 +119,7 @@ function Dashboard({ user, onLogout }) {
         setSections([{
           category: `🔍 "${query}" 연관 아티클`,
           theme: 'blue',
-          items: foundArticles.slice(0, 5) // 수정: 상위 5개만 표시
+          items: foundArticles.slice(0, 5) 
         }]);
         setIsModalOpen(false);
       } else {
