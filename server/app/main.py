@@ -5,6 +5,13 @@ from fastapi.staticfiles import StaticFiles
 from app.routers import ai_output, article, chatbot, curriculum, health, rag, task_submission, user
 from app.services.thumbnail_service import THUMBNAIL_DIR, URL_PREFIX as THUMBNAIL_URL_PREFIX
 
+
+# 필요한 DB 테이블이 있으면 스크립트에 명시해주면 테이블 자동 생성해주는 코드
+from app.models.user_activity import UserActivity
+from app.core.database import engine, Base
+Base.metadata.create_all(bind=engine)
+
+
 app = FastAPI(
     title="landfactory API",
     description="DBR/HBR article-based AI learning platform API",

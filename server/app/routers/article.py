@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, update
 from sqlalchemy.orm import Session
+from collections import Counter
 
 
 from app.core.database import get_db
@@ -18,6 +19,11 @@ from app.schemas.article import (
     CategoryStatsResponse,
 )
 from app.services import article_service, rag_service, thumbnail_service
+from app.models.user_activity import UserActivity
+from pydantic import BaseModel
+
+class GenerateRequest(BaseModel):
+    keyword: str
 
 router = APIRouter(prefix="/api/articles", tags=["articles"])
 
@@ -82,41 +88,100 @@ def create_article(
 def list_articles(
     category: str | None = None,
     source: str | None = None,
-    keyword: str | None = Query(None, description="Search keyword for article title"),
+    keyword: str | None = Query(None, description="Search keyword for semantic search"), 
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
-    _current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user), 
 ):
-    query = db.query(Article)
-
-    if category:
-        query = query.filter(Article.article_category == category)
-
-    if source:
-        query = query.filter(Article.article_source == source)
+    # 🌟 1. 기본 쿼리에서 'AI' 출처 제외
+    query = db.query(Article).filter(Article.article_source != 'AI')
 
     if keyword:
-        query = query.filter(Article.article_title.ilike(f"%{keyword}%"))
+        recent_logs = db.query(UserActivity.category)\
+                        .filter(UserActivity.user_id == current_user.user_id)\
+                        .order_by(UserActivity.created_at.desc())\
+                        .limit(30).all()
+        category_counts = Counter([log.category for log in recent_logs])
+        total_logs = sum(category_counts.values()) or 1
+        user_pref_weights = {cat: count / total_logs for cat, count in category_counts.items()}
+
+        vector_results = rag_service.search_similar_with_scores(query_text=keyword, k=50)
+        
+        print(f"\n🔍 검색어: '{keyword}'")
+        for aid, dist, content in vector_results[:5]: 
+            print(f" - 아티클 ID: {aid} | 거리(Distance): {dist:.4f}")
+
+        # 🌟 2. 키워드 직접 매칭 시 'AI' 제외
+        exact_matches = db.query(Article.article_id).filter(
+            Article.article_title.ilike(f"%{keyword}%"),
+            Article.article_source != 'AI'
+        ).all()
+        exact_match_ids = [row[0] for row in exact_matches]
+
+        merged_distances = {aid: 0.1 for aid in exact_match_ids}
+
+        for aid, dist, content in vector_results:
+            
+            if keyword in content:
+                dist = 0.1
+
+            if aid in merged_distances:
+                merged_distances[aid] = min(merged_distances[aid], dist)
+            else:
+                merged_distances[aid] = dist
+
+        DISTANCE_THRESHOLD = 0.40  
+        filtered_results = [(aid, dist) for aid, dist in merged_distances.items() if dist <= DISTANCE_THRESHOLD]
+        
+        # 필터링 후 남은 게 없다면 빈 리스트 반환 -> 팝업 띄움!
+        if not filtered_results:
+            return ArticleListResponse(articles=[], total=0)
+
+        hybrid_scores = []
+        matched_article_ids = [aid for aid, _ in filtered_results]
+        
+        # 🌟 3. 점수 계산을 위한 DB 조회 시 'AI' 제외
+        db_articles = db.query(Article).filter(
+            Article.article_id.in_(matched_article_ids),
+            Article.article_source != 'AI'
+        ).all()
+        article_map = {a.article_id: a for a in db_articles}
+
+        for article_id, distance in filtered_results:
+            article = article_map.get(article_id)
+            if not article:
+                continue
+                
+            content_score = max(0, 1 - distance) 
+            user_score = user_pref_weights.get(article.article_category, 0.0)
+
+            final_score = (content_score * 0.7) + (user_score * 0.3)
+            hybrid_scores.append((article_id, final_score))
+
+        hybrid_scores.sort(key=lambda x: x[1], reverse=True)
+        sorted_article_ids = [aid for aid, score in hybrid_scores]
+
+        query = query.filter(Article.article_id.in_(sorted_article_ids))
+        order_case = {id_: index for index, id_ in enumerate(sorted_article_ids)}
+        query = query.order_by(func.field(Article.article_id, *sorted_article_ids))
+
+    elif category:
+        query = query.filter(Article.article_category == category)
+    elif source:
+        query = query.filter(Article.article_source == source)
+
+    if not keyword:
+        query = query.order_by(Article.article_created_at.desc())
 
     total = query.count()
-    articles = (
-        query.order_by(
-            Article.article_published_date.desc(),
-            Article.article_created_at.desc(),
-        )
-        .offset((page - 1) * limit)
-        .limit(limit)
-        .all()
-    )
-
+    articles = query.offset((page - 1) * limit).limit(limit).all()
     summary_article_ids = _summary_article_ids(db, [a.article_id for a in articles])
 
     return ArticleListResponse(
         articles=[_to_response(a, summary_article_ids) for a in articles],
         total=total,
     )
-
 
 @router.get("/categories", response_model=list[str])
 def list_categories(
@@ -229,17 +294,27 @@ def get_article_insights(
 def record_article_view(
     article_id: int,
     db: Session = Depends(get_db),
-    _current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user), # 기존 _current_user의 언더바(_)를 제거하여 변수로 사용
 ):
     article = db.query(Article).filter(Article.article_id == article_id).first()
     if not article:
         raise HTTPException(status_code=404, detail="Article not found")
 
+    # 1. 기존: 아티클 전체 조회수 증가
     db.execute(
         update(Article)
         .where(Article.article_id == article_id)
         .values(article_view_count=func.coalesce(Article.article_view_count, 0) + 1)
     )
+
+    # 2. 추가: 하이브리드 추천을 위한 유저 행동 로그 적재
+    new_activity = UserActivity(
+        user_id=current_user.user_id,
+        article_id=article_id,
+        category=article.article_category
+    )
+    db.add(new_activity)
+
     db.commit()
     db.refresh(article)
 
@@ -258,3 +333,36 @@ def get_article(
 
     summary_article_ids = _summary_article_ids(db, [article.article_id])
     return _to_response(article, summary_article_ids)
+
+
+@router.post("/generate")
+def generate_article(
+    req: GenerateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    ai_result = article_service.create_ai_generated_content(req.keyword)
+    
+    new_article = Article(
+        article_source="AI", 
+        article_title=ai_result.get("title", f"'{req.keyword}' 분석 리포트"),
+        article_author="AI Assistant",
+        article_category="AI",
+        article_source_url="",
+    )
+    db.add(new_article)
+    db.commit()
+    db.refresh(new_article)
+    
+    # 벡터 DB 적재는 동일하게 진행
+    content = ai_result.get("content", "")
+    if content:
+        rag_service.ingest_article(
+            article_id=new_article.article_id,
+            title=new_article.article_title,
+            content=content,
+            category=new_article.article_category,
+            author=new_article.article_author,
+        )
+        
+    return {"message": "success", "article": _to_response(new_article)}
