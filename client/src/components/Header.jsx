@@ -11,6 +11,8 @@ function Header({ onViewChange, onLogout, onScrollToTop, onScrollToArticle, onSe
       onSearch(inputValue.trim());
       // 검색 후 뷰를 아티클 페이지로 전환 (다른 뷰에 있을 때 검색할 경우를 대비)
       onViewChange('articles');
+      // 검색 실행 후 검색창 비우기
+      setInputValue('');
     }
   };
 

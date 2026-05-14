@@ -318,8 +318,17 @@ function Dashboard({ user, onLogout }) {
             {modalStatus === 'not_found' && (
               <div style={{ textAlign: 'center' }}>
                 <h3 style={{ color: '#d9534f' }}>검색 결과 없음</h3>
-                <p style={{ color: '#555', marginTop: '10px' }}>해당 검색어와 연관되는 아티클 요약문이 없습니다.</p>
-                <p style={{ fontWeight: 'bold', marginTop: '15px', color: '#333' }}>해당 검색어를 기반으로 새로운 아티클 요약문을<br />생성해드릴까요?</p>
+                
+                {/* 👇 요청하신 문구로 수정된 부분 */}
+                <p style={{ color: '#555', marginTop: '10px', fontSize: '1.1rem' }}>
+                  <strong style={{color: '#000'}}>"{searchQuery}"</strong>와(과) 연관된 아티클이 존재하지 않습니다.<br/>
+                  다른 검색어로 검색해주세요.
+                </p>
+                {/* 👆 수정 끝 */}
+
+                <p style={{ fontWeight: 'bold', marginTop: '25px', color: '#333' }}>
+                  해당 검색어를 기반으로 새로운 아티클 요약문을<br />생성해드릴까요?
+                </p>
                 <div style={{ marginTop: '25px', display: 'flex', gap: '15px', justifyContent: 'center' }}>
                   <button onClick={handleGenerate} style={{ padding: '10px 30px', background: '#4CAF50', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>예</button>
                   <button onClick={() => setIsModalOpen(false)} style={{ padding: '10px 30px', background: '#ccc', color: '#333', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>아니오</button>
