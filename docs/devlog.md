@@ -2,6 +2,29 @@
 
 ---
 
+## 2026-05-14 - Claude (아티클 목록 정렬 기준 통일 — 발행일자 최신순)
+
+### 배경
+- 메인 대시보드 카테고리별 상위 5개 카드 / 카테고리 페이지 둘 다 `GET /api/articles`를 공유하지만 정렬 기준이 `article_created_at`(DB 등록 시각)이라 실제 발행일과 어긋남
+- 사용자 입장에서는 "최신 아티클"이 발행일 기준이어야 직관적
+
+### 작업
+- `server/app/routers/article.py` (`list_articles`)
+  - `order_by(Article.article_created_at.desc())` → `order_by(Article.article_published_date.desc(), Article.article_created_at.desc())`
+  - 1순위 발행일자, 2순위 등록일자(tie-breaker)
+  - MySQL DESC에서 NULL은 자동으로 맨 뒤 → 발행일 누락 아티클은 자연스럽게 뒤로 밀림
+
+### 결정
+- 메인/카테고리 모두 같은 `/articles` API를 쓰기 때문에 백엔드 한 곳만 수정 → 양쪽 통일
+- `/popular`(조회수순), `/categories`(이름순), `/stats/by-category`는 의미가 달라 손대지 않음
+- tie-breaker로 `article_created_at`을 둔 이유: 같은 발행일이라도 가장 늦게 등록된 것이 일반적으로 더 최신 시점에 큐레이션된 아티클이라는 판단
+
+### 검증
+- `cd server && .\venv\Scripts\python.exe -m compileall -q app` 통과
+- 메인 대시보드 / 카테고리 페이지 발행일 정렬 확인은 사용자 측에서 진행
+
+---
+
 ## 2026-05-14 - Claude (HeroBanner 슬라이드 클릭 시 아티클 상세 이동)
 
 ### 배경

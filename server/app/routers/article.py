@@ -101,7 +101,10 @@ def list_articles(
 
     total = query.count()
     articles = (
-        query.order_by(Article.article_created_at.desc())
+        query.order_by(
+            Article.article_published_date.desc(),
+            Article.article_created_at.desc(),
+        )
         .offset((page - 1) * limit)
         .limit(limit)
         .all()
