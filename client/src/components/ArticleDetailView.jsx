@@ -5,7 +5,7 @@ import "../styles/ArticleDetailView.css"
 
 function CollapsibleText({ paragraphs }) {
   const [expanded, setExpanded] = useState(false);
-  const LINE_LIMIT = 3;
+  const LINE_LIMIT = 5;
 
   const needsToggle = paragraphs.length > LINE_LIMIT;
   const visibleParagraphs = (!needsToggle || expanded) ? paragraphs : paragraphs.slice(0, LINE_LIMIT);
@@ -37,6 +37,7 @@ function ArticleDetailView({ article, onBack }) {
 
   const [currentStep, setCurrentStep] = useState(0);
   const [animating, setAnimating] = useState(false);
+  const [expandedCard, setExpandedCard] = useState(null);
 
   useEffect(() => {
     if (!article?.article_id) return;
@@ -75,10 +76,15 @@ function ArticleDetailView({ article, onBack }) {
   const goTo = (nextStep) => {
     if (animating) return;
     setAnimating(true);
+    setExpandedCard(null);
     setCurrentStep(nextStep);
     setTimeout(() => {
       setAnimating(false);
     }, 300);
+  };
+
+  const toggleCard = (index) => {
+    setExpandedCard(prev => prev === index ? null : index);
   };
 
   const displayArticle = article;
@@ -99,7 +105,6 @@ function ArticleDetailView({ article, onBack }) {
 
   return (
     <div className="articleDetailContainer">
-      <button className="detailBackBtn" onClick={onBack}>목록으로</button>
 
       <div className="articleDetailContent">
 
@@ -125,18 +130,35 @@ function ArticleDetailView({ article, onBack }) {
         {summary && (
           <div className="articleSummary">
 
-            <div className='topDivider'/>
+            <div className='topDivider' />
 
-   
+
             <div className="summaryHeader">
               <p className="summaryEyebrow">AI 요약문</p>
               <h2 className="summaryTitle">{metadata.title || displayArticle.article_title}</h2>
               <p className="summaryMeta">
                 {[metadata.category].filter(Boolean).join(' · ')}
               </p>
-              <div className="summaryDivider" />
+
+              {/* DB 연결 전 링크 */}
+              <a
+                className="originalArticleBtn"
+                href="https://www.donga.com/news/It/article/all/20260508/133881387/2"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                원문 아티클 보기 →
+              </a>
+
               {summary.theme_analysis && (
-                <p className="summaryTheme">{summary.theme_analysis}</p>
+                <div className='summaryThemeWrapper'>
+
+
+                  <div className="summaryDivider" />
+                  <p className="summaryTheme">{summary.theme_analysis}</p>
+
+
+                </div>
               )}
             </div>
 
@@ -152,28 +174,44 @@ function ArticleDetailView({ article, onBack }) {
                     </div>
 
                     <div className="slideCardTrack">
+
+
                       {slides.map((slide, index) => {
                         const diff = index - currentStep;
                         if (Math.abs(diff) > 1) return null;
                         let pos = diff === 0 ? 'current' : (diff === -1 ? 'prev' : 'next');
 
                         return (
-                          <div key={index} className={`slideCard ${pos}`}>
-                            <div className="slideCardInner">
-                              <div className="leftSection">
+                          <div key={index} className={`slideCard ${pos} ${expandedCard === index ? 'expanded' : ''}`}>
+                            <div
+                              className="slideCardInner"
+                              onClick={() => pos === 'current' && toggleCard(index)}
+                              style={{ cursor: pos === 'current' ? 'pointer' : 'default' }}
+                            >
+                              <div className="leftSection" >
                                 <div className="cardNum">{slide.card_step}</div>
                                 <h2 className="cardTitle">{slide.card_title}</h2>
                                 <p className="cardMain">"{slide.core_message}"</p>
                               </div>
-                              <div className="dividerLine" />
-                              <div className="rightSection">
-                                <CollapsibleText paragraphs={slide.contentParagraphs} />
-                              </div>
+
+                              {expandedCard === index && (
+                                <>
+                                  <div className="dividerLine" />
+                                  <div className="rightSection">
+                                    <CollapsibleText paragraphs={slide.contentParagraphs} />
+                                  </div>
+                                </>
+                              )}
                             </div>
                             <div className="cardKeyTag"># {slide.keyword}</div>
                           </div>
                         );
                       })}
+                      <div
+                        className="slideClickArea right"
+                        onClick={() => currentStep < slides.length - 1 && goTo(currentStep + 1)}
+                      />
+
                     </div>
 
                     <div className="navGroup">
@@ -193,7 +231,7 @@ function ArticleDetailView({ article, onBack }) {
               </section>
             )}
 
-    
+
             {conclusion && (
               <section className="summaryConclusion">
                 <div className="conclusionHeader">
@@ -226,6 +264,7 @@ function ArticleDetailView({ article, onBack }) {
           </div>
         )}
       </div>
+        <button className="detailBackBtn" onClick={onBack}>목록으로</button>
     </div>
   );
 }
