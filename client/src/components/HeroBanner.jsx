@@ -110,7 +110,6 @@ export default function HeroBanner({ onCreateCurriculum, onOpenArticle }) {
 
             {/* 플로팅 CTA */}
             <div className="floatingCta">
-                <span className="floatingCtaLabel">핵심 기능</span>
                 <button className="floatingCtaBtn" onClick={onCreateCurriculum}>
                     <span className="floatingCtaIcon">✦</span>
                     커리큘럼 생성하기

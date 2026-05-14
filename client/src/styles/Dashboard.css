@@ -695,7 +695,7 @@
   box-shadow: 8px 8px 0px rgba(0,0,0,0.08);
 }
 
-.highlightSection .articleCard:hover {
+.highlightSection .articleCardShell:hover .articleCard {
   box-shadow: 12px 12px 0px rgba(58, 74, 92, 0.2);
   border-color: rgba(255, 255, 255, 0.5);
 }
@@ -711,6 +711,12 @@
 }
 
 
+.articleCardShell {
+  cursor: pointer;
+  height: 380px;
+  position: relative;
+}
+
 /* ===========================
    아티클 카드 — 공통
    =========================== */
@@ -719,15 +725,14 @@
   flex-direction: column;
   background: var(--card);
   transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-  cursor: pointer;
   border-radius: 12px;
   overflow: hidden;
   border: 1.5px solid var(--line);
-  height: 380px;
+  height: 100%;
   position: relative;
 }
 
-.articleCard:hover {
+.articleCardShell:hover .articleCard {
   transform: translateY(-6px);
   box-shadow: 0 14px 32px rgba(58, 74, 92, 0.14);
   border-color: var(--primary);
@@ -735,7 +740,7 @@
 
 
 
-.articleCard:hover .cardBookmark {
+.articleCardShell:hover .cardBookmark {
   opacity: 1;
 }
 
@@ -827,20 +832,23 @@
 /* ===========================
    첫 번째 카드 — 와이드 피처
    =========================== */
-.articleCard:first-child {
+.articleCardShell:first-child {
   grid-column: 1 / -1;       
-  flex-direction: row;        
   height: 280px;
 }
 
-.articleCard:first-child .cardTop {
+.articleCardShell:first-child .articleCard {
+  flex-direction: row;        
+}
+
+.articleCardShell:first-child .cardTop {
   width: 420px;
   flex-shrink: 0;
   height: 100%;
   flex: none;
 }
 
-.articleCard:first-child .cardBottom {
+.articleCardShell:first-child .cardBottom {
   flex: 1;
   height: 100%;
   border-top: none;
@@ -849,7 +857,7 @@
   justify-content: space-between;
 }
 
-.articleCard:first-child .cardTitle {
+.articleCardShell:first-child .cardTitle {
   font-size: 22px;
   font-weight: 700;
   line-height: 1.4;
@@ -857,7 +865,7 @@
   line-clamp: 3;
 }
 
-.articleCard:first-child .cardExcerpt {
+.articleCardShell:first-child .cardExcerpt {
   font-size: 14px;
   color: var(--ink-muted);
   line-height: 1.65;
@@ -870,12 +878,12 @@
   overflow: hidden;
 }
 
-.articleCard:first-child .cardTag {
+.articleCardShell:first-child .cardTag {
   font-size: 12px;
   padding: 4px 10px;
 }
 
-.articleCard:first-child .cardMeta {
+.articleCardShell:first-child .cardMeta {
   margin-top: 0;
 }
 
@@ -889,7 +897,7 @@
   transition: opacity 0.3s ease, filter 0.3s ease;
 }
 
-.articleCard.read:hover {
+.articleCardShell:hover .articleCard.read {
   opacity: 0.85;
   filter: grayscale(0%);
 }

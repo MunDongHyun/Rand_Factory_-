@@ -58,7 +58,6 @@ function Header({ onViewChange, onLogout, onScrollToTop, onScrollToArticle, onSe
           </div>
 
           <div className="headerIcons">
-            <div className="avatarCircle" onClick={onLogout} />
             <button className="hamburgerBtn" onClick={() => setMenuOpen(true)}>
               <span /><span /><span />
             </button>

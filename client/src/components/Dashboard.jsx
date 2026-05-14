@@ -265,26 +265,28 @@ function Dashboard({ user, onLogout }) {
 
             <div className="articleGrid">
               {section.items.map((item) => (
-                <article
+                <div
                   key={item.article_id || Math.random()}
-                  className="articleCard"
+                  className="articleCardShell"
                   onClick={() => openArticleDetail(item)}
                 >
-                  <div className="cardTop">
-                    {item.article_thumbnail_url && <img src={item.article_thumbnail_url} alt="" loading="lazy" />}
-                    <span className="cardTag"># {item.article_category || '기타'}</span>
-                  </div>
-                  <div className="cardBottom">
-                    <h3 className="cardTitle">{item.article_title}</h3>
-                    <div className="cardMeta">
-                      <span className="cardSource">{item.article_source || 'AI 리포트'}</span>
-                      <span className="cardDot">·</span>
-                      <span className="cardTime">
-                        {item.article_published_date ? String(item.article_published_date).split('T')[0] : '최근'}
-                      </span>
+                  <article className="articleCard">
+                    <div className="cardTop">
+                      {item.article_thumbnail_url && <img src={item.article_thumbnail_url} alt="" loading="lazy" />}
+                      <span className="cardTag"># {item.article_category || '기타'}</span>
                     </div>
-                  </div>
-                </article>
+                    <div className="cardBottom">
+                      <h3 className="cardTitle">{item.article_title}</h3>
+                      <div className="cardMeta">
+                        <span className="cardSource">{item.article_source || 'AI 리포트'}</span>
+                        <span className="cardDot">·</span>
+                        <span className="cardTime">
+                          {item.article_published_date ? String(item.article_published_date).split('T')[0] : '최근'}
+                        </span>
+                      </div>
+                    </div>
+                  </article>
+                </div>
               ))}
             </div>
           </section>
