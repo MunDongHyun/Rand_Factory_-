@@ -3,25 +3,25 @@ import api from '../lib/api';
 import "../styles/ArticleDetailView.css"
 
 
-function CollapsibleText({ paragraphs }) {
-  const [expanded, setExpanded] = useState(false);
-  const LINE_LIMIT = 5;
+// function CollapsibleText({ paragraphs }) {
+//   const [expanded, setExpanded] = useState(false);
+//   const LINE_LIMIT = 5;
 
-  const needsToggle = paragraphs.length > LINE_LIMIT;
-  const visibleParagraphs = (!needsToggle || expanded) ? paragraphs : paragraphs.slice(0, LINE_LIMIT);
+//   const needsToggle = paragraphs.length > LINE_LIMIT;
+//   const visibleParagraphs = (!needsToggle || expanded) ? paragraphs : paragraphs.slice(0, LINE_LIMIT);
 
-  return (
-    <div className="collapsibleText">
-      <div className={`collapsibleInner ${!expanded && needsToggle ? 'clamped' : ''}`}>
-        {visibleParagraphs.map((sentence, sIdx) => (
-          <span key={sIdx} className="sentence-item">{sentence.trim()}</span>
-        ))}
-        {!expanded && needsToggle && <div className="fadeOverlay" />}
-      </div>
+//   return (
+//     <div className="collapsibleText">
+//       <div className={`collapsibleInner ${!expanded && needsToggle ? 'clamped' : ''}`}>
+//         {visibleParagraphs.map((sentence, sIdx) => (
+//           <span key={sIdx} className="sentence-item">{sentence.trim()}</span>
+//         ))}
+//         {!expanded && needsToggle && <div className="fadeOverlay" />}
+//       </div>
 
-    </div>
-  );
-}
+//     </div>
+//   );
+// }
 
 function ArticleDetailView({ article, onBack }) {
   const [summary, setSummary] = useState(null);
@@ -191,7 +191,9 @@ function ArticleDetailView({ article, onBack }) {
                                 <>
                                   <div className="dividerLine" />
                                   <div className="rightSection">
-                                    <CollapsibleText paragraphs={slide.contentParagraphs} />
+                                    {slide.contentParagraphs.map((sentence, sIdx) => (
+                                      <span key={sIdx} className="sentence-item">{sentence.trim()}</span>
+                                    ))}
                                   </div>
                                 </>
                               )}
@@ -257,7 +259,7 @@ function ArticleDetailView({ article, onBack }) {
           </div>
         )}
       </div>
-        <button className="detailBackBtn" onClick={onBack}>목록으로</button>
+      <button className="detailBackBtn" onClick={onBack}>목록으로</button>
     </div>
   );
 }

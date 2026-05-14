@@ -445,7 +445,7 @@
 /* ===========================
    토글
 =========================== */
-.collapsibleText {
+/* .collapsibleText {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -498,7 +498,7 @@
 
 .toggleBtn:hover {
   opacity: 0.7;
-}
+} */
 
 /* ===========================
    네비게이션 버튼
