@@ -289,7 +289,7 @@ function Dashboard({ user, onLogout }) {
       {view === 'articles' && <HeroBanner onCreateCurriculum={() => setView('curriculum')} />}
 
 
-      <main className="dashMain">
+<main className="dashMain">
         {view === 'articles' && <ArticleListView />}
         {view === 'articleDetail' && (
           <ArticleDetailView
@@ -297,7 +297,10 @@ function Dashboard({ user, onLogout }) {
             onBack={() => window.history.back()}
           />
         )}
-        {view === 'curriculum' && <CurriculumView />}
+        
+        {/* 🔥 변경: onOpenArticle props를 추가하여 함수를 넘겨줍니다 */}
+        {view === 'curriculum' && <CurriculumView onOpenArticle={openArticleDetail} />}
+        
         {view === 'emailing' && <EmailingView />}
       </main>
 

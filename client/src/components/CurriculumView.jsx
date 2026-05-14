@@ -12,6 +12,7 @@ const initialForm = {
   required_content: '',
 };
 
+// tasks가 문자열이든 배열이든 안전하게 처리하기 위한 헬퍼 함수
 const formatTasks = (tasks) => {
   if (Array.isArray(tasks)) return tasks.join(', ');
   if (typeof tasks === 'string') return tasks;
@@ -33,7 +34,7 @@ const buildGeneratePayload = (form) => ({
   required_content: form.required_content.trim() || null,
 });
 
-function CurriculumView() {
+function CurriculumView({ onOpenArticle }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [curriculums, setCurriculums] = useState([]);
@@ -45,6 +46,10 @@ function CurriculumView() {
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState(null);
+
+  // 🔥 아코디언 UI를 위한 상태 (메인 화면용, 미리보기 화면용)
+  const [detailExpandedWeek, setDetailExpandedWeek] = useState(null);
+  const [previewExpandedWeek, setPreviewExpandedWeek] = useState(null);
 
   const loadCurriculums = () => {
     setLoading(true);
@@ -95,6 +100,7 @@ function CurriculumView() {
     setConfirmOpen(false);
     setPreview(null);
     setFormError(null);
+    setPreviewExpandedWeek(null); // 모달 닫을 때 아코디언 초기화
   };
 
   const handleChange = (event) => {
@@ -120,9 +126,19 @@ function CurriculumView() {
     try {
       const res = await api.post('/curricula/generate', payload);
       setPreview(res.data);
+      // 첫 번째 주차를 기본으로 열어둡니다.
+      if (res.data?.cur_week_plan?.length > 0) {
+        setPreviewExpandedWeek(res.data.cur_week_plan[0].week);
+      }
       setConfirmOpen(true);
     } catch (err) {
-      setFormError(err.response?.data?.detail || 'AI 커리큘럼 생성에 실패했어요.');
+      // 🔥 422 에러(배열) 파싱 로직 적용
+      const detail = err.response?.data?.detail;
+      if (Array.isArray(detail)) {
+        setFormError(detail[0].msg);
+      } else {
+        setFormError(detail || 'AI 커리큘럼 생성에 실패했어요.');
+      }
     } finally {
       setGenerating(false);
     }
@@ -139,8 +155,12 @@ function CurriculumView() {
         cur_target_job: preview.cur_target_job || null,
         cur_target_industry: preview.cur_target_industry || null,
         cur_learning_goal: preview.cur_learning_goal || null,
+
+        // 🔥 DB 타입(TEXT)에 맞게 단순 문자열 전송
         cur_learning_detail_goal: form.required_content.trim() || null,
         cur_week_plan: preview.cur_week_plan,
+
+        // 🔥 DB 타입(JSON)에 맞게 빈 배열 전송
         cur_assigned_learner_ids: [],
         cur_status: 'active',
       };
@@ -152,13 +172,144 @@ function CurriculumView() {
       setConfirmOpen(false);
       setModalOpen(false);
     } catch (err) {
-      setFormError(err.response?.data?.detail || '커리큘럼 저장에 실패했어요.');
+      // 🔥 422 에러(배열) 파싱 로직 적용
+      const detail = err.response?.data?.detail;
+      if (Array.isArray(detail)) {
+        setFormError(detail[0].msg);
+      } else {
+        setFormError(detail || '커리큘럼 저장에 실패했어요.');
+      }
     } finally {
       setSaving(false);
     }
   };
 
   const previewWeeks = normalizeWeekPlan(preview?.cur_week_plan);
+
+  // 공통으로 사용할 아코디언 아이템 렌더링 함수
+  const renderAccordionItem = (step, expandedState, toggleFunc) => {
+    const isExpanded = expandedState === step.week;
+
+    return (
+      <div
+        key={step.week}
+        style={{
+          border: '1px solid #e1e4e8',
+          borderRadius: '8px',
+          marginBottom: '12px',
+          overflow: 'hidden',
+          backgroundColor: '#fff'
+        }}
+      >
+        {/* 헤더 영역 (클릭 시 토글) */}
+        <div
+          onClick={() => toggleFunc(step.week)}
+          style={{
+            padding: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            cursor: 'pointer',
+            backgroundColor: isExpanded ? '#f0f4f8' : '#ffffff',
+            transition: 'background-color 0.2s'
+          }}
+        >
+          <span style={{ fontWeight: 'bold', width: '60px', color: '#0366d6' }}>
+            {step.week}주차
+          </span>
+          <span style={{ flex: 1, fontWeight: '600', fontSize: '15px', color: '#24292e' }}>
+            {step.theme || '주제 미지정'}
+          </span>
+          <span style={{ fontSize: '12px', color: '#888' }}>
+            {isExpanded ? '▲ 접기' : '▼ 펼쳐보기'}
+          </span>
+        </div>
+
+        {/* 상세 내용 영역 */}
+        {isExpanded && (
+          <div style={{ padding: '20px', backgroundColor: '#fafbfc', borderTop: '1px solid #e1e4e8' }}>
+            {/* 1. 학습 목표 */}
+            {step.learning_objective && (
+              <div style={{ marginBottom: '16px' }}>
+                <h4 style={{ fontSize: '14px', color: '#0366d6', marginBottom: '8px', fontWeight: 'bold' }}>🎯 이번 주차 학습 목표</h4>
+                <p style={{ fontSize: '13px', color: '#333', lineHeight: '1.5', margin: 0 }}>{step.learning_objective}</p>
+              </div>
+            )}
+
+            {/* 2. 핵심 과제 및 OJT 내용 */}
+            {(step.tasks || step.task) && (
+              <div style={{ marginBottom: '16px' }}>
+                <h4 style={{ fontSize: '14px', color: '#24292e', marginBottom: '8px', fontWeight: 'bold' }}>📚 멘토링 및 실습 과제</h4>
+                <ul style={{ paddingLeft: '20px', margin: 0 }}>
+                  {Array.isArray(step.tasks || step.task)
+                    ? (step.tasks || step.task).map((t, idx) => (
+                      <li key={idx} style={{ fontSize: '13px', color: '#444', marginBottom: '6px', lineHeight: '1.5' }}>{t}</li>
+                    ))
+                    : <p style={{ fontSize: '13px', color: '#444', lineHeight: '1.5', margin: 0 }}>{step.tasks || step.task}</p>
+                  }
+                </ul>
+              </div>
+            )}
+
+            {/* 3. 멘토 피드백 및 체크리스트 */}
+            {Array.isArray(step.success_criteria) && step.success_criteria.length > 0 && (
+              <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#fff', border: '1px solid #e1e4e8', borderRadius: '6px' }}>
+                <h4 style={{ fontSize: '13px', color: '#cb2431', marginBottom: '8px', fontWeight: 'bold' }}>✅ 멘토 피드백 체크리스트</h4>
+                <ul style={{ paddingLeft: '20px', margin: 0 }}>
+                  {step.success_criteria.map((criteria, idx) => (
+                    <li key={idx} style={{ fontSize: '13px', color: '#444', marginBottom: '4px', lineHeight: '1.4' }}>{criteria}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* 4. 추천 자료 및 시간 */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '20px', borderTop: '1px dashed #e1e4e8', paddingTop: '12px' }}>
+              <div>
+                {Array.isArray(step.recommended_articles) && step.recommended_articles.length > 0 && (
+                  <>
+                    <h4 style={{ fontSize: '12px', color: '#666', marginBottom: '6px', fontWeight: 'bold' }}>📖 추천 참고 자료</h4>
+                    {step.recommended_articles.map((article, idx) => {
+                      
+                      // 🔥 핵심 구조 변경: url이 정상적으로 있으면 그곳으로, 없거나 비어있으면 무조건 구글 검색으로 강제 연결!
+                      const targetUrl = article.url && article.url.trim() !== "" 
+                        ? article.url 
+                        : `https://www.google.com/search?q=${encodeURIComponent(article.title)}`;
+                      
+                      return (
+                        <div key={idx} style={{ marginBottom: '6px' }}>
+                          <a
+                            href={targetUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ fontSize: '12px', fontWeight: 'bold', color: '#0366d6', textDecoration: 'underline', display: 'inline-block' }}
+                          >
+                            {/* URL이 있으면 🔗 아이콘, 구글 검색으로 대체되었으면 🔍 아이콘 표시 */}
+                            {article.url && article.url.trim() !== "" ? '🔗 ' : '🔍 '}
+                            {article.title}
+                          </a>
+                          
+                          {article.why_relevant && (
+                            <p style={{ fontSize: '11px', color: '#777', margin: '2px 0 0 16px', lineHeight: '1.4' }}>
+                              - {article.why_relevant}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+              </div>
+              {step.estimated_hours && (
+                <div style={{ fontSize: '12px', color: '#888', whiteSpace: 'nowrap', backgroundColor: '#e1e4e8', padding: '4px 8px', borderRadius: '12px' }}>
+                  ⏱ 예상 소요: {step.estimated_hours}시간
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="curriculumPageContainer">
@@ -177,6 +328,7 @@ function CurriculumView() {
         </div>
       )}
 
+      {/* 메인 화면 (저장된 커리큘럼 열람) */}
       {!loading && !error && curriculums.length > 0 && selectedCurriculum && (
         <div className="curriculumLayout">
           <aside className="curriculumSidebar">
@@ -187,7 +339,10 @@ function CurriculumView() {
                 <li
                   key={c.cur_id}
                   className={`curriculumSidebarItem ${selectedId === c.cur_id ? 'active' : ''}`}
-                  onClick={() => setSelectedId(c.cur_id)}
+                  onClick={() => {
+                    setSelectedId(c.cur_id);
+                    setDetailExpandedWeek(null); // 탭 변경 시 아코디언 닫기
+                  }}
                 >
                   {c.cur_title}
                 </li>
@@ -200,54 +355,23 @@ function CurriculumView() {
 
           <div className="curriculumDetail">
             <h3 className="curriculumDetailTitle">{selectedCurriculum.cur_title}</h3>
-            <p className="curriculumDetailDesc">
+            <p className="curriculumDetailDesc" style={{ marginBottom: '24px' }}>
               {selectedCurriculum.cur_learning_goal || ''}
             </p>
             <div className="curriculumSteps">
-              {normalizeWeekPlan(selectedCurriculum.cur_week_plan).map((step) => (
-                <div key={step.week} className="curriculumStepCard">
-                  <div className="stepWeek">{step.week}주차</div>
-                  <div className="stepContent">
-                    <p className="stepTitle">{step.theme}</p>
-                    {step.learning_objective && (
-                      <p className="stepObjective" style={{ fontSize: 13, color: '#555', marginTop: 4 }}>
-                        🎯 {step.learning_objective}
-                      </p>
-                    )}
-                    <p className="stepDesc">{formatTasks(step.tasks ?? step.task)}</p>
-                    {Array.isArray(step.success_criteria) && step.success_criteria.length > 0 && (
-                      <ul className="stepCriteria" style={{ margin: '6px 0', paddingLeft: 18, fontSize: 13, color: '#666' }}>
-                        {step.success_criteria.map((c, i) => (
-                          <li key={i}>{c}</li>
-                        ))}
-                      </ul>
-                    )}
-                    {Array.isArray(step.recommended_articles) && step.recommended_articles.length > 0 && (
-                      <div className="stepArticles" style={{ marginTop: 8, padding: 8, background: '#f6f8fa', borderRadius: 6 }}>
-                        <p style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>📚 추천 아티클</p>
-                        {step.recommended_articles.map((a, i) => (
-                          <div key={i} style={{ marginTop: 4 }}>
-                            <p style={{ fontSize: 13, fontWeight: 500 }}>{a.title}</p>
-                            {a.why_relevant && (
-                              <p style={{ fontSize: 12, color: '#777' }}>{a.why_relevant}</p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {step.estimated_hours && (
-                      <p style={{ fontSize: 12, color: '#888', marginTop: 6 }}>
-                        ⏱ 예상 {step.estimated_hours}시간
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
+              {normalizeWeekPlan(selectedCurriculum.cur_week_plan).map((step) =>
+                renderAccordionItem(
+                  step,
+                  detailExpandedWeek,
+                  (week) => setDetailExpandedWeek(prev => prev === week ? null : week)
+                )
+              )}
             </div>
           </div>
         </div>
       )}
 
+      {/* 커리큘럼 생성 폼 모달 */}
       {modalOpen && (
         <>
           <div className="chatModalOverlay" onClick={closeModal} />
@@ -334,6 +458,7 @@ function CurriculumView() {
         </>
       )}
 
+      {/* 커리큘럼 생성 결과 미리보기 및 저장 모달 */}
       {confirmOpen && preview && (
         <>
           <div className="confirmOverlay" onClick={() => !saving && setConfirmOpen(false)} />
@@ -355,34 +480,19 @@ function CurriculumView() {
 
             <p className="confirmProgramName">{preview.cur_title}</p>
 
-            <div className="confirmStepList">
-              {previewWeeks.map((step) => (
-                <div key={step.week} className="confirmStepRow" style={{ alignItems: 'flex-start' }}>
-                  <span className="confirmStepWeek">week {step.week}</span>
-                  <span className="confirmStepDivider" />
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <span className="confirmStepTask">{step.theme}</span>
-                    {step.learning_objective && (
-                      <span style={{ fontSize: 12, color: '#666' }}>🎯 {step.learning_objective}</span>
-                    )}
-                    <span className="confirmStepTheme">{formatTasks(step.tasks ?? step.task)}</span>
-                    <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#888', marginTop: 2 }}>
-                      {Array.isArray(step.recommended_articles) && step.recommended_articles.length > 0 && (
-                        <span>📚 {step.recommended_articles.length}편</span>
-                      )}
-                      {Array.isArray(step.success_criteria) && step.success_criteria.length > 0 && (
-                        <span>✓ {step.success_criteria.length}개 기준</span>
-                      )}
-                      {step.estimated_hours && <span>⏱ {step.estimated_hours}h</span>}
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <div className="confirmStepList" style={{ marginTop: '20px' }}>
+              {previewWeeks.map((step) =>
+                renderAccordionItem(
+                  step,
+                  previewExpandedWeek,
+                  (week) => setPreviewExpandedWeek(prev => prev === week ? null : week)
+                )
+              )}
             </div>
 
-            {formError && <p className="curriculumFormError">{formError}</p>}
+            {formError && <p className="curriculumFormError" style={{ marginTop: '16px' }}>{formError}</p>}
 
-            <div className="confirmBtns">
+            <div className="confirmBtns" style={{ marginTop: '24px' }}>
               <button className="confirmBtnBack" onClick={() => setConfirmOpen(false)} disabled={saving}>
                 돌아가기
               </button>

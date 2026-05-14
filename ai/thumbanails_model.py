@@ -53,7 +53,7 @@ for idx, file_name in enumerate(json_files[:]):
 
         article_context = f"제목: {title}\n핵심 요약: {theme_analysis}\n주요 내용: {full_story}"
 
-        print("   🧠 GPT-5.4를 통해 아티클 내용을 상황에 맞는 3D 일러스트 씬으로 기획 중입니다...")
+        print("   🧠 gpt-4o를 통해 아티클 내용을 상황에 맞는 3D 일러스트 씬으로 기획 중입니다...")
         vision_prompt = f"""
         당신은 비즈니스 아티클의 내용을 매력적이고 스토리텔링이 있는 3D 애니메이션 일러스트로 기획하는 아트 디렉터입니다.
         아래 [아티클 내용]을 읽고, 주제를 가장 잘 나타내는 구체적인 상황(Scene)을 1~2문장의 영어로 묘사하세요.
@@ -70,7 +70,7 @@ for idx, file_name in enumerate(json_files[:]):
         """
 
         vision_response = openai_client.chat.completions.create(
-            model="gpt-5.4", # 요청하신 대로 gpt-5.4 버전 유지
+            model="gpt-4o", # 요청하신 대로 gpt-4o 버전 유지
             messages=[{"role": "user", "content": vision_prompt}],
             temperature=0.7
         )
