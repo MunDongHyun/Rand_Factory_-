@@ -220,15 +220,26 @@ function Dashboard({ user, onLogout }) {
         <div className="catTabBarTop">
           <button
             className={`catTabTop ${!selectedCategory ? 'active' : ''}`}
-            onClick={() => { setSelectedCategory(null); }}
+            onClick={() => {
+              setSelectedCategory(null);
+              // 👇 추가: 탭 이동 시 검색 결과 초기화 및 원본 데이터 복구
+              setSections(originalSections);
+              setSearchQuery('');
+            }}
           >
             전체
           </button>
+
           {originalSections.map((s) => (
             <button
               key={s.category}
               className={`catTabTop ${selectedCategory === s.category ? 'active' : ''}`}
-              onClick={() => { setSelectedCategory(s.category); }}
+              onClick={() => {
+                setSelectedCategory(s.category);
+                // 👇 추가: 탭 이동 시 검색 결과 초기화 및 원본 데이터 복구
+                setSections(originalSections);
+                setSearchQuery('');
+              }}
             >
               {s.category}
             </button>
