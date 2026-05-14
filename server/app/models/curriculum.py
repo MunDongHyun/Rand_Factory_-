@@ -17,7 +17,7 @@ class Curriculum(Base):
     cur_learning_detail_goal: Mapped[str | None] = mapped_column(Text, nullable=True)
     cur_week_plan: Mapped[dict | list | None] = mapped_column(JSON, nullable=True)
     cur_assigned_learner_ids: Mapped[dict | None] = mapped_column(JSON, nullable=True)
-    cur_status: Mapped[str | None] = mapped_column(Enum("draft", "active", "archived"), nullable=True, default="draft")
+    cur_status: Mapped[str | None] = mapped_column(Enum("active", "unactive"), nullable=True, default="active")
     cur_created_at: Mapped[DateTime | None] = mapped_column(DateTime, nullable=True, server_default=func.now())
     cur_updated_at: Mapped[DateTime] = mapped_column(
         DateTime,

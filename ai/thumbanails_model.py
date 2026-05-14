@@ -70,7 +70,7 @@ for idx, file_name in enumerate(json_files[:]):
         """
 
         vision_response = openai_client.chat.completions.create(
-            model="gpt-4o", # 요청하신 대로 gpt-4o 버전 유지
+            model="gpt-5.4-mini", 
             messages=[{"role": "user", "content": vision_prompt}],
             temperature=0.7
         )
