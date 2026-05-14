@@ -286,7 +286,7 @@ function Dashboard({ user, onLogout }) {
         onReset={resetDashboard}
       />
 
-      {view === 'articles' && <HeroBanner onCreateCurriculum={() => setView('curriculum')} />}
+      {view === 'articles' && <HeroBanner onCreateCurriculum={() => setView('curriculum')} onOpenArticle={openArticleDetail} />}
 
 
 <main className="dashMain">

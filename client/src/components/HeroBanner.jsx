@@ -4,6 +4,7 @@ import '../styles/Dashboard.css';
 const SLIDES = [
     {
         id: 1,
+        articleId: 28,
         eyebrow: "SPECIAL REPORT",
         title: "AI 자동화 위험을 줄이기 위한\n새로운 HRD 전략",
         desc: "자동화가 가속화되는 시대, 인적 자원 개발의 패러다임은 어떻게 바뀌어야 하는가. 조직이 살아남기 위한 핵심 역량 재설계 전략을 제시한다.",
@@ -12,6 +13,7 @@ const SLIDES = [
     },
     {
         id: 2,
+        articleId: 42,
         eyebrow: "FEATURED",
         title: "DBR과 함께 학습하는\n조직 소개",
         desc: "지식 기반 조직 문화를 선도하는 기업들의 이야기. DBR 아티클을 중심으로 구성된 학습 생태계가 어떤 변화를 만들어내고 있는지 살펴본다.",
@@ -22,7 +24,7 @@ const SLIDES = [
 
 const INTERVAL = 6000;
 
-export default function HeroBanner({ onCreateCurriculum }) {
+export default function HeroBanner({ onCreateCurriculum, onOpenArticle }) {
     const [current, setCurrent] = useState(0);
     const [animating, setAnimating] = useState(false);
     const [direction, setDirection] = useState("next");
@@ -59,7 +61,16 @@ export default function HeroBanner({ onCreateCurriculum }) {
 
                 <div className="bannerContent">
                     <div className="bannerNumber">{String(current + 1).padStart(2, "0")}</div>
-                    <div className={`bannerText ${animating ? `animating-${direction}` : ''}`}>
+                    <div
+                        className={`bannerText ${animating ? `animating-${direction}` : ''}`}
+                        onClick={() => {
+                            if (slide.articleId && onOpenArticle) {
+                                onOpenArticle({ article_id: slide.articleId });
+                            }
+                        }}
+                        role={slide.articleId ? "button" : undefined}
+                        style={slide.articleId ? { cursor: "pointer" } : undefined}
+                    >
 
                         <div className="bannerEyebrow">
                             <span className="bannerEyebrowLine" />

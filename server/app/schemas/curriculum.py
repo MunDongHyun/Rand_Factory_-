@@ -82,3 +82,9 @@ class CurriculumResponse(BaseModel):
     cur_created_at: datetime | None = None
     cur_updated_at: datetime | None = None
     cur_deleted_at: datetime | None = None
+
+
+class CurriculumStatsResponse(BaseModel):
+    total_curricula: int
+    active_learners: int
+    total_submissions: int

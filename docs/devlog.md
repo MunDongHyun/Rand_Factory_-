@@ -2,6 +2,137 @@
 
 ---
 
+## 2026-05-14 - Claude (마스터 페이지 고도화 — 도넛 차트 / 인기 아티클 / 학습 활동 통계 / 회원 검색 / 디자인 리뉴얼)
+
+### 배경
+- 마스터 페이지가 더미 → DB 연결까지는 됐지만 시각화·기능·디자인이 빈약 (수동 막대 그래프, 단조로운 카드, 라이트 박스가 다크 본문과 어색하게 분리)
+- 학습 플랫폼인데 정작 "학습 활동" 통계(커리큘럼·과제)가 없어 사용자 통계만 보여줌
+- 회원관리 패널이 검색·필터 없이 50명 일렬 나열
+
+### 백엔드
+- `server/app/schemas/curriculum.py` — `CurriculumStatsResponse` 신설 (`total_curricula`, `active_learners`, `total_submissions`)
+- `server/app/routers/curriculum.py`
+  - `GET /api/curricula/stats` 신규 (admin `a` 전용, 권한 없으면 404로 숨김)
+  - 정적 경로 `/stats`를 동적 `/{cur_id}`보다 위에 등록 (CLAUDE.md 규칙)
+  - `active_learners`는 active 커리큘럼들의 `cur_assigned_learner_ids` JSON을 Python `set`으로 합쳐 unique 카운트
+  - `total_submissions`은 `task_submissions` 전체 row 수
+
+### 프론트 (MasterDashboard.jsx)
+- 도넛 차트 도입 (`chart.js` + `react-chartjs-2`, 의존성은 이미 설치돼 있어 추가 없음)
+  - 카테고리별 조회수 TOP 5를 막대 → 도넛으로 교체
+  - 다크 톤 옵션: legend 흰색, tooltip 다크 글래스, cutout 65%, 보더 다크 처리
+- 인기 아티클 TOP 5 섹션 신설
+  - `/api/articles/popular?limit=5` 호출, 카드 5열 그리드
+  - 순위 그라데이션 배지, 썸네일 + 카테고리 태그 + 제목(2줄 clamp) + 👁 조회수
+- 학습 활동 현황 통계 카드 3장 추가
+  - 총 커리큘럼 수 / 진행 중 학습자 수 / 누적 과제 제출 수
+- 회원 검색·필터 컨트롤
+  - 검색창: 이름·이메일·회사 어디든 부분 일치 (대소문자 무시)
+  - 역할 필터: 전체 / 관리자 / 매니저 / 학습자 / 탈퇴
+  - 결과 카운트 표시 (`X / Y명`)
+  - 클라이언트 측 필터 (이미 받아온 50명에 적용, 추가 API 호출 없음)
+- 만족도 영역: "☆☆☆☆☆" 정체불명 헤딩 → 정상 섹션 타이틀로, 박스 700px → 200px 점선 placeholder
+
+### 디자인 리뉴얼 (MasterDashboard.css 전면 재작성)
+- 색상 토큰 도입 (`:root` 변수: `--m-surface`, `--m-accent-grad`, `--m-text-dim` 등)
+- 컨테이너: 단색 → 블루·퍼플 radial 글로우 + 깊은 다크 (`#0a0e14`)
+- 헤더: 라이트 회색 → 다크 글래스 (`backdrop-filter: blur(16px)`) + sticky
+- 로고: 검정 단색 → 그라데이션 텍스트
+- 회원관리 버튼: 텍스트 → 글래스 버튼
+- 섹션 타이틀: 가운데 → 좌측 정렬 + 좌측 그라데이션 액센트 바
+- 통계 카드: 흰 보더 평면 → 다크 글래스, hover 시 상단 빛 line + lift + 보더 글로우
+- 차트 박스: 라이트 회색 → 다크 글래스로 통일
+- 회원관리 패널: 라이트(`#F4F4F4`) → 다크 글래스 (`rgba(15,20,28,0.92)` + blur 24px), 1141px → `min(720px, 92vw)`
+- 회원 행·상태 뱃지·검색/필터 input 모두 다크 글래스로 통일
+- 로그아웃 버튼: 빨간 텍스트 → 빨간 글래스 버튼
+
+### 결정
+- 통계 API는 자원별 분리 (`/users/stats`, `/articles/stats/by-category`)와 일관성 맞춰 `/curricula/stats`로 분리
+- 회원 검색은 백엔드가 아닌 클라이언트 필터링 — 현재 데이터량(50명)에 추가 API 호출 비용이 더 비효율
+- chart.js를 도입한 이유는 `package.json`에 이미 설치돼 있어 의존성 변화 없음
+- 디자인은 "한 영역만 손대면 톤이 더 안 맞을 것 같다"는 판단으로 CSS 전체 재작성
+
+### 검증
+- `cd server && .\venv\Scripts\python.exe -m compileall -q app` 통과
+- `import app.main` 통과
+- `cd client && npm run build` 통과 (105 modules, 1.21s, CSS 53KB / JS 381KB)
+- 사용자 브라우저에서 admin 로그인 후 통계·도넛·인기 아티클·검색/필터 모두 정상 표시 확인
+
+### 다음 / TODO
+- 시계열 차트 (일별·월별 가입자 추이, 조회수 추이) — 백엔드 집계 API 필요
+- 회원 정렬 (가입일·이름·역할 토글)
+- 회원 상세 모달 (선택 회원의 커리큘럼·과제 이력)
+- 만족도/의견 수집 테이블 + API + 입력 폼
+
+---
+
+## 2026-05-14 - Claude (아티클 목록 정렬 기준 통일 — 발행일자 최신순)
+
+### 배경
+- 메인 대시보드 카테고리별 상위 5개 카드 / 카테고리 페이지 둘 다 `GET /api/articles`를 공유하지만 정렬 기준이 `article_created_at`(DB 등록 시각)이라 실제 발행일과 어긋남
+- 사용자 입장에서는 "최신 아티클"이 발행일 기준이어야 직관적
+
+### 작업
+- `server/app/routers/article.py` (`list_articles`)
+  - `order_by(Article.article_created_at.desc())` → `order_by(Article.article_published_date.desc(), Article.article_created_at.desc())`
+  - 1순위 발행일자, 2순위 등록일자(tie-breaker)
+  - MySQL DESC에서 NULL은 자동으로 맨 뒤 → 발행일 누락 아티클은 자연스럽게 뒤로 밀림
+
+### 결정
+- 메인/카테고리 모두 같은 `/articles` API를 쓰기 때문에 백엔드 한 곳만 수정 → 양쪽 통일
+- `/popular`(조회수순), `/categories`(이름순), `/stats/by-category`는 의미가 달라 손대지 않음
+- tie-breaker로 `article_created_at`을 둔 이유: 같은 발행일이라도 가장 늦게 등록된 것이 일반적으로 더 최신 시점에 큐레이션된 아티클이라는 판단
+
+### 검증
+- `cd server && .\venv\Scripts\python.exe -m compileall -q app` 통과
+- 메인 대시보드 / 카테고리 페이지 발행일 정렬 확인은 사용자 측에서 진행
+
+---
+
+## 2026-05-14 - Claude (HeroBanner 슬라이드 클릭 시 아티클 상세 이동)
+
+### 배경
+- 메인 상단 배너에 "AI 자동화 위험을 줄이기 위한 새로운 HRD 전략" / "DBR과 함께 학습하는 조직 소개" 두 슬라이드가 정적 데이터로만 표시되고 있었음
+- 배너 문구와 실제 아티클(DB의 article_id 28, 42)이 분리돼 있어 사용자가 배너를 보고도 아티클 본문으로 진입할 경로가 없음
+
+### 작업
+- `client/src/components/HeroBanner.jsx`
+  - `SLIDES` 각 항목에 `articleId` 필드 추가 (1번 → 28, 2번 → 42)
+  - `onOpenArticle` prop 추가
+  - `bannerText` 영역에 `onClick` 핸들러 + `cursor: pointer` + `role="button"` 부여 → 텍스트 영역만 클릭 가능 (좌우 화살표·점 인디케이터와 이벤트 분리)
+- `client/src/components/Dashboard.jsx`
+  - `<HeroBanner>`에 `onOpenArticle={openArticleDetail}` 전달
+  - 기존 `openArticleDetail`이 이미 `POST /articles/{id}/view`까지 처리하므로 별도 핸들러 추가 불필요
+
+### 결정
+- 클릭 영역 후보 (A) 텍스트 영역만 / (B) 배너 전체 중 **A 채택**
+  - 좌우 화살표·인디케이터와의 이벤트 충돌 방지
+  - stopPropagation 없이도 안전하게 동작
+- 슬라이드↔아티클 매핑은 하드코딩
+  - 발표용/데모용이라 동적 로드 불필요
+  - DB의 `article_title`을 키워드로 검색해서 ID 확정 (28, 42)
+
+### 검증
+- `cd client && npm run build` 통과 (101 modules, 928ms)
+- 브라우저 직접 클릭 테스트는 사용자 측에서 진행
+
+---
+
+## 2026-05-14 - Claude (CLAUDE.md — Pull 전 체크리스트 섹션 추가)
+
+### 배경
+- 기존 CLAUDE.md에는 "커밋 전 체크리스트"만 있고 pull 전 충돌 가능성 점검 절차는 정의돼 있지 않았음
+- 로컬 수정 중인 파일이 원격 변경과 겹쳐 충돌이 발생하는 경우를 사전에 막을 가이드 부재
+
+### 작업
+- `CLAUDE.md` — "커밋 전 체크리스트" 섹션 바로 위에 "Pull 전 체크리스트" 7단계 추가
+  - `git status` → `git fetch` → `git log HEAD..origin/<branch> --oneline` → `git diff --stat` → 겹침 여부 확인 → `git pull` → pull 이후 `.env.example` / `requirements.txt` / `package.json` 변경 동기화
+
+### 결정
+- 별도 문서가 아닌 CLAUDE.md에 통합 — 기존 "커밋 전 체크리스트"와 짝을 이루도록 인접 배치
+
+---
+
 ## 2026-05-13 - Claude (새로고침 시 view 복원 — sessionStorage)
 
 ### 배경

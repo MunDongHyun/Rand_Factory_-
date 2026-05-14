@@ -149,6 +149,16 @@ npm run dev
 - `chore:` 설정, 빌드 관련
 - 커밋 메시지는 prefix만 지키면 설명은 한글로 작성 가능
 
+## Pull 전 체크리스트
+
+1. `git status` — 로컬 변경사항 확인 (있으면 먼저 commit 또는 stash)
+2. `git fetch` — 원격 변경만 받아옴 (머지는 아직 X)
+3. `git log HEAD..origin/<branch> --oneline` — 들어올 커밋 미리보기
+4. `git diff HEAD origin/<branch> --stat` — 변경 파일 목록 확인
+5. 로컬 수정 중인 파일과 원격 변경 파일이 겹치면 충돌 대비 (rebase/merge 전략 결정)
+6. 이상 없으면 `git pull`
+7. Pull 이후: `server/.env.example`, `requirements.txt`, `client/package.json` 변경 여부 확인 후 본인 환경 동기화
+
 ## 커밋 전 체크리스트
 
 1. `git status`로 변경 파일 확인
