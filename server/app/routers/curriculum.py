@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status, Body
 from fastapi.responses import StreamingResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Query, Session
-import io
-import json
+from fastapi.responses import StreamingResponse
+import os,io,json
 from fpdf import FPDF
 
 from app.core.database import get_db
@@ -227,28 +227,45 @@ def update_curriculum(
 
 @router.post("/download/txt")
 async def download_curriculum_txt(curriculum_data: list = Body(...)):
-    """
-    클라이언트(또는 DB)에서 커리큘럼 JSON 데이터를 받아 TXT 파일로 변환하여 다운로드
-    """
-    # 프론트엔드에서 문자열 형태로 데이터가 넘어올 경우를 대비한 안전 장치
     if isinstance(curriculum_data, str):
         curriculum_data = json.loads(curriculum_data)
 
     lines = []
+    lines.append("=" * 60)
+    lines.append(" 🏢 S-OJT 실무 밀착 온보딩 커리큘럼 가이드")
+    lines.append("=" * 60 + "\n")
+
     for week in curriculum_data:
-        lines.append(f"[{week.get('week')}주차] {week.get('theme')}")
-        lines.append(f"목표: {week.get('learning_objective')}")
-        lines.append("-" * 30)
+        lines.append(f"🟩 [{week.get('week')}주차] {week.get('theme')}")
+        lines.append(f"🎯 학습 목표: {week.get('learning_objective')}\n")
         
-        lines.append("■ 주요 학습 과제:")
-        for t in week.get('tasks', []):
-            lines.append(f" - {t}")
+        # --- 학습자 파트 ---
+        lines.append("▶️ [학습자 수행 과제]")
+        for idx, a in enumerate(week.get('assignments', [])):
+            lines.append(f"  {idx+1}. {a.get('title')}")
+            lines.append("     [수행 방법]")
+            for step in a.get('step_by_step_guide', []):
+                lines.append(f"       - {step}")
+            lines.append(f"     [제출 양식] {a.get('expected_output_format')}\n")
             
-        lines.append("\n■ 제출 과제:")
-        for a in week.get('assignments', []):
-            lines.append(f" [과제명: {a.get('title')}]\n   설명: {a.get('description')}\n   제출: {a.get('submission')}")
-        
-        lines.append("\n" + "=" * 50 + "\n")
+        # --- 참고 자료 파트 ---
+        lines.append("📚 [과제 수행을 위한 필수 참고 자료]")
+        for r in week.get('recommended_articles', []):
+            lines.append(f"  - 제목: {r.get('title')}")
+            lines.append(f"    URL: {r.get('url') if r.get('url') else '사내 가이드 참고'}")
+            lines.append(f"    읽어야 하는 이유: {r.get('reason_for_reading')}\n")
+
+        # --- 교육담당자 파트 ---
+        lines.append("🛠️ [교육담당자(사수) 코칭 가이드]")
+        ig = week.get('instructor_guide', {})
+        lines.append("  [체크 포인트]")
+        for cp in ig.get('check_points', []):
+            lines.append(f"    ☑ {cp}")
+        lines.append("  [1:1 미팅 시 권장 질문]")
+        for cq in ig.get('coaching_questions', []):
+            lines.append(f"    🗣️ \"{cq}\"")
+
+        lines.append("\n" + "-" * 60 + "\n")
     
     txt_content = "\n".join(lines)
     
@@ -262,37 +279,48 @@ async def download_curriculum_txt(curriculum_data: list = Body(...)):
     )
 
 
+
+current_file = os.path.abspath(__file__)
+router_dir = os.path.dirname(current_file)
+app_dir = os.path.dirname(router_dir)
+server_dir = os.path.dirname(app_dir)
+FONT_PATH = os.path.join(server_dir, "resources", "fonts", "NanumGothic.ttf")
+
 @router.post("/download/pdf")
 async def download_curriculum_pdf(curriculum_data: list = Body(...)):
-    """
-    클라이언트(또는 DB)에서 커리큘럼 JSON 데이터를 받아 PDF 파일로 변환하여 다운로드
-    """
     if isinstance(curriculum_data, str):
         curriculum_data = json.loads(curriculum_data)
 
     pdf = FPDF()
     pdf.add_page()
-    
-    # 한글 폰트가 셋팅되어 있어야 깨지지 않습니다. (폰트 파일 필요)
-    # pdf.add_font('Nanum', '', 'fonts/NanumGothic.ttf', uni=True)
-    # pdf.set_font('Nanum', size=12)
-    
-    pdf.set_font("Arial", size=16) # 임시 영문 폰트
+
+    if os.path.exists(FONT_PATH):
+        pdf.add_font('NanumGothic', '', FONT_PATH, uni=True)
+        pdf.set_font('NanumGothic', size=16)
+    else:
+        print(f"폰트 파일을 찾을 수 없습니다: {FONT_PATH}")
+        pdf.set_font('Arial', size=16)
+
     pdf.cell(200, 10, txt="Onboarding Curriculum Guide", ln=True, align='C')
-    
+    pdf.ln(10)
+
+    if os.path.exists(FONT_PATH):
+        pdf.set_font('NanumGothic', size=12)
+    else:
+        pdf.set_font('Arial', size=12)
+
     for week in curriculum_data:
-        pdf.set_font("Arial", size=14)
-        pdf.cell(200, 10, txt=f"Week {week.get('week')}: {week.get('theme')}", ln=True)
-        pdf.set_font("Arial", size=10)
-        pdf.multi_cell(0, 5, txt=f"Objective: {week.get('learning_objective')}")
-        pdf.ln(5)
-    
-    # PDF를 메모리 바이트로 변환하여 바로 전송
-    pdf_bytes = bytes(pdf.output())
-    file_stream = io.BytesIO(pdf_bytes)
-    
+        week_num = week.get('week', '1')
+        theme_text = week.get('theme', '내용 없음')
+        
+        pdf.cell(200, 10, txt=f"Week {week_num}: {theme_text}", ln=True)
+
+    pdf_output = pdf.output() 
+    file_stream = io.BytesIO(pdf_output)
+    file_stream.seek(0)
+
     return StreamingResponse(
         file_stream, 
         media_type="application/pdf", 
-        headers={"Content-Disposition": "attachment; filename=curriculum.pdf"}
+        headers={"Content-Disposition": f"attachment; filename=curriculum.pdf"}
     )

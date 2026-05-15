@@ -372,21 +372,31 @@ function CurriculumView({ onOpenArticle }) {
               </div>
             )}
 
-            {/* --- [추가] 3. 구체적인 제출 과제 (Assignments) --- */}
+            {/* 3. 구체적인 제출 과제 (새로운 백엔드 스키마 적용) */}
             {Array.isArray(step.assignments) && step.assignments.length > 0 && (
               <div style={{ marginBottom: '16px', borderTop: '1px dashed #e1e4e8', paddingTop: '16px' }}>
-                <h4 style={{ fontSize: '14px', color: '#24292e', marginBottom: '12px', fontWeight: 'bold' }}>📝 제출 과제</h4>
+                <h4 style={{ fontSize: '14px', color: '#24292e', marginBottom: '12px', fontWeight: 'bold' }}>📝 실무 수행 과제</h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {step.assignments.map((a, idx) => (
                     <div key={idx} style={{ backgroundColor: '#fff', border: '1px solid #d1d5da', borderRadius: '6px', padding: '12px' }}>
-                      <strong style={{ display: 'block', fontSize: '13px', color: '#0366d6', marginBottom: '6px' }}>
+                      <strong style={{ display: 'block', fontSize: '13px', color: '#0366d6', marginBottom: '8px' }}>
                         [과제명] {a.title}
                       </strong>
-                      <p style={{ fontSize: '12px', color: '#444', margin: '0 0 8px 0', lineHeight: '1.4' }}>
-                        {a.description}
-                      </p>
-                      <div style={{ fontSize: '12px', fontWeight: '600', color: '#28a745', backgroundColor: '#e6ffed', padding: '4px 8px', display: 'inline-block', borderRadius: '4px' }}>
-                        제출: {a.submission}
+
+                      {/* Step-by-step 가이드 출력 */}
+                      {Array.isArray(a.step_by_step_guide) && a.step_by_step_guide.length > 0 && (
+                        <ul style={{ paddingLeft: '20px', margin: '0 0 12px 0', fontSize: '13px', color: '#444' }}>
+                          {a.step_by_step_guide.map((guide, gIdx) => (
+                            <li key={gIdx} style={{ marginBottom: '6px', lineHeight: '1.4' }}>{guide}</li>
+                          ))}
+                        </ul>
+                      )}
+
+                      {/* 과거 버전 호환을 위한 description */}
+                      {a.description && <p style={{ fontSize: '12px', color: '#444', margin: '0 0 8px 0', lineHeight: '1.4' }}>{a.description}</p>}
+
+                      <div style={{ fontSize: '12px', fontWeight: '600', color: '#28a745', backgroundColor: '#e6ffed', padding: '6px 10px', display: 'inline-block', borderRadius: '4px' }}>
+                        제출 형태: {a.expected_output_format || a.submission || '지정되지 않음'}
                       </div>
                     </div>
                   ))}
@@ -394,68 +404,66 @@ function CurriculumView({ onOpenArticle }) {
               </div>
             )}
 
-            {/* --- [추가] 4. 교육담당자 가이드 (Instructor Guide) --- */}
+            {/* 4. 교육담당자 가이드 (새로운 백엔드 스키마 적용) */}
             {step.instructor_guide && (
-              <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#fff3cd', border: '1px solid #ffeeba', borderRadius: '6px' }}>
-                <h4 style={{ fontSize: '13px', color: '#856404', marginBottom: '8px', fontWeight: 'bold' }}>💡 교육담당자 가이드 (평가 팁)</h4>
-                
+              <div style={{ marginBottom: '16px', padding: '16px', backgroundColor: '#f0f8ff', border: '1px solid #cce5ff', borderRadius: '6px' }}>
+                <h4 style={{ fontSize: '13px', color: '#004085', marginBottom: '12px', fontWeight: 'bold' }}>💡 교육담당자(사수) 코칭 가이드</h4>
+
+                {/* 체크 포인트 */}
                 {Array.isArray(step.instructor_guide.check_points) && step.instructor_guide.check_points.length > 0 && (
-                  <ul style={{ paddingLeft: '20px', margin: '0 0 8px 0' }}>
-                    {step.instructor_guide.check_points.map((cp, idx) => (
-                      <li key={idx} style={{ fontSize: '12px', color: '#856404', marginBottom: '4px' }}>{cp}</li>
-                    ))}
-                  </ul>
+                  <div style={{ marginBottom: '12px' }}>
+                    <strong style={{ fontSize: '12px', color: '#004085', display: 'block', marginBottom: '6px' }}>[평가 체크포인트]</strong>
+                    <ul style={{ paddingLeft: '20px', margin: '0' }}>
+                      {step.instructor_guide.check_points.map((cp, idx) => (
+                        <li key={idx} style={{ fontSize: '12px', color: '#004085', marginBottom: '4px', lineHeight: '1.4' }}>{cp}</li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
-                
-                {step.instructor_guide.feedback_tips && (
-                  <p style={{ fontSize: '12px', color: '#856404', margin: 0, fontWeight: 'bold', borderTop: '1px solid #ffeeba', paddingTop: '8px' }}>
-                    TIPS: {step.instructor_guide.feedback_tips}
-                  </p>
+
+                {/* 코칭 질문 (coaching_questions) */}
+                {Array.isArray(step.instructor_guide.coaching_questions) && step.instructor_guide.coaching_questions.length > 0 && (
+                  <div>
+                    <strong style={{ fontSize: '12px', color: '#004085', display: 'block', marginBottom: '6px' }}>[1:1 미팅 권장 질문]</strong>
+                    <ul style={{ paddingLeft: '20px', margin: '0', listStyleType: 'none' }}>
+                      {step.instructor_guide.coaching_questions.map((cq, idx) => (
+                        <li key={idx} style={{ fontSize: '12px', color: '#004085', marginBottom: '6px', lineHeight: '1.4' }}>🗣️ {cq}</li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
               </div>
             )}
 
-            {/* 5. 멘토 피드백 및 체크리스트 (기존) */}
-            {Array.isArray(step.success_criteria) && step.success_criteria.length > 0 && (
-              <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#fff', border: '1px solid #e1e4e8', borderRadius: '6px' }}>
-                <h4 style={{ fontSize: '13px', color: '#cb2431', marginBottom: '8px', fontWeight: 'bold' }}>✅ 멘토 피드백 체크리스트</h4>
-                <ul style={{ paddingLeft: '20px', margin: 0 }}>
-                  {step.success_criteria.map((criteria, idx) => (
-                    <li key={idx} style={{ fontSize: '13px', color: '#444', marginBottom: '4px', lineHeight: '1.4' }}>{criteria}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* 6. 추천 자료 및 시간 (기존) */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '20px', borderTop: '1px dashed #e1e4e8', paddingTop: '12px' }}>
+            {/* 5. 추천 자료 (구글 검색 강제 이동 로직 제거) 및 예상 소요 시간 */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '20px', borderTop: '1px dashed #e1e4e8', paddingTop: '16px' }}>
               <div>
                 {Array.isArray(step.recommended_articles) && step.recommended_articles.length > 0 && (
                   <>
-                    <h4 style={{ fontSize: '12px', color: '#666', marginBottom: '6px', fontWeight: 'bold' }}>📖 추천 참고 자료</h4>
+                    <h4 style={{ fontSize: '12px', color: '#666', marginBottom: '10px', fontWeight: 'bold' }}>📖 참고 자료</h4>
                     {step.recommended_articles.map((article, idx) => {
-                      
-                      // 🔥 핵심 구조 변경: url이 정상적으로 있으면 그곳으로, 없거나 비어있으면 무조건 구글 검색으로 강제 연결!
-                      const targetUrl = article.url && article.url.trim() !== "" 
-                        ? article.url 
-                        : `https://www.google.com/search?q=${encodeURIComponent(article.title)}`;
-                      
+                      const hasValidUrl = article.url && article.url.trim() !== "";
+
                       return (
-                        <div key={idx} style={{ marginBottom: '6px' }}>
-                          <a
-                            href={targetUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ fontSize: '12px', fontWeight: 'bold', color: '#0366d6', textDecoration: 'underline', display: 'inline-block' }}
-                          >
-                            {/* URL이 있으면 🔗 아이콘, 구글 검색으로 대체되었으면 🔍 아이콘 표시 */}
-                            {article.url && article.url.trim() !== "" ? '🔗 ' : '🔍 '}
-                            {article.title}
-                          </a>
-                          
-                          {article.why_relevant && (
-                            <p style={{ fontSize: '11px', color: '#777', margin: '2px 0 0 16px', lineHeight: '1.4' }}>
-                              - {article.why_relevant}
+                        <div key={idx} style={{ marginBottom: '12px', backgroundColor: '#f6f8fa', padding: '10px', borderRadius: '6px' }}>
+                          {hasValidUrl ? (
+                            <a
+                              href={article.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ fontSize: '13px', fontWeight: 'bold', color: '#0366d6', textDecoration: 'none' }}
+                            >
+                              🔗 {article.title}
+                            </a>
+                          ) : (
+                            <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#444' }}>
+                              📁 {article.title} <span style={{ fontSize: '11px', color: '#888' }}>(사내 문서 참고)</span>
+                            </span>
+                          )}
+
+                          {(article.reason_for_reading || article.why_relevant) && (
+                            <p style={{ fontSize: '12px', color: '#555', margin: '6px 0 0 0', lineHeight: '1.4' }}>
+                              ✓ {article.reason_for_reading || article.why_relevant}
                             </p>
                           )}
                         </div>
@@ -464,12 +472,15 @@ function CurriculumView({ onOpenArticle }) {
                   </>
                 )}
               </div>
+
+              {/* 예상 소요 시간 (기존 유지) */}
               {step.estimated_hours && (
                 <div style={{ fontSize: '12px', color: '#888', whiteSpace: 'nowrap', backgroundColor: '#e1e4e8', padding: '4px 8px', borderRadius: '12px' }}>
                   ⏱ 예상 소요: {step.estimated_hours}시간
                 </div>
               )}
             </div>
+
           </div>
         )}
       </div>
@@ -527,15 +538,15 @@ function CurriculumView({ onOpenArticle }) {
                   {selectedCurriculum.cur_learning_goal || ''}
                 </p>
               </div>
-              
+
               <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                <button 
+                <button
                   onClick={handleDownloadTxt}
                   style={{ padding: '6px 12px', backgroundColor: '#f3f4f6', border: '1px solid #d1d5da', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold', color: '#24292e' }}
                 >
                   📄 TXT 다운로드
                 </button>
-                <button 
+                <button
                   onClick={handleDownloadPdf}
                   style={{ padding: '6px 12px', backgroundColor: '#0366d6', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold', color: '#fff' }}
                 >

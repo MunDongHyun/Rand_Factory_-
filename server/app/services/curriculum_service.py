@@ -3,208 +3,116 @@ import json
 from pathlib import Path
 from dotenv import load_dotenv
 
-# [추가된 부분] PDF 생성을 위한 모듈 임포트
-from fpdf import FPDF 
-
-# LangChain 관련 모듈
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langchain_community.vectorstores import FAISS
-from langchain_core.documents import Document
-from langchain_core.prompts import PromptTemplate
-from langchain_core.output_parsers import JsonOutputParser
+from pydantic import BaseModel, Field
+from typing import List
+from langchain_openai import ChatOpenAI
 from langchain_community.tools import DuckDuckGoSearchResults
-from fastapi.responses import StreamingResponse
+from langchain_core.prompts import ChatPromptTemplate
 
-# 1. 경로 및 설정 로드
+# ==========================================
+# 1. 환경변수 설정
+# ==========================================
 CURRENT_DIR = Path(__file__).resolve().parent
-BASE_DIR = CURRENT_DIR.parent.parent  # /server 폴더
-PROJECT_DIR = BASE_DIR.parent         # 최상위 폴더
+BASE_DIR = CURRENT_DIR.parent.parent
+PROJECT_DIR = BASE_DIR.parent
 
 load_dotenv(BASE_DIR / ".env")
 load_dotenv(PROJECT_DIR / ".env", override=False)
 
-# LLM 및 임베딩 초기화
 openai_api_key = os.getenv("OPENAI_API_KEY")
-if openai_api_key:
-    os.environ["OPENAI_API_KEY"] = openai_api_key
+if not openai_api_key:
+    print("🚨 경고: OPENAI_API_KEY를 찾을 수 없습니다.")
 
-llm = ChatOpenAI(model=os.getenv("AI_MODEL", "gpt-4o-mini"), temperature=0.2) # 모델명 gpt-4o-mini 로 임의수정 (오타 방지)
-embeddings = OpenAIEmbeddings()
+# ==========================================
+# 2. Pydantic 스키마 정의 (엄격한 JSON 강제)
+# ==========================================
+class AssignmentDetails(BaseModel):
+    title: str = Field(description="과제명")
+    step_by_step_guide: List[str] = Field(description="학습자가 이 과제를 수행하기 위한 구체적인 1, 2, 3단계 행동 지침")
+    expected_output_format: str = Field(description="제출해야 할 결과물의 구체적인 형태와 포함되어야 할 필수 항목")
 
-SUMMARY_DIR = BASE_DIR / "summary"
-VECTOR_DB_PATH = BASE_DIR / "vector_db"
+class RecommendedArticle(BaseModel):
+    title: str = Field(description="참고자료 제목")
+    url: str = Field(description="반드시 제공된 컨텍스트에서 가져온 실제 URL (없으면 빈 문자열을 넣으세요)")
+    reason_for_reading: str = Field(description="이 자료를 읽어야 과제 수행에 어떤 도움이 되는지 구체적인 이유")
 
-# --- [STEP 1] Vector DB 구축 및 로드 함수 ---
-def sync_vector_db():
-    """로컬 JSON 파일들을 읽어 FAISS Vector DB를 생성하거나 업데이트합니다."""
-    documents = []
+class InstructorGuide(BaseModel):
+    check_points: List[str] = Field(description="교육 담당자(사수)가 확인해야 할 체크 포인트 리스트")
+    coaching_questions: List[str] = Field(description="1:1 미팅 시 피학습자에게 던져야 할 권장 질문 리스트")
+
+class WeekPlan(BaseModel):
+    week: int = Field(description="주차 (예: 1, 2, 3, 4)")
+    theme: str = Field(description="해당 주차의 학습 주제")
+    learning_objective: str = Field(description="학습 목표")
+    assignments: List[AssignmentDetails] = Field(description="구체적인 실무 수행 과제 목록")
+    instructor_guide: InstructorGuide = Field(description="교육 담당자(사수)를 위한 피드백 가이드")
+    recommended_articles: List[RecommendedArticle] = Field(description="과제 수행을 돕는 실제 URL 기반 참고 자료")
+
+class CurriculumOutput(BaseModel):
+    curriculum: List[WeekPlan]
+
+# ==========================================
+# 3. URL 검색 및 커리큘럼 생성 로직
+# ==========================================
+def retrieve_real_urls_for_context(course_name: str, required_content: str) -> str:
+    search_tool = DuckDuckGoSearchResults(num_results=5)
+    search_query = f"{course_name} {required_content} 실무 가이드 템플릿"
     
-    if not SUMMARY_DIR.exists():
-        return None
-
-    for file_name in os.listdir(SUMMARY_DIR):
-        if file_name.endswith('.json'):
-            file_path = SUMMARY_DIR / file_name
-            try:
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                    
-                    content = json.dumps(data, ensure_ascii=False)
-                    
-                    metadata = {
-                        "source_file": file_name,
-                        "url": data.get("url", ""),
-                        "title": data.get("title", file_name)
-                    }
-                    documents.append(Document(page_content=content, metadata=metadata))
-            except Exception as e:
-                print(f"⚠️ {file_name} 파싱 오류: {e}")
-
-    if not documents:
-        return None
-
-    vector_db = FAISS.from_documents(documents, embeddings)
-    vector_db.save_local(str(VECTOR_DB_PATH))
-    return vector_db
-
-def get_vector_db():
-    """저장된 Vector DB를 로드하거나, 없으면 새로 생성합니다."""
-    if VECTOR_DB_PATH.exists():
-        return FAISS.load_local(
-            str(VECTOR_DB_PATH), 
-            embeddings, 
-            allow_dangerous_deserialization=True
-        )
-    return sync_vector_db()
-
-# --- [STEP 2] 검색 및 컨텍스트 생성 로직 ---
-def retrieve_and_supplement_context(course_name: str, required_content: str):
-    search_query = f"{course_name} {required_content}"
-    vector_db = get_vector_db()
-    
-    db_context = ""
-    if vector_db:
-        docs = vector_db.similarity_search(search_query, k=3)
-        
-        context_parts = []
-        for d in docs:
-            url = d.metadata.get('url', '')
-            title = d.metadata.get('title', 'Unknown')
-            part = f"[자료: {title}]\nURL: {url if url else '정보 없음'}\n내용: {d.page_content}"
-            context_parts.append(part)
-        db_context = "\n\n---\n\n".join(context_parts)
-
-    if len(db_context.strip()) < 100:
-        try:
-            search_tool = DuckDuckGoSearchResults()
-            web_query = f"{course_name} 실무 교육 커리큘럼 지침"
-            web_context = search_tool.invoke(web_query)
-            combined_context = f"[로컬 DB 결과 없음]\n[웹 실시간 검색 자료]\n{web_context}"
-        except Exception as e:
-            combined_context = f"검색 중 오류 발생: {e}"
-    else:
-        combined_context = f"[로컬 검증 자료]\n{db_context}"
-        
-    return combined_context
-
-
-# --- [추가된 부분] 파일 생성 함수 정의 ---
-def export_curriculum_to_files(curriculum_data, base_filename="onboarding_plan"):
-    """
-    생성된 커리큘럼 데이터를 JSON, TXT, PDF 형식으로 서버에 저장합니다.
-    """
-    # 1. JSON 저장
-    with open(f"{base_filename}.json", "w", encoding="utf-8") as f:
-        json.dump(curriculum_data, f, ensure_ascii=False, indent=2)
-
-    # 2. TXT 저장
-    with open(f"{base_filename}.txt", "w", encoding="utf-8") as f:
-        for week in curriculum_data:
-            f.write(f"[{week['week']}주차] {week['theme']}\n")
-            f.write(f"목표: {week['learning_objective']}\n")
-            f.write("-" * 30 + "\n")
-            f.write("■ 주요 학습 과제:\n")
-            for t in week['tasks']: f.write(f" - {t}\n")
-            f.write("\n■ 제출 과제:\n")
-            for a in week['assignments']:
-                f.write(f" [과제명: {a['title']}]\n   설명: {a['description']}\n   제출: {a['submission']}\n")
-            f.write("\n" + "=" * 50 + "\n\n")
-
-    # 3. PDF 저장 (한글 폰트가 없으면 기본 Arial 사용)
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=16)
-    pdf.cell(200, 10, txt="Onboarding Curriculum Guide", ln=True, align='C')
-    
-    for week in curriculum_data:
-        pdf.set_font("Arial", size=14)
-        pdf.cell(200, 10, txt=f"Week {week['week']}: {week['theme']}", ln=True)
-        pdf.set_font("Arial", size=10)
-        # multi_cell로 긴 텍스트 처리
-        pdf.multi_cell(0, 5, txt=f"Objective: {week['learning_objective']}")
-        pdf.ln(5) # 줄바꿈
-        
-    pdf.output(f"{base_filename}.pdf")
-    print(f"✅ 파일 생성 완료: {base_filename}.json, .txt, .pdf")
-
-
-# --- [STEP 3] 최종 커리큘럼 생성 함수 ---
-curriculum_prompt_template = """
-당신은 최고 수준의 S-OJT(내부직무교육) 설계 전문가입니다. 
-제공된 [참고 자료]를 바탕으로 신입사원이 주차별로 수행해야 할 '실무 과제'와 교육담당자가 활용할 '평가 가이드'를 포함한 커리큘럼을 JSON으로 설계하세요.
-
-[핵심 설계 원칙]
-1. 과제(Assignments): 신입사원이 실제로 작성하거나 행동하여 제출할 수 있는 '구체적인 결과물' 형태로 정의하세요.
-2. 시간 흐름: 1주차(기초/관찰) -> 2주차(모방/실습) -> 3주차(응용/협업) -> 4주차(성과/내재화)의 흐름을 따릅니다.
-3. 교육자 가이드: 담당자가 피학습자에게 어떤 질문을 던져야 하는지, 무엇을 체크해야 하는지 명시하세요.
-
-[입력 정보]
-- 과정명: {cur_title}
-- 목표: {cur_learning_goal}
-- 필수내용: {required_content}
-
-[출력 형식: JSON 배열]
-[
-  {{
-    "week": 1,
-    "theme": "주제명",
-    "learning_objective": "이 주차에 달성해야 할 구체적 목표",
-    "tasks": ["학습 활동 리스트"],
-    "assignments": [
-      {{
-        "title": "과제 제목",
-        "description": "과제에 대한 구체적인 수행 방법 및 제출 양식 설명",
-        "submission": "제출물 형태 (예: 이메일 드래프트, 체크리스트 PDF, 보고서 초안)"
-      }}
-    ],
-    "instructor_guide": {{
-      "check_points": ["담당자가 확인해야 할 핵심 역량"],
-      "feedback_tips": "피드백 시 유의사항 및 권장 멘트"
-    }},
-    "recommended_articles": [
-      {{ "title": "자료명", "url": "URL 주소" }}
-    ]
-  }}
-]
-"""
+    try:
+        raw_results = search_tool.invoke(search_query)
+        formatted_web_context = "=== [실제 웹 참고 자료 (이 URL들만 사용할 것)] ===\n" + raw_results 
+        return formatted_web_context
+    except Exception as e:
+        print(f"Web Search Error: {e}")
+        return "=== [웹 참고 자료 검색 실패. 내부 자료를 권장하도록 안내하세요.] ==="
 
 def generate_week_plan(cur_title: str, cur_duration_weeks: int, cur_target_job: str, cur_target_industry: str, cur_learning_goal: str, required_content: str):
-    # 1. 벡터 검색을 통한 컨텍스트 확보
-    context = retrieve_and_supplement_context(cur_title, required_content)
+    ai_model = os.getenv("AI_MODEL", "gpt-4o-mini")
+    llm = ChatOpenAI(model=ai_model, temperature=0.2, api_key=openai_api_key)
     
-    # 2. 체인 구성
-    prompt = PromptTemplate.from_template(curriculum_prompt_template)
-    output_parser = JsonOutputParser() 
-    curriculum_chain = prompt | llm | output_parser
+    # 여기서 Pydantic 모델을 강제하여 옛날 스키마(tasks 등)가 절대 나오지 않게 합니다.
+    structured_llm = llm.with_structured_output(CurriculumOutput)
+
+    web_url_context = retrieve_real_urls_for_context(cur_title, required_content)
+    combined_context = f"{web_url_context}"
     
-    # 3. LLM 실행 (결과를 result 변수에 담습니다)
-    result = curriculum_chain.invoke({
+    system_prompt = """
+    당신은 최고 수준의 기업 S-OJT(내부직무교육) 설계 전문가입니다. 
+    제공된 [실제 웹 참고 자료] 컨텍스트를 바탕으로, 현업에 즉시 적용 가능한 총 {cur_duration_weeks}주차 분량의 커리큘럼을 설계하세요.
+
+    [핵심 설계 원칙]
+    1. 분량 준수 (매우 중요): 반드시 1주차부터 {cur_duration_weeks}주차까지 하나도 빠짐없이, 총 {cur_duration_weeks}개의 주차별 계획을 순서대로 생성하세요.
+    2. 구체성(Actionable): 과제는 "어떻게(How)" 해야 하는지 단계별 가이드(step_by-step)를 명시하세요. 빈 배열([])을 반환해서는 안 됩니다.
+    3. 역할 분리: '학습자'가 할 일(assignments)과 '교육담당자'의 피드백 가이드(instructor_guide)를 채워 넣으세요.
+    4. 팩트 기반 URL: 'recommended_articles'의 URL은 [실제 웹 참고 자료]에 있는 link만 사용하세요. 적절한 링크가 없다면 URL을 ""(빈 문자열)로 두세요.
+
+    [컨텍스트 데이터]
+    {context}
+    """
+
+    user_prompt = """
+    다음 정보에 맞춰 커리큘럼을 생성하세요:
+    - 과정명: {cur_title}
+    - 직무/산업: {cur_target_job} / {cur_target_industry}
+    - 교육 목표: {cur_learning_goal}
+    - 필수 포함 내용: {required_content}
+    """
+
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", system_prompt),
+        ("user", user_prompt)
+    ])
+
+    chain = prompt | structured_llm
+    
+    result = chain.invoke({
         "cur_title": cur_title,
         "cur_target_job": cur_target_job,
         "cur_target_industry": cur_target_industry,
         "cur_duration_weeks": cur_duration_weeks,
         "cur_learning_goal": cur_learning_goal,
         "required_content": required_content,
-        "context": context
+        "context": combined_context
     })
-    return result
+    
+    return result.model_dump()["curriculum"]

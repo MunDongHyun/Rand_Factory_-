@@ -3,9 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-
 CurriculumStatus = Literal["active", "unactive"]
-
 
 class CurriculumCreate(BaseModel):
     cur_title: str
@@ -18,7 +16,6 @@ class CurriculumCreate(BaseModel):
     cur_assigned_learner_ids: list[int] | None = None
     cur_status: CurriculumStatus | None = "active"
 
-
 class CurriculumUpdate(BaseModel):
     cur_title: str | None = None
     cur_target_job: str | None = None
@@ -30,6 +27,9 @@ class CurriculumUpdate(BaseModel):
     cur_assigned_learner_ids: list[int] | None = None
     cur_status: CurriculumStatus | None = None
 
+# ---------------------------------------------------------
+# [수정됨] 불필요해진 옛날 스키마(WeekPlanItem 등) 삭제 
+# ---------------------------------------------------------
 
 class CurriculumGenerateRequest(BaseModel):
     cur_title: str
@@ -39,31 +39,15 @@ class CurriculumGenerateRequest(BaseModel):
     cur_learning_goal: str | None = None
     required_content: str | None = None
 
-
-class RecommendedArticle(BaseModel):
-    filename: str | None = None
-    title: str | None = None
-    why_relevant: str | None = None
-
-
-class WeekPlanItem(BaseModel):
-    week: int | None = None
-    theme: str | None = None
-    learning_objective: str | None = None
-    tasks: list[str] = []
-    recommended_articles: list[RecommendedArticle] = []
-    success_criteria: list[str] = []
-    estimated_hours: int | None = None
-
-
 class CurriculumGenerateResponse(BaseModel):
     cur_title: str
     cur_duration_weeks: int
     cur_target_job: str | None = None
     cur_target_industry: str | None = None
     cur_learning_goal: str | None = None
-    cur_week_plan: list[WeekPlanItem]
-
+    
+    # 🚀 핵심 수정 포인트: AI가 만든 최신 JSON 배열을 깎아내지 않고 그대로 내보냅니다.
+    cur_week_plan: list[dict]
 
 class CurriculumResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -82,7 +66,6 @@ class CurriculumResponse(BaseModel):
     cur_created_at: datetime | None = None
     cur_updated_at: datetime | None = None
     cur_deleted_at: datetime | None = None
-
 
 class CurriculumStatsResponse(BaseModel):
     total_curricula: int
