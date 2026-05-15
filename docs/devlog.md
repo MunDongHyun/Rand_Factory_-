@@ -2,6 +2,41 @@
 
 ---
 
+## 2026-05-15 - Codex (마스터 페이지 단계 4 — 주간/월간 PDF 보고서)
+
+### 배경
+- 마스터 페이지 고도화 1~3단계에서 만든 시계열/통계 데이터를 운영 보고서로 내려받는 단계 4 작업
+- 관리자 화면에서 최근 7일/30일 기준 운영 현황을 PDF로 저장할 수 있도록 구현
+
+### PDF 보고서 다운로드
+- `client/src/components/MasterDashboard.jsx`
+  - `html2pdf.js` 기반 PDF 다운로드 로직 추가
+  - 헤더에 `주간 PDF`, `월간 PDF` 버튼 추가
+  - 주간은 최근 7일, 월간은 최근 30일 기준으로 보고서 데이터 구성
+  - 가입자 시계열, 조회수 시계열, 회원 목록 데이터를 보고서 생성 시점에 다시 조회
+  - PDF 생성 중 중복 클릭을 막기 위한 `reportGenerating` 상태 추가
+  - 캡처용 보고서 DOM은 offscreen 영역에 렌더링
+
+### 보고서 템플릿
+- `client/src/components/ReportTemplate.jsx` 신규 추가
+  - A4 기준 PDF 캡처용 리포트 템플릿 구현
+  - 기간 정보, 핵심 지표, 조회/가입 추이, 카테고리 통계, 인기 아티클, 회원 현황 포함
+  - `forwardRef`로 `html2pdf` 캡처 대상 연결
+- `client/src/styles/ReportTemplate.css` 신규 추가
+  - PDF 출력용 흰 배경/인쇄 친화 스타일 정의
+  - 페이지 단위 레이아웃과 page-break 제어
+
+### 스타일
+- `client/src/styles/MasterDashboard.css`
+  - 보고서 다운로드 버튼 스타일 추가
+  - `masterReportOffscreen` 캡처 영역 스타일 추가
+
+### 검증
+- 원격 `dev` 최신 변경 pull 후 자동 병합 완료
+  - `client/src/styles/MasterDashboard.css` 자동 병합, 충돌 없음
+
+---
+
 ## 2026-05-15 - Claude (마스터 페이지 단계 1~3 — 시계열 차트 / 회원 정렬 / 회원 상세 + 운영 액션)
 
 ### 배경
