@@ -306,8 +306,7 @@
   transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
     border-color 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
     box-shadow 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
-    max-width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
-    min-height 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    max-width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)
 }
 
 .slideCard.expanded {
@@ -316,7 +315,7 @@
 
 
 .slideCard.current {
-  position: relative;
+  position: ab;
   opacity: 1;
   transform: translateZ(0) scale(1);
   z-index: 5;
@@ -325,8 +324,7 @@
   transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
               border-color 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
               box-shadow 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
-              max-width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),  
-              min-height 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); 
+              max-width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)
 }
 
 .slideCard.current:hover {
@@ -442,63 +440,7 @@
   padding: 0;
 }
 
-/* ===========================
-   토글
-=========================== */
-/* .collapsibleText {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  width: 100%;
-}
 
-.collapsibleInner {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  position: relative;
-}
-
-
-.collapsibleInner.clamped {
-  max-height: 140px;
-  overflow: hidden;
-}
-
-.fadeOverlay {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 48px;
-  background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.85));
-  pointer-events: none;
-}
-
-.sentence-item {
-  font-size: 15px;
-  line-height: 1.7;
-  color: #222;
-  display: block;
-}
-
-.toggleBtn {
-  align-self: stretch;
-  margin-top: 4px;
-  background: none;
-  border: none;
-  padding: 0;
-  font-family: 'Pretendard', sans-serif;
-  font-size: 30px;
-  font-weight: 600;
-  color: #9CCAFF;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-.toggleBtn:hover {
-  opacity: 0.7;
-} */
 
 /* ===========================
    네비게이션 버튼

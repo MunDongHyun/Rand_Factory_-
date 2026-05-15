@@ -3,25 +3,7 @@ import api from '../lib/api';
 import "../styles/ArticleDetailView.css"
 
 
-// function CollapsibleText({ paragraphs }) {
-//   const [expanded, setExpanded] = useState(false);
-//   const LINE_LIMIT = 5;
 
-//   const needsToggle = paragraphs.length > LINE_LIMIT;
-//   const visibleParagraphs = (!needsToggle || expanded) ? paragraphs : paragraphs.slice(0, LINE_LIMIT);
-
-//   return (
-//     <div className="collapsibleText">
-//       <div className={`collapsibleInner ${!expanded && needsToggle ? 'clamped' : ''}`}>
-//         {visibleParagraphs.map((sentence, sIdx) => (
-//           <span key={sIdx} className="sentence-item">{sentence.trim()}</span>
-//         ))}
-//         {!expanded && needsToggle && <div className="fadeOverlay" />}
-//       </div>
-
-//     </div>
-//   );
-// }
 
 function ArticleDetailView({ article, onBack }) {
   const [summary, setSummary] = useState(null);
@@ -175,12 +157,17 @@ function ArticleDetailView({ article, onBack }) {
                         let pos = diff === 0 ? 'current' : (diff === -1 ? 'prev' : 'next');
 
                         return (
-                          <div key={index} className={`slideCard ${pos} ${expandedCard === index ? 'expanded' : ''}`}>
+                          <div key={index}
+                            className={`slideCard ${pos} ${expandedCard === index ? 'expanded' : ''}`}
+                            onClick={(e) => {
+                              if (pos === 'current') {
+                                e.currentTarget.style.transition = 'none';
+                                toggleCard(index);
+                              }
+                            }}
+                          >
                             <div
-                              className="slideCardInner"
-                              onClick={() => pos === 'current' && toggleCard(index)}
-                              style={{ cursor: pos === 'current' ? 'pointer' : 'default' }}
-                            >
+                              className="slideCardInner">
                               <div className="leftSection" >
                                 <div className="cardNum">{slide.card_step}</div>
                                 <h2 className="cardTitle">{slide.card_title}</h2>
