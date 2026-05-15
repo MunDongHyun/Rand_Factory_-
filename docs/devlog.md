@@ -2,6 +2,26 @@
 
 ---
 
+## 2026-05-15 - Codex (아티클 요약문 원문 링크 및 썸네일 표시 개선)
+
+### 아티클 요약문 원문 링크
+- `client/src/components/ArticleDetailView.jsx`
+  - 요약문 페이지의 `원문 아티클 보기` 버튼에서 하드코딩된 외부 URL 제거
+  - `displayArticle.article_source_url` 값을 사용해 실제 아티클 원문 URL로 이동하도록 변경
+  - 원문 URL이 없는 아티클에서는 버튼을 렌더링하지 않도록 조건부 처리
+
+### 상세 썸네일 표시 방식 조정
+- `client/src/styles/ArticleDetailView.css`
+  - 상세 페이지 썸네일 영역을 `aspect-ratio: 4 / 3` 기반으로 조정
+  - 썸네일 최대 높이를 `600px`로 설정
+  - `object-fit: cover`는 유지하고 `object-position: top center`를 적용해 위쪽 기준으로 크롭
+
+### 검증
+- 프론트엔드 빌드 통과
+  - `npm run build`
+
+---
+
 ## 2026-05-14 - Codex (대시보드 UX 안정화 + 아티클 카드 미리보기)
 
 ### 대시보드/헤더 UI 정리

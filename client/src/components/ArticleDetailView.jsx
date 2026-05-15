@@ -115,15 +115,17 @@ function ArticleDetailView({ article, onBack }) {
                 {[metadata.category].filter(Boolean).join(' · ')}
               </p>
 
-              {/* DB 연결 전 링크 */}
-              <a
-                className="originalArticleBtn"
-                href="https://www.donga.com/news/It/article/all/20260508/133881387/2"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                원문 아티클 보기 →
-              </a>
+              {/* 원문 아티클 링크 */}
+              {displayArticle.article_source_url && (
+                <a
+                  className="originalArticleBtn"
+                  href={displayArticle.article_source_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  원문 아티클 보기 →
+                </a>
+              )}
 
               {summary.theme_analysis && (
                 <div className='summaryThemeWrapper'>
