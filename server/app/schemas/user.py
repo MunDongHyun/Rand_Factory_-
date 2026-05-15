@@ -1,6 +1,10 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr
+
+
+UserRole = Literal["j", "m", "a"]
 
 
 class UserCreate(BaseModel):
@@ -57,3 +61,18 @@ class UserStatsResponse(BaseModel):
     total_users: int
     monthly_signups: int
     top_company: str | None = None
+
+
+class UserUpdate(BaseModel):
+    user_role: UserRole | None = None
+    is_deleted: bool | None = None  # true → 강제 탈퇴, false → 복구
+
+
+class UserActivitySummary(BaseModel):
+    user_id: int
+    user_role: str
+    curricula_created: int = 0     # 매니저/관리자가 만든 커리큘럼 수
+    curricula_assigned: int = 0    # 학습자에게 배정된 커리큘럼 수
+    submissions_count: int = 0     # 학습자가 제출한 과제 수
+    feedbacks_received: int = 0    # 학습자가 받은 피드백 수
+    feedbacks_given: int = 0       # 매니저가 작성한 피드백 수

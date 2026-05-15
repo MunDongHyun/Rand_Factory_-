@@ -2,6 +2,76 @@
 
 ---
 
+## 2026-05-15 - Claude (마스터 페이지 단계 1~3 — 시계열 차트 / 회원 정렬 / 회원 상세 + 운영 액션)
+
+### 배경
+- 마스터 페이지 고도화 로드맵 4단계 중 1~3단계 완료
+- "전사 모니터링 + 운영" 정체성 강화. 4단계(주간/월간 보고서)에서 같은 집계 API를 재사용할 수 있도록 백엔드 시계열 API 설계
+
+### 단계 1: 시계열 차트
+- 백엔드
+  - `schemas/article.py` — `TimelinePoint`, `TimelineResponse` 신규 (공용 시계열 응답)
+  - `GET /api/articles/stats/views-timeline?days=N` — `user_activities` 기반 일별 조회 이벤트 (admin 전용)
+  - `GET /api/task-submissions/stats/timeline?days=N` — 일별 과제 제출 수 (admin 전용, 현재 미사용이나 매니저 위젯 재사용 대비 유지)
+  - `GET /api/users/stats/signups-timeline?days=N` — 일별 신규 가입자 (admin 전용)
+  - 모든 시계열 API는 데이터 없는 날도 0으로 채워 응답 (프론트 보간 부담 제거)
+- 프론트 `MasterDashboard.jsx`
+  - chart.js `Line` 컴포넌트 도입 (CategoryScale/LinearScale/PointElement/LineElement/Filler 등록)
+  - "최근 활동 추이" 섹션 신설 — 좌: 조회수 라인(블루), 우: 신규 가입자 라인(초록)
+  - 7일/14일/30일 기간 토글 (기본 14일)
+  - 다크 톤 옵션 (tooltip, 격자, 축 라벨 모두 마스터 페이지 톤 통일)
+  - 총합 뱃지 ("총 N회/명")
+- 결정: 처음 후보였던 "과제 제출 추이"는 admin 입장에서 "그래서 뭐?"가 약하다는 판단. 가입자 추이가 admin 정체성(플랫폼 성장 모니터링)과 더 잘 맞음. 제출 관련 위젯은 향후 매니저 화면에서 본인 책임 영역으로 노출 예정.
+
+### 단계 2: 회원 정렬
+- `MasterDashboard.jsx` 클라이언트 측 정렬 추가
+- 옵션 5종: 최신 가입순(기본) / 오래된 가입순 / 이름 ㄱ→ㅎ / 이름 ㅎ→ㄱ / 역할별(a→m→j→탈퇴)
+- 검색·역할 필터·정렬 모두 클라이언트에서 처리 (현 데이터량 50명 기준 충분)
+
+### 단계 3: 회원 상세 모달 + 운영 액션
+- 백엔드
+  - `schemas/user.py` — `UserUpdate`(user_role / is_deleted), `UserActivitySummary` 추가
+  - `GET /api/users/{user_id}/activity-summary` — 회원 1명의 활동 5종 카운트 (만든·배정·제출·받은피드백·작성피드백)
+  - `PATCH /api/users/{user_id}` — 역할 변경 + 강제 탈퇴/복구 (admin 전용)
+  - 안전장치 4종:
+    - 본인 액션 차단 (자기 자신은 변경 불가)
+    - 마지막 admin 강등 차단
+    - 마지막 admin 탈퇴 차단
+    - soft delete (`user_deleted_at` 설정, 즉시 영구삭제 안 함)
+- 프론트
+  - 회원 행 클릭 → 회원 상세 모달
+  - 모달: 기본 정보 + 활동 요약 5칸 그리드 + 역할 토글 3개 + 강제 탈퇴/복구 버튼
+  - 확인 다이얼로그 (탈퇴는 빨간 위험 버튼, 복구는 블루)
+  - 본인일 경우 액션 영역 잠금 + 안내 메시지
+
+### 결정 / 의미
+- "회원 상세 = 조회만"으로 시작했으나, 발표 임팩트 + 실무 정합성을 위해 **조회 + 액션(역할 변경, 강제 탈퇴/복구)** 까지 묶어 단계 3을 운영툴 완성형으로 마무리
+- 법적·실무 검토 결과: B2B 학습 플랫폼에서 admin의 직원 계정 관리는 인사권의 일부로 정당. soft delete로 데이터 보존 + 안전장치 4종으로 사고 방지
+- 차트 색: 조회수 블루(`#4a8fd0`), 가입자 초록(`#5cf0a8`, 성장 의미), 도넛은 기존 8색 팔레트 그대로
+
+### 코드 컨벤션 추가
+- `CLAUDE.md` — JSX inline style 금지 규정 명문화
+  - 디자인 수정 작업이 분리돼 있어 스타일은 별도 CSS 파일에만 작성
+  - 단, props/state 기반 동적 값(`width: ${pct}%` 등)은 예외 허용
+- 기존 코드의 inline style 84곳은 일괄 정리하지 않음 (발표 임박, 충돌 위험). 앞으로 새 작업부터 적용
+
+### 검증
+- `cd server && .\venv\Scripts\python.exe -m compileall -q app` 통과
+- TestClient로 라우트 등록 확인:
+  - `/api/articles/stats/views-timeline`
+  - `/api/task-submissions/stats/timeline`
+  - `/api/users/stats/signups-timeline`
+  - `/api/users/{user_id}/activity-summary`
+  - `/api/users/{user_id}` (PATCH)
+- `cd client && npm run build` 통과
+
+### 다음 / TODO
+- **단계 4: 주간/월간 보고서 자동 생성** — 시계열 API 재사용해서 PDF 또는 HTML 출력
+- 매니저 화면에 본인 책임 영역 위젯 ("응답 대기 N건" 등) — 사용자 결정 시 진행
+- inline style 일괄 정리 (발표 후 클린업 작업)
+
+---
+
 ## 2026-05-15 - Codex (아티클 요약문 원문 링크 및 썸네일 표시 개선)
 
 ### 아티클 요약문 원문 링크

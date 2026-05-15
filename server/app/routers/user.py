@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func
@@ -7,15 +7,18 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import create_access_token, get_current_user, hash_password, verify_password
 from app.models.user import User
+from app.schemas.article import TimelinePoint, TimelineResponse
 from app.schemas.user import (
     BulkSignupRequest,
     BulkSignupResponse,
     TokenResponse,
+    UserActivitySummary,
     UserCreate,
     UserListResponse,
     UserLogin,
     UserResponse,
     UserStatsResponse,
+    UserUpdate,
 )
 
 router = APIRouter(prefix="/api/users", tags=["users"])
@@ -143,6 +146,40 @@ def list_users(
     return UserListResponse(users=users, total=total)
 
 
+@router.get("/stats/signups-timeline", response_model=TimelineResponse)
+def get_signups_timeline(
+    days: int = Query(30, ge=1, le=180),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """관리자(a) 전용: 최근 N일 일별 신규 가입자 수."""
+    if current_user.user_role != "a":
+        raise HTTPException(status_code=404, detail="Not found")
+
+    today = date.today()
+    start_date = today - timedelta(days=days - 1)
+
+    rows = (
+        db.query(
+            func.date(User.user_created_at).label("d"),
+            func.count(User.user_id).label("cnt"),
+        )
+        .filter(
+            User.user_deleted_at.is_(None),
+            User.user_created_at >= start_date,
+        )
+        .group_by(func.date(User.user_created_at))
+        .all()
+    )
+    date_counts = {row.d: int(row.cnt) for row in rows}
+
+    items = []
+    for i in range(days):
+        d = start_date + timedelta(days=i)
+        items.append(TimelinePoint(date=d, count=date_counts.get(d, 0)))
+    return TimelineResponse(items=items)
+
+
 @router.get("/learners", response_model=list[UserResponse])
 def list_learners(
     db: Session = Depends(get_db),
@@ -166,9 +203,142 @@ def list_learners(
     return query.order_by(User.user_name.asc()).all()
 
 
+@router.get("/{user_id}/activity-summary", response_model=UserActivitySummary)
+def get_user_activity_summary(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """관리자(a) 전용: 회원 1명의 활동 요약 (커리큘럼/과제/피드백 수)."""
+    if current_user.user_role != "a":
+        raise HTTPException(status_code=404, detail="Not found")
+
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # 지연 import (순환 방지)
+    from app.models.curriculum import Curriculum
+    from app.models.task_submission import TaskSubmission
+
+    curricula_created = (
+        db.query(func.count(Curriculum.cur_id))
+        .filter(
+            Curriculum.cur_creator_id == user_id,
+            Curriculum.cur_deleted_at.is_(None),
+        )
+        .scalar() or 0
+    )
+
+    curricula_assigned = 0
+    if user.user_role == "j":
+        # JSON 컬럼이라 Python 측에서 카운트
+        rows = (
+            db.query(Curriculum.cur_assigned_learner_ids)
+            .filter(Curriculum.cur_deleted_at.is_(None))
+            .all()
+        )
+        for (ids,) in rows:
+            if isinstance(ids, list) and user_id in ids:
+                curricula_assigned += 1
+
+    submissions_count = (
+        db.query(func.count(TaskSubmission.task_submission_id))
+        .filter(TaskSubmission.task_learner_id == user_id)
+        .scalar() or 0
+    )
+
+    feedbacks_received = (
+        db.query(func.count(TaskSubmission.task_submission_id))
+        .filter(
+            TaskSubmission.task_learner_id == user_id,
+            TaskSubmission.task_manager_feedback.isnot(None),
+        )
+        .scalar() or 0
+    )
+
+    # 매니저가 작성한 피드백 = 본인이 만든 커리큘럼의 피드백 작성 건
+    feedbacks_given = 0
+    if user.user_role in ("m", "a"):
+        feedbacks_given = (
+            db.query(func.count(TaskSubmission.task_submission_id))
+            .join(Curriculum, TaskSubmission.task_curriculum_id == Curriculum.cur_id)
+            .filter(
+                Curriculum.cur_creator_id == user_id,
+                TaskSubmission.task_manager_feedback.isnot(None),
+            )
+            .scalar() or 0
+        )
+
+    return UserActivitySummary(
+        user_id=user_id,
+        user_role=user.user_role,
+        curricula_created=int(curricula_created),
+        curricula_assigned=int(curricula_assigned),
+        submissions_count=int(submissions_count),
+        feedbacks_received=int(feedbacks_received),
+        feedbacks_given=int(feedbacks_given),
+    )
+
+
 @router.get("/{user_id}", response_model=UserResponse)
 def get_user(user_id: int, db: Session = Depends(get_db), _current_user: User = Depends(get_current_user)):
     user = db.query(User).filter(User.user_id == user_id, User.user_deleted_at.is_(None)).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+
+@router.patch("/{user_id}", response_model=UserResponse)
+def update_user(
+    user_id: int,
+    body: UserUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """관리자(a) 전용: 회원 역할 변경 및 강제 탈퇴/복구.
+
+    안전장치:
+    - 본인 강등/탈퇴 금지
+    - 마지막 admin 강등/탈퇴 금지
+    """
+    if current_user.user_role != "a":
+        raise HTTPException(status_code=404, detail="Not found")
+
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if user.user_id == current_user.user_id:
+        raise HTTPException(status_code=400, detail="본인의 역할/탈퇴 상태는 변경할 수 없습니다")
+
+    will_lose_admin = False
+    if body.user_role is not None and user.user_role == "a" and body.user_role != "a":
+        will_lose_admin = True
+    if body.is_deleted is True and user.user_role == "a":
+        will_lose_admin = True
+
+    if will_lose_admin:
+        admin_count = (
+            db.query(func.count(User.user_id))
+            .filter(User.user_role == "a", User.user_deleted_at.is_(None))
+            .scalar() or 0
+        )
+        if admin_count <= 1:
+            raise HTTPException(
+                status_code=400,
+                detail="마지막 관리자는 강등하거나 탈퇴시킬 수 없습니다",
+            )
+
+    if body.user_role is not None:
+        user.user_role = body.user_role
+
+    if body.is_deleted is True:
+        if user.user_deleted_at is None:
+            user.user_deleted_at = datetime.now(timezone.utc)
+    elif body.is_deleted is False:
+        user.user_deleted_at = None
+
+    db.commit()
+    db.refresh(user)
     return user

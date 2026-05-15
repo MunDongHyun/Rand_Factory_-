@@ -132,6 +132,7 @@ npm run dev
 - Python: `snake_case`
 - API 라우터는 `app/routers/`에 기능별로 분리
 - 환경변수는 `app/core/config.py`의 `settings` 객체를 통해서만 접근
+- **JSX에 inline style 금지** — 디자인 수정 작업이 분리돼 있으므로 스타일은 별도 CSS 파일에만 작성. 동적 값(`width: ${pct}%` 등 props/state 기반 계산)만 예외적으로 inline 허용
 
 ## 브랜치 전략
 
@@ -148,6 +149,11 @@ npm run dev
 - `style:` 코드 포맷팅
 - `chore:` 설정, 빌드 관련
 - 커밋 메시지는 prefix만 지키면 설명은 한글로 작성 가능
+- Codex/Claude는 커밋 메시지 설명을 기본적으로 한글로 작성
+  - 예: `feat: 아티클 요약문 원문 링크 및 썸네일 표시 개선`
+  - 예: `fix: 카드뉴스 클릭 시 레이아웃 흔들림 완화`
+  - 예: `chore: fpdf 의존성 추가`
+- 영어 설명 커밋 메시지는 사용자가 명시적으로 요청한 경우에만 사용
 
 ## Pull 전 체크리스트
 
@@ -158,6 +164,23 @@ npm run dev
 5. 로컬 수정 중인 파일과 원격 변경 파일이 겹치면 충돌 대비 (rebase/merge 전략 결정)
 6. 이상 없으면 `git pull`
 7. Pull 이후: `server/.env.example`, `requirements.txt`, `client/package.json` 변경 여부 확인 후 본인 환경 동기화
+
+Codex/Claude 작업 규칙:
+
+- 사용자가 "풀 받아줘", "pull 하자"라고 해도 바로 `git pull` 하지 않고 위 체크리스트 1~5를 먼저 수행
+- 로컬 변경사항이 있거나 원격 변경 파일과 겹칠 가능성이 있으면 사용자에게 상황을 설명하고 진행 여부 확인
+- 로컬 변경을 임의로 되돌리거나 stash 하지 않음
+
+## 로컬 Codex 권한 처리 규칙
+
+- 이 로컬 Codex 환경에서는 `.git/index.lock`, `.git/FETCH_HEAD`, GitHub 네트워크 접근이 일반 권한에서 막히는 경우가 잦음
+- 읽기 명령은 일반 권한으로 실행
+  - 예: `git status`, `git diff`, `git log`, `git remote -v`
+- `.git`에 쓰거나 원격 네트워크를 사용하는 명령은 처음부터 승인 권한으로 실행
+  - 예: `git add`, `git commit`, `git pull`, `git push`, `git restore`
+- 위 명령을 일반 권한으로 먼저 실행했다가 실패 후 재시도하는 왕복을 줄이는 것이 목적
+- 파괴적 명령은 별도 규칙
+  - `git reset`, 강제 push, 대량 삭제 등은 사용자 명시 요청과 확인 없이는 실행하지 않음
 
 ## 커밋 전 체크리스트
 

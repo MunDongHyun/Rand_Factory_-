@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, update
 from sqlalchemy.orm import Session
@@ -17,6 +19,8 @@ from app.schemas.article import (
     ArticleSummaryResponse,
     CategoryStatItem,
     CategoryStatsResponse,
+    TimelinePoint,
+    TimelineResponse,
 )
 from app.services import article_service, rag_service, thumbnail_service
 from app.models.user_activity import UserActivity
@@ -297,6 +301,37 @@ def get_category_stats(
             for category, total_views, article_count in rows
         ]
     )
+
+
+@router.get("/stats/views-timeline", response_model=TimelineResponse)
+def get_views_timeline(
+    days: int = Query(30, ge=1, le=180),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """관리자(a) 전용: 최근 N일 일별 아티클 조회 이벤트 수 (user_activities 기반)."""
+    if current_user.user_role != "a":
+        raise HTTPException(status_code=404, detail="Not found")
+
+    today = date.today()
+    start_date = today - timedelta(days=days - 1)
+
+    rows = (
+        db.query(
+            func.date(UserActivity.created_at).label("d"),
+            func.count(UserActivity.activity_id).label("cnt"),
+        )
+        .filter(UserActivity.created_at >= start_date)
+        .group_by(func.date(UserActivity.created_at))
+        .all()
+    )
+    date_counts = {row.d: int(row.cnt) for row in rows}
+
+    items = []
+    for i in range(days):
+        d = start_date + timedelta(days=i)
+        items.append(TimelinePoint(date=d, count=date_counts.get(d, 0)))
+    return TimelineResponse(items=items)
 
 
 @router.get("/{article_id}/summary", response_model=ArticleSummaryResponse)

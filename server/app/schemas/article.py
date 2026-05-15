@@ -1,6 +1,4 @@
-from datetime import date
-from pydantic import BaseModel
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
@@ -72,3 +70,12 @@ class CategoryStatItem(BaseModel):
 
 class CategoryStatsResponse(BaseModel):
     items: list[CategoryStatItem]
+
+
+class TimelinePoint(BaseModel):
+    date: date
+    count: int
+
+
+class TimelineResponse(BaseModel):
+    items: list[TimelinePoint]

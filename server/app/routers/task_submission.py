@@ -1,6 +1,7 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -8,6 +9,7 @@ from app.core.security import get_current_user
 from app.models.curriculum import Curriculum
 from app.models.task_submission import TaskSubmission
 from app.models.user import User
+from app.schemas.article import TimelinePoint, TimelineResponse
 from app.schemas.task_submission import (
     TaskSubmissionCreate,
     TaskSubmissionFeedbackUpdate,
@@ -154,6 +156,37 @@ def list_submissions_by_curriculum(
         )
         for s, u in rows
     ]
+
+
+@router.get("/stats/timeline", response_model=TimelineResponse)
+def get_submissions_timeline(
+    days: int = Query(30, ge=1, le=180),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """관리자(a) 전용: 최근 N일 일별 과제 제출 수."""
+    if current_user.user_role != "a":
+        raise HTTPException(status_code=404, detail="Not found")
+
+    today = date.today()
+    start_date = today - timedelta(days=days - 1)
+
+    rows = (
+        db.query(
+            func.date(TaskSubmission.task_submitted_at).label("d"),
+            func.count(TaskSubmission.task_submission_id).label("cnt"),
+        )
+        .filter(TaskSubmission.task_submitted_at >= start_date)
+        .group_by(func.date(TaskSubmission.task_submitted_at))
+        .all()
+    )
+    date_counts = {row.d: int(row.cnt) for row in rows}
+
+    items = []
+    for i in range(days):
+        d = start_date + timedelta(days=i)
+        items.append(TimelinePoint(date=d, count=date_counts.get(d, 0)))
+    return TimelineResponse(items=items)
 
 
 @router.get("/{submission_id}", response_model=TaskSubmissionResponse)

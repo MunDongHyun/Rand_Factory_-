@@ -208,6 +208,82 @@
     gap: 20px;
 }
 
+/* 시계열 영역 */
+.masterTimelineHeaderRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: -8px;
+}
+
+.masterTimelineRangeBtns {
+    display: flex;
+    gap: 6px;
+    background: var(--m-surface);
+    border: 1px solid var(--m-border);
+    border-radius: 10px;
+    padding: 4px;
+}
+
+.masterTimelineRangeBtn {
+    font-family: 'Pretendard', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--m-text-dim);
+    background: transparent;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.masterTimelineRangeBtn:hover {
+    color: var(--m-text);
+}
+
+.masterTimelineRangeBtn.active {
+    background: var(--m-accent-grad);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(74, 143, 208, 0.3);
+}
+
+.masterTimelineRow {
+    width: auto;
+    align-self: stretch;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.masterTimelineBoxHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.masterTimelineTotal {
+    font-family: 'Pretendard', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--m-text);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--m-border);
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-variant-numeric: tabular-nums;
+}
+
+.masterTimelineWrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 240px;
+    padding: 4px;
+}
+
 .masterChartBox {
     background: var(--m-surface);
     border: 1px solid var(--m-border);
@@ -602,6 +678,297 @@
     color: var(--m-warn);
     background: rgba(255, 107, 107, 0.1);
     border-color: rgba(255, 107, 107, 0.3);
+}
+
+.masterMemberRow.clickable {
+    cursor: pointer;
+}
+
+/* ===========================
+   회원 상세 모달
+   =========================== */
+.masterDetailOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 1200;
+    animation: fadeIn 0.2s ease;
+}
+
+.masterDetailModal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(560px, 92vw);
+    max-height: 88vh;
+    overflow-y: auto;
+    background: rgba(15, 20, 28, 0.96);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--m-border-hi);
+    border-radius: 16px;
+    padding: 32px;
+    z-index: 1300;
+    color: var(--m-text);
+    font-family: 'Pretendard', sans-serif;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.masterDetailHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.masterDetailEyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--m-text-faint);
+    margin: 0 0 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.masterDetailName {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--m-text);
+    margin: 0 0 6px;
+    letter-spacing: -0.02em;
+}
+
+.masterDetailMeta {
+    font-size: 13px;
+    color: var(--m-text-dim);
+    margin: 0 0 4px;
+}
+
+.masterDetailMetaSmall {
+    font-size: 12px;
+    color: var(--m-text-faint);
+    margin: 0;
+}
+
+.masterDetailClose {
+    background: transparent;
+    border: 1px solid var(--m-border);
+    color: var(--m-text-dim);
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+.masterDetailClose:hover {
+    background: var(--m-surface-hi);
+    color: var(--m-text);
+}
+
+.masterDetailSection {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--m-border);
+}
+
+.masterDetailSectionTitle {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--m-text-dim);
+    margin: 0 0 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.masterDetailGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+}
+
+.masterDetailStat {
+    background: var(--m-surface);
+    border: 1px solid var(--m-border);
+    border-radius: 10px;
+    padding: 14px;
+}
+
+.masterDetailStatLabel {
+    font-size: 11px;
+    color: var(--m-text-dim);
+    margin: 0 0 6px;
+}
+
+.masterDetailStatValue {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--m-text);
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+
+.masterDetailHint {
+    font-size: 12px;
+    color: var(--m-text-faint);
+    font-style: italic;
+    margin: 0;
+}
+
+.masterDetailRoleRow {
+    display: flex;
+    gap: 8px;
+}
+
+.masterDetailRoleBtn {
+    flex: 1;
+    font-family: 'Pretendard', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--m-text-dim);
+    background: var(--m-surface);
+    border: 1px solid var(--m-border);
+    padding: 10px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.masterDetailRoleBtn:hover:not(:disabled) {
+    background: var(--m-surface-hi);
+    color: var(--m-text);
+    border-color: var(--m-border-hi);
+}
+
+.masterDetailRoleBtn.active {
+    background: var(--m-accent-grad);
+    color: #ffffff;
+    border-color: transparent;
+    cursor: default;
+}
+
+.masterDetailRoleBtn:disabled:not(.active) {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.masterDetailDeleteBtn,
+.masterDetailRestoreBtn {
+    font-family: 'Pretendard', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.masterDetailDeleteBtn {
+    color: var(--m-warn);
+    background: rgba(255, 107, 107, 0.1);
+    border: 1px solid rgba(255, 107, 107, 0.3);
+}
+
+.masterDetailDeleteBtn:hover:not(:disabled) {
+    background: rgba(255, 107, 107, 0.18);
+}
+
+.masterDetailRestoreBtn {
+    color: #5cf0a8;
+    background: rgba(92, 240, 168, 0.1);
+    border: 1px solid rgba(92, 240, 168, 0.3);
+}
+
+.masterDetailRestoreBtn:hover:not(:disabled) {
+    background: rgba(92, 240, 168, 0.18);
+}
+
+.masterDetailDeleteBtn:disabled,
+.masterDetailRestoreBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ===========================
+   확인 다이얼로그
+   =========================== */
+.masterConfirmOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 1400;
+    animation: fadeIn 0.2s ease;
+}
+
+.masterConfirmModal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(380px, 90vw);
+    background: rgba(15, 20, 28, 0.98);
+    border: 1px solid var(--m-border-hi);
+    border-radius: 14px;
+    padding: 28px;
+    z-index: 1500;
+    color: var(--m-text);
+    font-family: 'Pretendard', sans-serif;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.masterConfirmMessage {
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 0 0 24px;
+    color: var(--m-text);
+}
+
+.masterConfirmBtns {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.masterConfirmCancel,
+.masterConfirmDanger,
+.masterConfirmPrimary {
+    font-family: 'Pretendard', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    border: none;
+    transition: opacity 0.2s ease;
+}
+
+.masterConfirmCancel {
+    background: var(--m-surface);
+    color: var(--m-text-dim);
+    border: 1px solid var(--m-border);
+}
+
+.masterConfirmDanger {
+    background: rgba(255, 107, 107, 0.85);
+    color: #ffffff;
+}
+
+.masterConfirmPrimary {
+    background: var(--m-accent-grad);
+    color: #ffffff;
+}
+
+.masterConfirmCancel:disabled,
+.masterConfirmDanger:disabled,
+.masterConfirmPrimary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 /* ===========================
