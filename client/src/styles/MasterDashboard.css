@@ -78,6 +78,46 @@
     transform: translateY(-1px);
 }
 
+.masterHeaderActions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.masterReportBtn {
+    font-family: 'Pretendard', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: #ffffff;
+    background: var(--m-accent-grad);
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(74, 143, 208, 0.2);
+}
+
+.masterReportBtn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(74, 143, 208, 0.35);
+}
+
+.masterReportBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* PDF 캡처용 offscreen 영역 */
+.masterReportOffscreen {
+    position: fixed;
+    top: 0;
+    left: -10000px;
+    width: 210mm;
+    pointer-events: none;
+    opacity: 0;
+}
+
 .masterHeaderLine {
     width: 100%;
     height: 1px;

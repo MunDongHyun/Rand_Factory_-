@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Chart as ChartJS,
   ArcElement,
@@ -11,7 +11,9 @@ import {
   Legend,
 } from 'chart.js';
 import { Doughnut, Line } from 'react-chartjs-2';
+import html2pdf from 'html2pdf.js';
 import api from '../lib/api';
+import ReportTemplate from './ReportTemplate';
 import '../styles/MasterDashboard.css';
 
 ChartJS.register(
@@ -83,6 +85,11 @@ function MasterDashboard({ user, onLogout }) {
   const [detailError, setDetailError] = useState(null);
   const [actionSaving, setActionSaving] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState(null);   // { kind: 'delete' | 'restore', message }
+
+  // 보고서 PDF 다운로드
+  const [reportGenerating, setReportGenerating] = useState(false);
+  const [reportData, setReportData] = useState(null);
+  const reportRef = useRef(null);
 
   const [viewsTimeline, setViewsTimeline] = useState([]);
   const [signupsTimeline, setSignupsTimeline] = useState([]);
@@ -353,15 +360,103 @@ function MasterDashboard({ user, onLogout }) {
   const isSelf = detailMember && user && detailMember.user_id === user.user_id;
   const isDeleted = detailMember?.user_deleted_at;
 
+  const handleDownloadReport = async (kind /* 'weekly' | 'monthly' */) => {
+    if (reportGenerating) return;
+    setReportGenerating(true);
+    try {
+      const days = kind === 'monthly' ? 30 : 7;
+      const end = new Date();
+      const start = new Date();
+      start.setDate(start.getDate() - days + 1);
+
+      const tasks = [
+        api.get('/users/stats/signups-timeline', { params: { days } }).then((r) => r.data.items || []),
+        api.get('/articles/stats/views-timeline', { params: { days } }).then((r) => r.data.items || []),
+      ];
+
+      if (members.length === 0) {
+        tasks.push(
+          api.get('/users', { params: { limit: 200 } }).then((r) => r.data.users || []),
+        );
+      }
+
+      const results = await Promise.all(tasks);
+      const reportSignups = results[0];
+      const reportViews = results[1];
+      const reportMembers = results[2] || members;
+
+      setReportData({
+        period: {
+          kind: kind === 'monthly' ? '월간' : '주간',
+          start,
+          end,
+        },
+        stats,
+        curriculumStats,
+        signupsTimeline: reportSignups,
+        viewsTimeline: reportViews,
+        categoryStats,
+        popularArticles,
+        members: reportMembers,
+      });
+
+      // ReportTemplate가 마운트되고 차트가 그려질 시간 확보
+      await new Promise((resolve) => setTimeout(resolve, 600));
+
+      const element = reportRef.current;
+      if (!element) throw new Error('보고서 영역을 찾지 못했습니다.');
+
+      const filename = `landfactory_${kind}_report_${new Date().toISOString().slice(0, 10)}.pdf`;
+
+      await html2pdf()
+        .from(element)
+        .set({
+          margin: 0,
+          filename,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+          pagebreak: {
+            mode: ['css', 'legacy'],
+            before: '.reportPage:not(:first-child)',
+          },
+        })
+        .save();
+    } catch (err) {
+      alert(err.response?.data?.detail || err.message || 'PDF 생성에 실패했습니다.');
+    } finally {
+      setReportData(null);
+      setReportGenerating(false);
+    }
+  };
+
   return (
     <div className="masterContainer">
 
       {/* 헤더 */}
       <header className="masterHeader">
         <div className="masterLogo">LANDFACTORY</div>
-        <button className="masterMemberBtn" onClick={() => setMemberPanelOpen(true)}>
-          회원관리
-        </button>
+        <div className="masterHeaderActions">
+          <button
+            className="masterReportBtn"
+            onClick={() => handleDownloadReport('weekly')}
+            disabled={reportGenerating}
+            title="최근 7일 운영 보고서 PDF 다운로드"
+          >
+            {reportGenerating ? '생성 중...' : '주간 PDF'}
+          </button>
+          <button
+            className="masterReportBtn"
+            onClick={() => handleDownloadReport('monthly')}
+            disabled={reportGenerating}
+            title="최근 30일 운영 보고서 PDF 다운로드"
+          >
+            {reportGenerating ? '생성 중...' : '월간 PDF'}
+          </button>
+          <button className="masterMemberBtn" onClick={() => setMemberPanelOpen(true)}>
+            회원관리
+          </button>
+        </div>
       </header>
       <div className="masterHeaderLine" />
 
@@ -735,6 +830,13 @@ function MasterDashboard({ user, onLogout }) {
             </div>
           </div>
         </>
+      )}
+
+      {/* 보고서 (offscreen, html2pdf 캡처용) */}
+      {reportData && (
+        <div className="masterReportOffscreen" aria-hidden="true">
+          <ReportTemplate ref={reportRef} {...reportData} />
+        </div>
       )}
 
       {/* 확인 다이얼로그 */}

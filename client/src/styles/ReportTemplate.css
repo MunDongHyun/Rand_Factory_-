@@ -1,0 +1,240 @@
+/* ============================================================
+   PDF 보고서 템플릿 — 라이트 인쇄용 톤 (A4)
+   ============================================================ */
+
+.reportRoot {
+  font-family: 'Pretendard', sans-serif;
+  color: #1a1a1a;
+  background: #ffffff;
+}
+
+.reportPage {
+  width: 210mm;
+  padding: 18mm 16mm;
+  box-sizing: border-box;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 14mm;
+}
+
+.reportPage + .reportPage {
+  page-break-before: always;
+  break-before: page;
+}
+
+/* 헤더 */
+.reportHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  border-bottom: 2px solid #1a1a1a;
+  padding-bottom: 10px;
+}
+
+.reportEyebrow {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: #4a8fd0;
+  margin: 0 0 2px;
+}
+
+.reportTitle {
+  font-size: 22px;
+  font-weight: 800;
+  color: #1a1a1a;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.reportHeaderRight {
+  text-align: right;
+}
+
+.reportMetaLine {
+  font-size: 11px;
+  color: #1a1a1a;
+  margin: 0;
+  line-height: 1.55;
+}
+
+.reportMetaLineSmall {
+  font-size: 10px;
+  color: #888;
+  margin: 2px 0 0;
+}
+
+/* 섹션 */
+.reportSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reportSectionTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 4px;
+  padding-left: 8px;
+  border-left: 3px solid #4a8fd0;
+  letter-spacing: -0.01em;
+}
+
+/* 핵심 지표 카드 */
+.reportKpiGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.reportKpiGridSm {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.reportKpi {
+  border: 1px solid #e1e4e8;
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: #fafbfc;
+}
+
+.reportKpiLabel {
+  font-size: 10px;
+  color: #666;
+  margin: 0 0 6px;
+}
+
+.reportKpiValue {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  display: inline-block;
+}
+
+.reportKpiUnit {
+  font-size: 11px;
+  font-weight: 500;
+  color: #666;
+  margin: 0 0 0 4px;
+  display: inline-block;
+}
+
+/* 차트 블록 */
+.reportChartBlock,
+.reportSubBlock {
+  border: 1px solid #e1e4e8;
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reportChartLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: #444;
+  margin: 0;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.reportChartWrap {
+  width: 100%;
+  height: 140px;
+}
+
+.reportChartEmpty {
+  font-size: 11px;
+  color: #888;
+  text-align: center;
+  margin: 0;
+  padding: 32px;
+}
+
+/* 회원 구성 */
+.reportRolePillRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.reportRolePill {
+  font-size: 11px;
+  font-weight: 600;
+  color: #1a1a1a;
+  background: #f0f4f8;
+  border: 1px solid #d0d7de;
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+
+.reportRolePill.warn {
+  color: #cb2431;
+  background: rgba(203, 36, 49, 0.05);
+  border-color: rgba(203, 36, 49, 0.25);
+}
+
+.reportNote {
+  font-size: 11px;
+  color: #555;
+  margin: 4px 0 0;
+}
+
+.reportNote strong {
+  color: #1a1a1a;
+}
+
+/* 표 */
+.reportTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.reportTable th,
+.reportTable td {
+  padding: 7px 8px;
+  border-bottom: 1px solid #e1e4e8;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.reportTable th {
+  font-weight: 700;
+  color: #555;
+  background: #fafbfc;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-bottom: 1.5px solid #d0d7de;
+}
+
+.reportTableTitle {
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reportTableEmpty {
+  text-align: center !important;
+  color: #888;
+  padding: 14px !important;
+}
+
+/* 푸터 */
+.reportFooter {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid #e1e4e8;
+  font-size: 10px;
+  color: #888;
+  text-align: center;
+}
