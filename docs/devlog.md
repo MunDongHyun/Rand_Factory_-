@@ -2,6 +2,53 @@
 
 ---
 
+## 2026-05-15 - Claude (인라인 스타일 정리 + chart.js 등록 통합 리팩토링)
+
+### 배경
+- CLAUDE.md에 명문화된 "JSX inline style 금지" 컨벤션 위반 사례 중 가장 시급한 곳 정리
+- 단계 4(PDF 보고서)에서 새로 추가된 `ReportTemplate.jsx`가 컨벤션 명문화 이후 작성됐음에도 9개의 inline style 포함
+- `MasterDashboard.jsx` + `ReportTemplate.jsx` 두 곳에서 `ChartJS.register(...)` 중복 호출
+
+### 작업
+- `client/src/styles/ReportTemplate.css`
+  - 표 컬럼 width/정렬용 클래스 추가: `.reportColW8`, `.reportColW15`, `.reportColW20`, `.reportAlignRight`
+- `client/src/components/ReportTemplate.jsx`
+  - 카테고리 TOP 5 / 인기 아티클 TOP 5 두 표의 inline style 9개 → 클래스 조합으로 전부 교체
+  - 컬럼별 width와 textAlign을 클래스로 표현, 코드 중복 감소
+- `client/src/styles/Curriculum.css`
+  - 학습자 페이지 hint/error 클래스 4종 추가: `.learnerInlineHint`, `.learnerInlineError`, `.learnerInlineMuted`, `.learnerSubmitError`
+- `client/src/components/LearnerCurriculumView.jsx`
+  - 정적 inline style 5개 → 새 클래스로 교체
+  - 진행률 바의 동적 `width: ${progress}%` 2개는 CLAUDE.md 예외 규정(props/state 기반 동적값)대로 inline 유지
+- `client/src/lib/chart.js` 신설
+  - chart.js 전역 register를 모듈 1곳으로 통합 (side-effect import)
+  - 등록 컴포넌트: ArcElement, CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip, Legend
+- `client/src/components/MasterDashboard.jsx`
+  - chart.js 직접 import + register 제거 → `import '../lib/chart'` 한 줄로 대체
+- `client/src/components/ReportTemplate.jsx`
+  - 동일하게 `lib/chart` side-effect import만 유지, 자체 register 제거
+
+### 결정
+- 동적 inline style(`learnerProgressFill`의 width)은 CLAUDE.md "props/state 기반 동적값 예외 허용" 규정대로 그대로 둠. CSS 변수 + style 속성 패턴은 React에서 가장 단순한 방법.
+- chart.js register는 side-effect import로 충분. `lib/chart.js`를 import한 모든 모듈은 자동으로 등록된 차트 요소를 공유. 명시적 함수 export는 불필요하다고 판단.
+- 컬럼 width 클래스를 `.reportColW8/W15/W20`처럼 명시적 이름으로 둠. nth-child 셀렉터보다 가독성 우선.
+
+### 통계
+- 프로젝트 전체 inline style: 49개 → **37개** (정적 12개 제거)
+- ReportTemplate inline style: 9개 → 0개
+- LearnerCurriculumView inline style: 7개 → 2개 (동적만 유지)
+- chart.js register 호출 위치: 2곳 → 1곳
+
+### 검증
+- `cd client && npm run build` 통과 (3.35s, 메인 448KB / CSS 82KB)
+- 동적 progress 바 / PDF 보고서 / 마스터 페이지 차트 모두 동작 유지
+
+### 다음 / TODO
+- 남은 inline style 37개 (Dashboard 13 / CurriculumView 12 / Header 3 / 기타) — 발표 후 클린업 단계에서 정리
+- `MasterDashboard.jsx` 추가 분리 (시계열/도넛/통계 카드 등) — 우선순위 낮음
+
+---
+
 ## 2026-05-15 - Codex (마스터 페이지 단계 4 — 주간/월간 PDF 보고서)
 
 ### 배경

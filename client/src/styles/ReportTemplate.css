@@ -198,6 +198,22 @@
   font-size: 11px;
 }
 
+.reportColW8 {
+  width: 8%;
+}
+
+.reportColW15 {
+  width: 15%;
+}
+
+.reportColW20 {
+  width: 20%;
+}
+
+.reportAlignRight {
+  text-align: right;
+}
+
 .reportTable th,
 .reportTable td {
   padding: 7px 8px;

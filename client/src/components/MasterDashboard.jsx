@@ -1,32 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  Chart as ChartJS,
-  ArcElement,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Filler,
-  Tooltip,
-  Legend,
-} from 'chart.js';
 import { Doughnut, Line } from 'react-chartjs-2';
+import '../lib/chart';
 import api from '../lib/api';
 import ReportTemplate from './ReportTemplate';
 import MasterMemberPanel from './master/MasterMemberPanel';
 import MasterMemberDetailModal from './master/MasterMemberDetailModal';
 import '../styles/MasterDashboard.css';
-
-ChartJS.register(
-  ArcElement,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Filler,
-  Tooltip,
-  Legend,
-);
 
 const DOUGHNUT_COLORS = [
   '#4a8fd0',

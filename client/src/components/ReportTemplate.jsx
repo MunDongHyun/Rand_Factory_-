@@ -1,28 +1,7 @@
 import { forwardRef } from 'react';
-import {
-  Chart as ChartJS,
-  ArcElement,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Filler,
-  Tooltip,
-  Legend,
-} from 'chart.js';
 import { Line } from 'react-chartjs-2';
+import '../lib/chart';
 import '../styles/ReportTemplate.css';
-
-ChartJS.register(
-  ArcElement,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Filler,
-  Tooltip,
-  Legend,
-);
 
 function formatDateKor(d) {
   if (!d) return '';
@@ -203,10 +182,10 @@ const ReportTemplate = forwardRef(function ReportTemplate(
             <table className="reportTable">
               <thead>
                 <tr>
-                  <th style={{ width: '8%' }}>순위</th>
+                  <th className="reportColW8">순위</th>
                   <th>카테고리</th>
-                  <th style={{ width: '20%', textAlign: 'right' }}>조회수</th>
-                  <th style={{ width: '15%', textAlign: 'right' }}>비중</th>
+                  <th className="reportColW20 reportAlignRight">조회수</th>
+                  <th className="reportColW15 reportAlignRight">비중</th>
                 </tr>
               </thead>
               <tbody>
@@ -219,8 +198,8 @@ const ReportTemplate = forwardRef(function ReportTemplate(
                     <tr key={c.category}>
                       <td>{i + 1}</td>
                       <td>{c.category}</td>
-                      <td style={{ textAlign: 'right' }}>{(c.total_views || 0).toLocaleString()}</td>
-                      <td style={{ textAlign: 'right' }}>{pct}%</td>
+                      <td className="reportAlignRight">{(c.total_views || 0).toLocaleString()}</td>
+                      <td className="reportAlignRight">{pct}%</td>
                     </tr>
                   );
                 })}
@@ -233,10 +212,10 @@ const ReportTemplate = forwardRef(function ReportTemplate(
             <table className="reportTable">
               <thead>
                 <tr>
-                  <th style={{ width: '8%' }}>순위</th>
+                  <th className="reportColW8">순위</th>
                   <th>제목</th>
-                  <th style={{ width: '20%' }}>카테고리</th>
-                  <th style={{ width: '15%', textAlign: 'right' }}>조회수</th>
+                  <th className="reportColW20">카테고리</th>
+                  <th className="reportColW15 reportAlignRight">조회수</th>
                 </tr>
               </thead>
               <tbody>
@@ -248,7 +227,7 @@ const ReportTemplate = forwardRef(function ReportTemplate(
                     <td>{i + 1}</td>
                     <td className="reportTableTitle">{a.article_title}</td>
                     <td>{a.article_category || '-'}</td>
-                    <td style={{ textAlign: 'right' }}>{(a.article_view_count || 0).toLocaleString()}</td>
+                    <td className="reportAlignRight">{(a.article_view_count || 0).toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>

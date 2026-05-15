@@ -735,6 +735,34 @@
    학습자용 커리큘럼 (LearnerCurriculumView)
    =========================== */
 
+.learnerInlineHint {
+  padding: 20px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  color: #888;
+  margin: 0;
+}
+
+.learnerInlineError {
+  padding: 20px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  color: #c33;
+  margin: 0;
+}
+
+.learnerInlineMuted {
+  padding: 20px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  color: #666;
+  margin: 0;
+}
+
+.learnerSubmitError {
+  padding: 0 24px;
+}
+
 .learnerCurriculumGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));

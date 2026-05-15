@@ -157,10 +157,10 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
       <div className="curriculumPageContainer">
         <h2 className="sectionTitle">내 학습 커리큘럼</h2>
 
-        {loading && <p style={{ padding: '20px' }}>커리큘럼을 불러오는 중...</p>}
-        {error && <p style={{ padding: '20px', color: '#c33' }}>{error}</p>}
+        {loading && <p className="learnerInlineHint">커리큘럼을 불러오는 중...</p>}
+        {error && <p className="learnerInlineError">{error}</p>}
         {!loading && !error && curriculums.length === 0 && (
-          <p style={{ padding: '20px', color: '#666' }}>
+          <p className="learnerInlineMuted">
             배정된 커리큘럼이 아직 없습니다. 매니저가 커리큘럼을 배정해주면 여기에 표시됩니다.
           </p>
         )}
@@ -263,7 +263,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
       {/* 주차별 아코디언 */}
       <div className="learnerWeekList">
         {weekPlan.length === 0 && (
-          <p style={{ padding: '20px', color: '#666' }}>주차별 계획이 아직 없습니다.</p>
+          <p className="learnerInlineMuted">주차별 계획이 아직 없습니다.</p>
         )}
 
         {weekPlan.map((step) => {
@@ -418,7 +418,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
             </div>
 
             {submitError && (
-              <p className="emailingError" style={{ padding: '0 24px' }}>{submitError}</p>
+              <p className="emailingError learnerSubmitError">{submitError}</p>
             )}
 
             <div className="emailModalFooter">
