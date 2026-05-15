@@ -3,6 +3,8 @@ import api from '../lib/api';
 import curri_nulll from '../public/curri_null.png';
 import '../styles/Curriculum.css';
 
+import JoditEditor from 'jodit-react';
+
 const initialForm = {
   cur_title: '',
   cur_duration_weeks: 4,
@@ -60,6 +62,9 @@ function CurriculumView({ onOpenArticle }) {
   const [feedbackDraft, setFeedbackDraft] = useState({});
   const [feedbackSavingId, setFeedbackSavingId] = useState(null);
   const [expandedSubmissionId, setExpandedSubmissionId] = useState(null);
+
+  const [templateModal, setTemplateModal] = useState({ open: false, week: null, assignmentIdx: null, title: '', content: '' });
+  const [submissionModal, setSubmissionModal] = useState({ open: false, week: null, assignmentIdx: null, title: '', templateContent: '', content: '', status: 'draft' });
 
   const loadCurriculums = () => {
     setLoading(true);
@@ -133,9 +138,7 @@ function CurriculumView({ onOpenArticle }) {
         task_status: status,
       });
       setSubmissions((prev) => prev.map((s) =>
-        s.task_submission_id === submissionId
-          ? { ...s, ...res.data }
-          : s
+        s.task_submission_id === submissionId ? { ...s, ...res.data } : s
       ));
       setFeedbackDraft((prev) => ({ ...prev, [submissionId]: '' }));
     } catch (err) {
@@ -157,47 +160,26 @@ function CurriculumView({ onOpenArticle }) {
   const handleDownloadTxt = async () => {
     if (!selectedCurriculum || !selectedCurriculum.cur_week_plan) return;
     try {
-      const res = await api.post('/curricula/download/txt', normalizeWeekPlan(selectedCurriculum.cur_week_plan), {
-        responseType: 'blob',
-      });
+      const res = await api.post('/curricula/download/txt', normalizeWeekPlan(selectedCurriculum.cur_week_plan), { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([res.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `${selectedCurriculum.cur_title}.txt`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    } catch (error) {
-      alert('TXT 다운로드 중 오류가 발생했습니다.');
-    }
+      const link = document.createElement('a'); link.href = url; link.setAttribute('download', `${selectedCurriculum.cur_title}.txt`);
+      document.body.appendChild(link); link.click(); link.remove();
+    } catch (error) { alert('TXT 다운로드 중 오류가 발생했습니다.'); }
   };
 
   const handleDownloadPdf = async () => {
     if (!selectedCurriculum || !selectedCurriculum.cur_week_plan) return;
     try {
-      const res = await api.post('/curricula/download/pdf', normalizeWeekPlan(selectedCurriculum.cur_week_plan), {
-        responseType: 'blob',
-      });
+      const res = await api.post('/curricula/download/pdf', normalizeWeekPlan(selectedCurriculum.cur_week_plan), { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([res.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `${selectedCurriculum.cur_title}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    } catch (error) {
-      alert('PDF 다운로드 중 오류가 발생했습니다.');
-    }
+      const link = document.createElement('a'); link.href = url; link.setAttribute('download', `${selectedCurriculum.cur_title}.pdf`);
+      document.body.appendChild(link); link.click(); link.remove();
+    } catch (error) { alert('PDF 다운로드 중 오류가 발생했습니다.'); }
   };
 
   const closeModal = () => {
     if (generating || saving) return;
-    setModalOpen(false);
-    setConfirmOpen(false);
-    setPreview(null);
-    setFormError(null);
-    setPreviewExpandedWeek(null);
-    setCreateAssignedIds([]);
+    setModalOpen(false); setConfirmOpen(false); setPreview(null); setFormError(null); setPreviewExpandedWeek(null); setCreateAssignedIds([]);
   };
 
   const handleChange = (event) => {
@@ -206,71 +188,39 @@ function CurriculumView({ onOpenArticle }) {
   };
 
   const handleGenerate = async (event) => {
-    event.preventDefault();
-    setFormError(null);
+    event.preventDefault(); setFormError(null);
     const payload = buildGeneratePayload(form);
-    if (!payload.cur_title) {
-      setFormError('과정명을 입력해 주세요.');
-      return;
-    }
-    if (!payload.cur_duration_weeks || payload.cur_duration_weeks < 1) {
-      setFormError('기간은 1주 이상으로 입력해 주세요.');
-      return;
-    }
+    if (!payload.cur_title) { setFormError('과정명을 입력해 주세요.'); return; }
+    if (!payload.cur_duration_weeks || payload.cur_duration_weeks < 1) { setFormError('기간은 1주 이상으로 입력해 주세요.'); return; }
     setGenerating(true);
     try {
       const res = await api.post('/curricula/generate', payload);
       setPreview(res.data);
-      if (res.data?.cur_week_plan?.length > 0) {
-        setPreviewExpandedWeek(res.data.cur_week_plan[0].week);
-      }
+      if (res.data?.cur_week_plan?.length > 0) setPreviewExpandedWeek(res.data.cur_week_plan[0].week);
       setConfirmOpen(true);
     } catch (err) {
       const detail = err.response?.data?.detail;
-      if (Array.isArray(detail)) {
-        setFormError(detail[0].msg);
-      } else {
-        setFormError(detail || 'AI 커리큘럼 생성에 실패했어요.');
-      }
-    } finally {
-      setGenerating(false);
-    }
+      setFormError(Array.isArray(detail) ? detail[0].msg : detail || 'AI 커리큘럼 생성에 실패했어요.');
+    } finally { setGenerating(false); }
   };
 
   const handleSave = async () => {
     if (!preview) return;
-    setSaving(true);
-    setFormError(null);
+    setSaving(true); setFormError(null);
     try {
       const savePayload = {
-        cur_title: preview.cur_title,
-        cur_duration_weeks: preview.cur_duration_weeks,
-        cur_target_job: preview.cur_target_job || null,
-        cur_target_industry: preview.cur_target_industry || null,
-        cur_learning_goal: preview.cur_learning_goal || null,
-        cur_learning_detail_goal: form.required_content.trim() || null,
-        cur_week_plan: preview.cur_week_plan,
-        cur_assigned_learner_ids: createAssignedIds,
-        cur_status: 'active',
+        cur_title: preview.cur_title, cur_duration_weeks: preview.cur_duration_weeks, cur_target_job: preview.cur_target_job || null,
+        cur_target_industry: preview.cur_target_industry || null, cur_learning_goal: preview.cur_learning_goal || null,
+        cur_learning_detail_goal: form.required_content.trim() || null, cur_week_plan: preview.cur_week_plan,
+        cur_assigned_learner_ids: createAssignedIds, cur_status: 'active',
       };
       const res = await api.post('/curricula', savePayload);
       await loadCurriculums();
-      setSelectedId(res.data.cur_id);
-      setForm(initialForm);
-      setPreview(null);
-      setConfirmOpen(false);
-      setModalOpen(false);
-      setCreateAssignedIds([]);
+      setSelectedId(res.data.cur_id); setForm(initialForm); setPreview(null); setConfirmOpen(false); setModalOpen(false); setCreateAssignedIds([]);
     } catch (err) {
       const detail = err.response?.data?.detail;
-      if (Array.isArray(detail)) {
-        setFormError(detail[0].msg);
-      } else {
-        setFormError(detail || '커리큘럼 저장에 실패했어요.');
-      }
-    } finally {
-      setSaving(false);
-    }
+      setFormError(Array.isArray(detail) ? detail[0].msg : detail || '커리큘럼 저장에 실패했어요.');
+    } finally { setSaving(false); }
   };
 
   const previewWeeks = normalizeWeekPlan(preview?.cur_week_plan);
@@ -279,18 +229,35 @@ function CurriculumView({ onOpenArticle }) {
     if (!selectedCurriculum) return;
     setAssignSaving(true);
     try {
-      const res = await api.patch(`/curricula/${selectedCurriculum.cur_id}`, {
-        cur_assigned_learner_ids: assignSelected,
-      });
-      setCurriculums((prev) =>
-        prev.map((c) => (c.cur_id === res.data.cur_id ? res.data : c))
-      );
+      const res = await api.patch(`/curricula/${selectedCurriculum.cur_id}`, { cur_assigned_learner_ids: assignSelected });
+      setCurriculums((prev) => prev.map((c) => (c.cur_id === res.data.cur_id ? res.data : c)));
       setAssignModalOpen(false);
-    } catch (err) {
-      alert(err.response?.data?.detail || '배정 변경에 실패했습니다.');
-    } finally {
-      setAssignSaving(false);
-    }
+    } catch (err) { alert(err.response?.data?.detail || '배정 변경에 실패했습니다.'); } finally { setAssignSaving(false); }
+  };
+
+  const saveTemplate = async () => {
+    alert('학습자들에게 과제 템플릿이 배포되었습니다.');
+    setTemplateModal({ ...templateModal, open: false });
+  };
+
+  const openSubmissionModal = (week, idx, assignment) => {
+    setSubmissionModal({
+      open: true, week, assignmentIdx: idx, title: assignment.title,
+      templateContent: assignment.template_content || '사수가 작성한 템플릿 내용 및 가이드가 이곳에 표시됩니다.',
+      content: '', status: 'draft'
+    });
+  };
+
+  const saveSubmission = async (isSubmit) => {
+    if (isSubmit) alert('과제가 최종 제출되었습니다.'); else alert('작성 중인 내용이 임시 저장되었습니다.');
+    setSubmissionModal({ ...submissionModal, open: false });
+  };
+
+  const openTemplateModal = (week, idx, assignment) => {
+    setTemplateModal({
+      open: true, week, assignmentIdx: idx, title: assignment.title,
+      content: assignment.template_content || `[${assignment.title}] 관련 과제 양식을 자유롭게 작성해주세요.\n\n1. 핵심 지표:\n2. 분석 결과:\n3. 향후 전략:\n`
+    });
   };
 
   const renderAccordionItem = (step, expandedState, toggleFunc) => {
@@ -314,12 +281,7 @@ function CurriculumView({ onOpenArticle }) {
               <div className="extracted-section-margin">
                 <h4 className="extracted-task-title">📚 멘토링 및 실습 과제</h4>
                 <ul className="extracted-task-list">
-                  {Array.isArray(step.tasks || step.task)
-                    ? (step.tasks || step.task).map((t, idx) => (
-                      <li key={idx} className="extracted-list-item">{t}</li>
-                    ))
-                    : <p className="extracted-objective-text">{step.tasks || step.task}</p>
-                  }
+                  {Array.isArray(step.tasks || step.task) ? (step.tasks || step.task).map((t, idx) => (<li key={idx} className="extracted-list-item">{t}</li>)) : <p className="extracted-objective-text">{step.tasks || step.task}</p>}
                 </ul>
               </div>
             )}
@@ -332,14 +294,16 @@ function CurriculumView({ onOpenArticle }) {
                       <strong className="extracted-assignment-name">[과제명] {a.title}</strong>
                       {Array.isArray(a.step_by_step_guide) && a.step_by_step_guide.length > 0 && (
                         <ul className="extracted-guide-list">
-                          {a.step_by_step_guide.map((guide, gIdx) => (
-                            <li key={gIdx} className="extracted-guide-item">{guide}</li>
-                          ))}
+                          {a.step_by_step_guide.map((guide, gIdx) => (<li key={gIdx} className="extracted-guide-item">{guide}</li>))}
                         </ul>
                       )}
                       {a.description && <p className="extracted-guide-item">{a.description}</p>}
-                      <div className="extracted-submission-format">
-                        제출 형태: {a.expected_output_format || a.submission || '지정되지 않음'}
+                      <div className="extracted-submission-format has-actions">
+                        <span>제출 형태: {a.expected_output_format || a.submission || '지정되지 않음'}</span>
+                        <div className="templateActionBtnGroup">
+                          <button className="template-action-btn admin" onClick={(e) => { e.stopPropagation(); openTemplateModal(step.week, idx, a); }}>양식 배포(관리자)</button>
+                          <button className="template-action-btn user" onClick={(e) => { e.stopPropagation(); openSubmissionModal(step.week, idx, a); }}>과제 작성(학습자)</button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -353,9 +317,7 @@ function CurriculumView({ onOpenArticle }) {
                   <div className="extracted-section-margin">
                     <strong className="extracted-guide-label">[평가 체크포인트]</strong>
                     <ul className="extracted-guide-list-no-margin">
-                      {step.instructor_guide.check_points.map((cp, idx) => (
-                        <li key={idx} className="extracted-guide-item-small">{cp}</li>
-                      ))}
+                      {step.instructor_guide.check_points.map((cp, idx) => (<li key={idx} className="extracted-guide-item-small">{cp}</li>))}
                     </ul>
                   </div>
                 )}
@@ -363,9 +325,7 @@ function CurriculumView({ onOpenArticle }) {
                   <div>
                     <strong className="extracted-guide-label">[1:1 미팅 권장 질문]</strong>
                     <ul className="extracted-coaching-list">
-                      {step.instructor_guide.coaching_questions.map((cq, idx) => (
-                        <li key={idx} className="extracted-coaching-item">🗣️ {cq}</li>
-                      ))}
+                      {step.instructor_guide.coaching_questions.map((cq, idx) => (<li key={idx} className="extracted-coaching-item">🗣️ {cq}</li>))}
                     </ul>
                   </div>
                 )}
@@ -380,23 +340,15 @@ function CurriculumView({ onOpenArticle }) {
                       const hasValidUrl = article.url && article.url.trim() !== "";
                       return (
                         <div key={idx} className="extracted-ref-item">
-                          {hasValidUrl ? (
-                            <a href={article.url} target="_blank" rel="noopener noreferrer" className="extracted-ref-link">🔗 {article.title}</a>
-                          ) : (
-                            <span className="extracted-ref-doc">📁 {article.title} <span className="extracted-ref-small">(사내 문서 참고)</span></span>
-                          )}
-                          {(article.reason_for_reading || article.why_relevant) && (
-                            <p className="extracted-ref-reason">✓ {article.reason_for_reading || article.why_relevant}</p>
-                          )}
+                          {hasValidUrl ? (<a href={article.url} target="_blank" rel="noopener noreferrer" className="extracted-ref-link">🔗 {article.title}</a>) : (<span className="extracted-ref-doc">📁 {article.title} <span className="extracted-ref-small">(사내 문서 참고)</span></span>)}
+                          {(article.reason_for_reading || article.why_relevant) && (<p className="extracted-ref-reason">✓ {article.reason_for_reading || article.why_relevant}</p>)}
                         </div>
                       );
                     })}
                   </>
                 )}
               </div>
-              {step.estimated_hours && (
-                <div className="extracted-time-badge">⏱ 예상 소요: {step.estimated_hours}시간</div>
-              )}
+              {step.estimated_hours && (<div className="extracted-time-badge">⏱ 예상 소요: {step.estimated_hours}시간</div>)}
             </div>
           </div>
         )}
@@ -407,8 +359,8 @@ function CurriculumView({ onOpenArticle }) {
   return (
     <div className="curriculumPageContainer">
       <h2 className="sectionTitle">커리큘럼 관리</h2>
-      {loading && <p style={{ padding: '20px' }}>커리큘럼을 불러오는 중...</p>}
-      {error && <p style={{ padding: '20px', color: '#c33' }}>{error}</p>}
+      {loading && <p className="curriculumStatusMsg">커리큘럼을 불러오는 중...</p>}
+      {error && <p className="curriculumStatusMsg error">{error}</p>}
       {!loading && !error && curriculums.length === 0 && (
         <div className="curriculumEmptyBox">
           <img src={curri_nulll} className="curriculumEmptyImage" alt="없음" />
@@ -437,8 +389,8 @@ function CurriculumView({ onOpenArticle }) {
           <div className="curriculumDetail">
             <div className="extracted-detail-header">
               <div>
-                <h3 className="curriculumDetailTitle" style={{ marginBottom: '8px' }}>{selectedCurriculum.cur_title}</h3>
-                <p className="curriculumDetailDesc" style={{ margin: 0 }}>{selectedCurriculum.cur_learning_goal || ''}</p>
+                <h3 className="curriculumDetailTitle mb-8">{selectedCurriculum.cur_title}</h3>
+                <p className="curriculumDetailDesc no-margin">{selectedCurriculum.cur_learning_goal || ''}</p>
               </div>
               <div className="extracted-download-group">
                 <button onClick={handleDownloadTxt} className="extracted-btn-txt">📄 TXT 다운로드</button>
@@ -451,28 +403,21 @@ function CurriculumView({ onOpenArticle }) {
                 <button className="assignedLearnersEditBtn" onClick={() => { setAssignSelected(selectedCurriculum.cur_assigned_learner_ids || []); setAssignModalOpen(true); }}>배정 변경</button>
               </div>
               <div className="assignedLearnersList">
-                {(selectedCurriculum.cur_assigned_learner_ids || []).length === 0 ? (
-                  <span className="assignEmptyInline">배정된 학습자가 없습니다</span>
-                ) : (
-                  (selectedCurriculum.cur_assigned_learner_ids || []).map((id) => {
-                    const l = learners.find((x) => x.user_id === id);
-                    return <span key={id} className="assignedLearnerChip">{l ? l.user_name : `#${id}`}</span>;
-                  })
-                )}
+                {(selectedCurriculum.cur_assigned_learner_ids || []).length === 0 ? (<span className="assignEmptyInline">배정된 학습자가 없습니다</span>) : ((selectedCurriculum.cur_assigned_learner_ids || []).map((id) => {
+                  const l = learners.find((x) => x.user_id === id); return <span key={id} className="assignedLearnerChip">{l ? l.user_name : `#${id}`}</span>;
+                }))}
               </div>
             </div>
-            <div className="curriculumSteps" style={{ marginTop: '24px' }}>
-              {normalizeWeekPlan(selectedCurriculum.cur_week_plan).map((step) =>
-                renderAccordionItem(step, detailExpandedWeek, (week) => setDetailExpandedWeek(prev => prev === week ? null : week))
-              )}
+            <div className="curriculumSteps mt-24">
+              {normalizeWeekPlan(selectedCurriculum.cur_week_plan).map((step) => renderAccordionItem(step, detailExpandedWeek, (week) => setDetailExpandedWeek(prev => prev === week ? null : week)))}
             </div>
-            {/* 제출된 과제 섹션 유지 */}
+
             <div className="managerSubmissionSection">
               <div className="managerSubmissionHeader">
                 <h3 className="managerSubmissionTitle">제출된 과제</h3>
                 <span className="managerSubmissionCount">{submissions.length}건</span>
               </div>
-              {submissionsLoading && <p style={{ color: '#666' }}>제출 과제를 불러오는 중...</p>}
+              {submissionsLoading && <p className="managerSubmissionLoading">제출 과제를 불러오는 중...</p>}
               {!submissionsLoading && submissions.length === 0 && <p className="managerSubmissionEmpty">아직 제출된 과제가 없습니다.</p>}
               <div className="managerSubmissionList">
                 {submissions.map((s) => {
@@ -496,7 +441,7 @@ function CurriculumView({ onOpenArticle }) {
                         <div className="managerSubmissionItemBody">
                           <div className="managerSubmissionContent">
                             <p className="managerSubmissionContentLabel">제출 내용</p>
-                            <div className="managerSubmissionContentBody">{s.task_submitted_content?.text || '(내용 없음)'}</div>
+                            <div className="managerSubmissionContentBody" dangerouslySetInnerHTML={{ __html: s.task_submitted_content?.text || '(내용 없음)' }}></div>
                           </div>
                           {s.task_manager_feedback && (
                             <div className="managerSubmissionExistingFeedback">
@@ -522,7 +467,7 @@ function CurriculumView({ onOpenArticle }) {
           </div>
         </div>
       )}
-      {/* 모달 영역들 */}
+
       {modalOpen && (
         <>
           <div className="chatModalOverlay" onClick={closeModal} />
@@ -554,10 +499,11 @@ function CurriculumView({ onOpenArticle }) {
           </div>
         </>
       )}
+
       {assignModalOpen && selectedCurriculum && (
         <>
           <div className="confirmOverlay" onClick={() => !assignSaving && setAssignModalOpen(false)} />
-          <div className="confirmModal" style={{ maxWidth: '560px' }}>
+          <div className="confirmModal assignModal">
             <div className="confirmHeader"><div className="confirmHeaderRight"><p className="confirmHeaderLabel">{selectedCurriculum.cur_title}</p><h3 className="confirmTitle">학습자 배정 변경</h3><div className="confirmDivider" /></div></div>
             <div className="assignSection">
               {learners.length === 0 ? <p className="assignEmpty">같은 회사의 등록된 학습자가 없습니다.</p> : (
@@ -569,10 +515,11 @@ function CurriculumView({ onOpenArticle }) {
                 </div>
               )}
             </div>
-            <div className="confirmBtns" style={{ marginTop: '24px' }}><button className="confirmBtnBack" onClick={() => setAssignModalOpen(false)} disabled={assignSaving}>취소</button><button className="confirmBtnCreate" onClick={handleAssignSave} disabled={assignSaving}>{assignSaving ? '저장 중...' : '저장'}</button></div>
+            <div className="confirmBtns mt-24"><button className="confirmBtnBack" onClick={() => setAssignModalOpen(false)} disabled={assignSaving}>취소</button><button className="confirmBtnCreate" onClick={handleAssignSave} disabled={assignSaving}>{assignSaving ? '저장 중...' : '저장'}</button></div>
           </div>
         </>
       )}
+
       {confirmOpen && preview && (
         <>
           <div className="confirmOverlay" onClick={() => !saving && setConfirmOpen(false)} />
@@ -580,10 +527,10 @@ function CurriculumView({ onOpenArticle }) {
             <div className="confirmHeader"><div className="confirmHeaderRight"><p className="confirmHeaderLabel">{preview.cur_target_job || '직무 미지정'} | {preview.cur_duration_weeks}주차</p><h3 className="confirmTitle">이 커리큘럼을 저장할까요?</h3><div className="confirmDivider" /></div></div>
             <div className="confirmGoalBox"><p className="confirmGoalLabel">교육 목표 :</p><p className="confirmGoalText">{preview.cur_learning_goal || '교육 목표가 입력되지 않았습니다.'}</p></div>
             <p className="confirmProgramName">{preview.cur_title}</p>
-            <div className="confirmStepList" style={{ marginTop: '20px' }}>
+            <div className="confirmStepList mt-20">
               {previewWeeks.map((step) => renderAccordionItem(step, previewExpandedWeek, (week) => setPreviewExpandedWeek(prev => prev === week ? null : week)))}
             </div>
-            <div className="assignSection" style={{ marginTop: '24px' }}>
+            <div className="assignSection mt-24">
               <p className="assignSectionTitle">학습자 배정 (선택)</p><p className="assignSectionHint">선택한 학습자들이 자신의 화면에서 이 커리큘럼을 볼 수 있습니다. 나중에 변경 가능합니다.</p>
               {learners.length === 0 ? <p className="assignEmpty">같은 회사의 등록된 학습자가 없습니다.</p> : (
                 <div className="assignCheckList">
@@ -594,11 +541,74 @@ function CurriculumView({ onOpenArticle }) {
                 </div>
               )}
             </div>
-            {formError && <p className="curriculumFormError" style={{ marginTop: '16px' }}>{formError}</p>}
-            <div className="confirmBtns" style={{ marginTop: '24px' }}><button className="confirmBtnBack" onClick={() => setConfirmOpen(false)} disabled={saving}>돌아가기</button><button className="confirmBtnCreate" onClick={handleSave} disabled={saving}>{saving ? '저장 중...' : '생성'}</button></div>
+            {formError && <p className="curriculumFormError mt-16">{formError}</p>}
+            <div className="confirmBtns mt-24"><button className="confirmBtnBack" onClick={() => setConfirmOpen(false)} disabled={saving}>돌아가기</button><button className="confirmBtnCreate" onClick={handleSave} disabled={saving}>{saving ? '저장 중...' : '생성'}</button></div>
           </div>
         </>
       )}
+
+      {templateModal.open && (
+        <>
+          <div className="confirmOverlay" onClick={() => setTemplateModal({ ...templateModal, open: false })} />
+          <div className="confirmModal">
+            <h3 className="confirmTitle">과제 양식(템플릿) 배포</h3>
+            <p className="assignSectionHint mb-16">
+              학습자에게 전달될 '{templateModal.title}'의 작성 양식 가이드를 작성해주세요. 표나 양식을 지정해주면 학습자가 쉽게 채워넣을 수 있습니다.
+            </p>
+            <div className="templateEditorWrapper">
+              <JoditEditor
+                value={templateModal.content}
+                config={{ height: 400, language: 'ko', placeholder: '표 삽입, 텍스트 색상 변경 등을 자유롭게 활용해 양식을 작성하세요...' }}
+                onBlur={(newContent) => setTemplateModal({ ...templateModal, content: newContent })}
+              />
+            </div>
+            <div className="confirmBtns">
+              <button className="confirmBtnBack" onClick={() => setTemplateModal({ ...templateModal, open: false })}>취소</button>
+              <button className="confirmBtnCreate" onClick={saveTemplate}>템플릿 배포</button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {submissionModal.open && (
+        <>
+          <div className="confirmOverlay" onClick={() => setSubmissionModal({ ...submissionModal, open: false })} />
+          <div className="confirmModal submissionModal">
+            <h3 className="confirmTitle">📝 과제 수행: {submissionModal.title}</h3>
+            
+            <div className="document-workspace">
+              <div className="document-guide-section">
+                <strong className="documentGuideTitle">사수(교육담당자)의 과제 작성 가이드</strong>
+                <div 
+                  className="document-template-content" 
+                  dangerouslySetInnerHTML={{ __html: submissionModal.templateContent }}
+                ></div>
+              </div>
+
+              <div className="document-edit-section">
+                <div className="document-toolbar">
+                  <span>과제 작성 에디터 (임시저장 가능)</span>
+                  <span className="status-label">{submissionModal.status === 'draft' ? '📝 작성 중' : '✅ 제출 완료'}</span>
+                </div>
+                <div className="joditEditorWrapper">
+                  <JoditEditor
+                    value={submissionModal.content}
+                    config={{ height: 400, language: 'ko', placeholder: '담당자가 배포한 가이드에 맞추어 이곳에 과제를 작성하세요...' }}
+                    onBlur={(newContent) => setSubmissionModal({ ...submissionModal, content: newContent })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="confirmBtns mt-24">
+              <button className="confirmBtnBack" onClick={() => setSubmissionModal({ ...submissionModal, open: false })}>닫기</button>
+              <button className="confirmBtnCreate btnSuccess" onClick={() => saveSubmission(false)}>임시 저장</button>
+              <button className="confirmBtnCreate" onClick={() => saveSubmission(true)}>최종 제출하기</button>
+            </div>
+          </div>
+        </>
+      )}
+
     </div>
   );
 }
