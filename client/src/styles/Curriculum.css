@@ -1926,3 +1926,201 @@
   font-weight: bold;
   color: #fff;
 }
+
+.template-action-btn {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.template-action-btn.admin {
+  background-color: #f3f4f6;
+  border: 1px solid #d1d5da;
+  color: #24292e;
+}
+
+.template-action-btn.admin:hover {
+  background-color: #e1e4e8;
+}
+
+.template-action-btn.user {
+  background-color: #0366d6;
+  border: none;
+  color: #fff;
+}
+
+.template-action-btn.user:hover {
+  background-color: #005cc5;
+}
+
+/* 관리자 템플릿 작성 텍스트 에디터 */
+.template-editor-area {
+  width: 100%;
+  height: 300px;
+  padding: 16px;
+  border: 1px solid #d1d5da;
+  border-radius: 8px;
+  background-color: #fafbfc;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #24292e;
+  resize: vertical;
+  outline: none;
+}
+
+.template-editor-area:focus {
+  border-color: #0366d6;
+  box-shadow: 0 0 0 3px rgba(3, 102, 214, 0.1);
+}
+
+/* 학습자 과제 수행 워크스페이스 레이아웃 (워드/노션 느낌) */
+.document-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.document-guide-section {
+  background-color: #e6f0fa;
+  border-left: 4px solid #0366d6;
+  padding: 16px;
+  border-radius: 0 8px 8px 0;
+}
+
+.document-template-content {
+  font-size: 13px;
+  color: #333;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.document-edit-section {
+  background-color: #fff;
+  border: 1px solid #d1d5da;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.document-toolbar {
+  background-color: #f6f8fa;
+  border-bottom: 1px solid #d1d5da;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #586069;
+}
+
+.document-toolbar .status-label {
+  background-color: #fff;
+  border: 1px solid #d1d5da;
+  padding: 4px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+}
+
+.document-textarea {
+  width: 100%;
+  height: 400px;
+  padding: 24px;
+  border: none;
+  background-color: #fff;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  line-height: 1.8;
+  color: #24292e;
+  resize: vertical;
+  outline: none;
+}
+
+.document-textarea::placeholder {
+  color: #a3aab1;
+}
+
+/* 로딩/에러 상태 메시지 */
+.curriculumStatusMsg {
+  padding: 20px;
+}
+.curriculumStatusMsg.error {
+  color: #c33;
+}
+.managerSubmissionLoading {
+  color: #666;
+}
+
+/* 제목/여백 유틸리티 클래스 */
+.curriculumDetailTitle.mb-8 {
+  margin-bottom: 8px;
+}
+.curriculumDetailDesc.no-margin {
+  margin: 0;
+}
+.curriculumSteps.mt-24 {
+  margin-top: 24px;
+}
+.confirmStepList.mt-20 {
+  margin-top: 20px;
+}
+.assignSection.mt-24 {
+  margin-top: 24px;
+}
+.confirmBtns.mt-24 {
+  margin-top: 24px;
+}
+.curriculumFormError.mt-16 {
+  margin-top: 16px;
+}
+.assignSectionHint.mb-16 {
+  margin-bottom: 16px;
+}
+
+/* 템플릿 배포 및 과제 작성 액션 영역 */
+.extracted-submission-format.has-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.templateActionBtnGroup {
+  display: flex;
+  gap: 8px;
+}
+
+/* 모달 레이아웃 확장 */
+.confirmModal.assignModal {
+  max-width: 560px;
+}
+.confirmModal.submissionModal {
+  max-width: 800px;
+  background-color: #f0f2f5;
+}
+
+/* 에디터 래퍼 및 가이드 타이틀 */
+.templateEditorWrapper {
+  margin-bottom: 24px;
+}
+.joditEditorWrapper {
+  padding: 0;
+}
+.documentGuideTitle {
+  display: block;
+  margin-bottom: 8px;
+  color: #0366d6;
+}
+
+/* 제출/임시저장 버튼 컬러 스왑 */
+.confirmBtnCreate.btnSuccess {
+  background-color: #28a745;
+}
+.confirmBtnCreate.btnSuccess:hover {
+  background-color: #218838;
+}
