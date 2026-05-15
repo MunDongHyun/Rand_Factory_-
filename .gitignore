@@ -47,6 +47,7 @@ logs/
 *.faiss
 *.index
 chroma_db/
+server/resources/fonts/*.pkl
 
 # Docker
 docker/volumes/

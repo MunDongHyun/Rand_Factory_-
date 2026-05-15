@@ -11,9 +11,10 @@ import {
   Legend,
 } from 'chart.js';
 import { Doughnut, Line } from 'react-chartjs-2';
-import html2pdf from 'html2pdf.js';
 import api from '../lib/api';
 import ReportTemplate from './ReportTemplate';
+import MasterMemberPanel from './master/MasterMemberPanel';
+import MasterMemberDetailModal from './master/MasterMemberDetailModal';
 import '../styles/MasterDashboard.css';
 
 ChartJS.register(
@@ -37,23 +38,6 @@ const DOUGHNUT_COLORS = [
   '#f05ca8',
   '#a8a8a8',
 ];
-
-function formatDate(value) {
-  if (!value) return '-';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return '-';
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}.${m}.${day}`;
-}
-
-function statusFor(member) {
-  if (member.user_deleted_at) return '탈퇴';
-  if (member.user_role === 'a') return '관리자';
-  if (member.user_role === 'm') return '매니저';
-  return '학습자';
-}
 
 function MasterDashboard({ user, onLogout }) {
   const [memberPanelOpen, setMemberPanelOpen] = useState(false);
@@ -407,6 +391,7 @@ function MasterDashboard({ user, onLogout }) {
       if (!element) throw new Error('보고서 영역을 찾지 못했습니다.');
 
       const filename = `landfactory_${kind}_report_${new Date().toISOString().slice(0, 10)}.pdf`;
+      const html2pdf = (await import('html2pdf.js')).default;
 
       await html2pdf()
         .from(element)
@@ -631,205 +616,39 @@ function MasterDashboard({ user, onLogout }) {
 
       {/* 회원관리 오버레이 */}
       {memberPanelOpen && (
-        <>
-          <div className="masterPanelOverlay" onClick={() => setMemberPanelOpen(false)} />
-          <aside className="masterMemberPanel">
-            <div className="masterPanelHeader">
-              <h2 className="sectionTitle">회원관리</h2>
-              <button className="masterdrawerLogout" onClick={onLogout}>
-                로그아웃
-              </button>
-            </div>
-
-            <div className="masterMemberControls">
-              <input
-                type="text"
-                className="masterMemberSearch"
-                placeholder="이름, 이메일, 회사로 검색"
-                value={memberSearch}
-                onChange={(e) => setMemberSearch(e.target.value)}
-              />
-              <select
-                className="masterMemberFilter"
-                value={memberRoleFilter}
-                onChange={(e) => setMemberRoleFilter(e.target.value)}
-              >
-                <option value="all">전체</option>
-                <option value="a">관리자</option>
-                <option value="m">매니저</option>
-                <option value="j">학습자</option>
-                <option value="deleted">탈퇴</option>
-              </select>
-              <select
-                className="masterMemberFilter"
-                value={memberSort}
-                onChange={(e) => setMemberSort(e.target.value)}
-              >
-                <option value="created_desc">최신 가입순</option>
-                <option value="created_asc">오래된 가입순</option>
-                <option value="name_asc">이름 ㄱ→ㅎ</option>
-                <option value="name_desc">이름 ㅎ→ㄱ</option>
-                <option value="role">역할별</option>
-              </select>
-              <span className="masterMemberCount">
-                {filteredMembers.length} / {members.length}명
-              </span>
-            </div>
-
-            <div className="masterPanelContent">
-              {membersLoading && <p className="masterLoading">회원 목록 불러오는 중...</p>}
-              {membersError && <p className="masterError">{membersError}</p>}
-              {!membersLoading && !membersError && members.length === 0 && (
-                <p className="masterLoading">표시할 회원이 없습니다.</p>
-              )}
-              {!membersLoading && !membersError && members.length > 0 && filteredMembers.length === 0 && (
-                <p className="masterLoading">검색 조건에 맞는 회원이 없습니다.</p>
-              )}
-              {filteredMembers.map((member) => {
-                const status = statusFor(member);
-                const isWarning = status === '탈퇴';
-                return (
-                  <div
-                    key={member.user_id}
-                    className={`masterMemberRow clickable ${isWarning ? 'warning' : ''}`}
-                    onClick={() => openMemberDetail(member)}
-                  >
-                    <div className="masterMemberInfo">
-                      <p className="masterMemberName">{member.user_name}</p>
-                      <p className="masterMemberEmail">{member.user_email}</p>
-                      <p className="masterMemberMeta">
-                        {(member.user_company || '-')} · {formatDate(member.user_created_at)}
-                      </p>
-                    </div>
-                    <span className={`masterMemberStatus ${isWarning ? 'warning' : ''}`}>
-                      {status}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </aside>
-        </>
+        <MasterMemberPanel
+          onClose={() => setMemberPanelOpen(false)}
+          onLogout={onLogout}
+          memberSearch={memberSearch}
+          setMemberSearch={setMemberSearch}
+          memberRoleFilter={memberRoleFilter}
+          setMemberRoleFilter={setMemberRoleFilter}
+          memberSort={memberSort}
+          setMemberSort={setMemberSort}
+          filteredMembers={filteredMembers}
+          members={members}
+          membersLoading={membersLoading}
+          membersError={membersError}
+          openMemberDetail={openMemberDetail}
+        />
       )}
 
       {/* 회원 상세 모달 */}
       {detailMember && (
-        <>
-          <div className="masterDetailOverlay" onClick={closeMemberDetail} />
-          <div className="masterDetailModal">
-            <div className="masterDetailHeader">
-              <div>
-                <p className="masterDetailEyebrow">회원 상세</p>
-                <h2 className="masterDetailName">{detailMember.user_name}</h2>
-                <p className="masterDetailMeta">
-                  {detailMember.user_email} · {detailMember.user_company || '-'}
-                </p>
-                <p className="masterDetailMetaSmall">
-                  가입일: {formatDate(detailMember.user_created_at)}
-                  {isDeleted && ' · 탈퇴 상태'}
-                </p>
-              </div>
-              <button className="masterDetailClose" onClick={closeMemberDetail}>✕</button>
-            </div>
-
-            {detailError && <p className="masterError">{detailError}</p>}
-
-            {/* 활동 요약 */}
-            <div className="masterDetailSection">
-              <p className="masterDetailSectionTitle">활동 요약</p>
-              <div className="masterDetailGrid">
-                <div className="masterDetailStat">
-                  <p className="masterDetailStatLabel">만든 커리큘럼</p>
-                  <p className="masterDetailStatValue">
-                    {detailLoading ? '...' : (detailSummary?.curricula_created ?? 0)}
-                  </p>
-                </div>
-                <div className="masterDetailStat">
-                  <p className="masterDetailStatLabel">배정 커리큘럼</p>
-                  <p className="masterDetailStatValue">
-                    {detailLoading ? '...' : (detailSummary?.curricula_assigned ?? 0)}
-                  </p>
-                </div>
-                <div className="masterDetailStat">
-                  <p className="masterDetailStatLabel">제출 과제</p>
-                  <p className="masterDetailStatValue">
-                    {detailLoading ? '...' : (detailSummary?.submissions_count ?? 0)}
-                  </p>
-                </div>
-                <div className="masterDetailStat">
-                  <p className="masterDetailStatLabel">받은 피드백</p>
-                  <p className="masterDetailStatValue">
-                    {detailLoading ? '...' : (detailSummary?.feedbacks_received ?? 0)}
-                  </p>
-                </div>
-                <div className="masterDetailStat">
-                  <p className="masterDetailStatLabel">작성 피드백</p>
-                  <p className="masterDetailStatValue">
-                    {detailLoading ? '...' : (detailSummary?.feedbacks_given ?? 0)}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* 역할 변경 */}
-            <div className="masterDetailSection">
-              <p className="masterDetailSectionTitle">역할 변경</p>
-              {isSelf ? (
-                <p className="masterDetailHint">본인 역할은 변경할 수 없습니다.</p>
-              ) : (
-                <div className="masterDetailRoleRow">
-                  {[
-                    { value: 'a', label: '관리자' },
-                    { value: 'm', label: '매니저' },
-                    { value: 'j', label: '학습자' },
-                  ].map((opt) => {
-                    const isActive = detailMember.user_role === opt.value;
-                    return (
-                      <button
-                        key={opt.value}
-                        className={`masterDetailRoleBtn ${isActive ? 'active' : ''}`}
-                        onClick={() => handleRoleChange(opt.value)}
-                        disabled={actionSaving || isActive}
-                      >
-                        {opt.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* 강제 탈퇴 / 복구 */}
-            <div className="masterDetailSection">
-              <p className="masterDetailSectionTitle">계정 상태</p>
-              {isSelf ? (
-                <p className="masterDetailHint">본인 계정은 탈퇴/복구할 수 없습니다.</p>
-              ) : isDeleted ? (
-                <button
-                  className="masterDetailRestoreBtn"
-                  onClick={() => setConfirmDialog({
-                    kind: 'restore',
-                    message: `${detailMember.user_name}님의 탈퇴를 해제하고 복구하시겠습니까?`,
-                  })}
-                  disabled={actionSaving}
-                >
-                  탈퇴 해제 (복구)
-                </button>
-              ) : (
-                <button
-                  className="masterDetailDeleteBtn"
-                  onClick={() => setConfirmDialog({
-                    kind: 'delete',
-                    message: `${detailMember.user_name}님을 강제 탈퇴 처리하시겠습니까? (복구 가능)`,
-                  })}
-                  disabled={actionSaving}
-                >
-                  강제 탈퇴
-                </button>
-              )}
-            </div>
-          </div>
-        </>
+        <MasterMemberDetailModal
+          detailMember={detailMember}
+          detailSummary={detailSummary}
+          detailLoading={detailLoading}
+          detailError={detailError}
+          isSelf={isSelf}
+          isDeleted={isDeleted}
+          actionSaving={actionSaving}
+          confirmDialog={confirmDialog}
+          setConfirmDialog={setConfirmDialog}
+          closeMemberDetail={closeMemberDetail}
+          handleRoleChange={handleRoleChange}
+          handleDeleteRestore={handleDeleteRestore}
+        />
       )}
 
       {/* 보고서 (offscreen, html2pdf 캡처용) */}
@@ -839,31 +658,6 @@ function MasterDashboard({ user, onLogout }) {
         </div>
       )}
 
-      {/* 확인 다이얼로그 */}
-      {confirmDialog && (
-        <>
-          <div className="masterConfirmOverlay" onClick={() => !actionSaving && setConfirmDialog(null)} />
-          <div className="masterConfirmModal">
-            <p className="masterConfirmMessage">{confirmDialog.message}</p>
-            <div className="masterConfirmBtns">
-              <button
-                className="masterConfirmCancel"
-                onClick={() => setConfirmDialog(null)}
-                disabled={actionSaving}
-              >
-                취소
-              </button>
-              <button
-                className={confirmDialog.kind === 'delete' ? 'masterConfirmDanger' : 'masterConfirmPrimary'}
-                onClick={() => handleDeleteRestore(confirmDialog.kind === 'delete')}
-                disabled={actionSaving}
-              >
-                {actionSaving ? '처리 중...' : (confirmDialog.kind === 'delete' ? '탈퇴 처리' : '복구')}
-              </button>
-            </div>
-          </div>
-        </>
-      )}
     </div>
   );
 }

@@ -11,6 +11,7 @@
 ### PDF 보고서 다운로드
 - `client/src/components/MasterDashboard.jsx`
   - `html2pdf.js` 기반 PDF 다운로드 로직 추가
+  - PDF 버튼 클릭 시점에 `html2pdf.js`를 동적 import하도록 변경해 초기 번들 크기 증가 완화
   - 헤더에 `주간 PDF`, `월간 PDF` 버튼 추가
   - 주간은 최근 7일, 월간은 최근 30일 기준으로 보고서 데이터 구성
   - 가입자 시계열, 조회수 시계열, 회원 목록 데이터를 보고서 생성 시점에 다시 조회
@@ -26,14 +27,27 @@
   - PDF 출력용 흰 배경/인쇄 친화 스타일 정의
   - 페이지 단위 레이아웃과 page-break 제어
 
+### 마스터 대시보드 리팩토링
+- `client/src/components/master/MasterMemberPanel.jsx` 신규 추가
+  - 회원관리 패널의 검색/필터/정렬 UI와 회원 목록 렌더링 분리
+- `client/src/components/master/MasterMemberDetailModal.jsx` 신규 추가
+  - 회원 상세 모달, 역할 변경, 탈퇴/복구 확인 다이얼로그 렌더링 분리
+- `client/src/components/MasterDashboard.jsx`
+  - 회원관리 관련 대형 JSX 블록을 하위 컴포넌트로 분리
+  - 데이터 로딩/상태 변경 로직은 부모에 유지해 동작 변경 최소화
+
 ### 스타일
 - `client/src/styles/MasterDashboard.css`
   - 보고서 다운로드 버튼 스타일 추가
   - `masterReportOffscreen` 캡처 영역 스타일 추가
+- `.gitignore`
+  - `fpdf`가 NanumGothic 폰트 등록 시 생성하는 `server/resources/fonts/*.pkl` 캐시 파일 제외
 
 ### 검증
 - 원격 `dev` 최신 변경 pull 후 자동 병합 완료
   - `client/src/styles/MasterDashboard.css` 자동 병합, 충돌 없음
+- 프론트엔드 빌드 통과
+  - `npm run build`
 
 ---
 
@@ -101,7 +115,6 @@
 - `cd client && npm run build` 통과
 
 ### 다음 / TODO
-- **단계 4: 주간/월간 보고서 자동 생성** — 시계열 API 재사용해서 PDF 또는 HTML 출력
 - 매니저 화면에 본인 책임 영역 위젯 ("응답 대기 N건" 등) — 사용자 결정 시 진행
 - inline style 일괄 정리 (발표 후 클린업 작업)
 
