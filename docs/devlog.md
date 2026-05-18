@@ -2,6 +2,28 @@
 
 ---
 
+## 2026-05-18 - Claude (DOMPurify sanitize 도입 — 저장형 XSS 방어)
+
+### 배경
+- Codex 점검 #2 — 학습자/매니저 HTML 입력이 `dangerouslySetInnerHTML`로 그대로 렌더링되어 저장형 XSS 위험
+- TipTap 전환 가능성과 무관하게 필요한 작업이라 우선 처리 (에디터 교체해도 헬퍼는 그대로 재사용)
+
+### 작업
+- 의존성: `dompurify ^3.4.4` 추가 (`client/package.json`)
+- 헬퍼: `client/src/lib/sanitize.js` 신설 — `sanitizeHtml(html)` 단일 진입점
+- 적용 위치 4곳 (모든 `dangerouslySetInnerHTML` 호출처):
+  - `CurriculumView.jsx`: 매니저 화면의 학습자 제출 본문 / 매니저 시뮬레이션 모달의 양식 가이드
+  - `LearnerCurriculumView.jsx`: 학습자 본인 제출 본문 / 양식 가이드
+
+### 검증
+- frontend `npm run build`: pass (5.33s)
+
+### 비고
+- 헬퍼 한 군데에서 전체 sanitize 정책 제어 — 추후 에디터 교체(TipTap 등) 시에도 동일 헬퍼 그대로 사용 가능
+- DOMPurify 기본 정책으로 `<script>`, `on*` 핸들러, `javascript:` URL 등 제거
+
+---
+
 ## 2026-05-18 - Claude (Codex 점검 후속 버그/검증/UX 묶음 수정)
 
 ### 배경

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../lib/api';
+import { sanitizeHtml } from '../lib/sanitize';
 import curri_nulll from '../public/download_img.png';
 import '../styles/Curriculum.css';
 
@@ -496,7 +497,7 @@ function CurriculumView({ onOpenArticle }) {
                       <div className="managerSubmissionItemBody">
                         <div className="managerSubmissionContent">
                           <p className="managerSubmissionContentLabel">제출 내용</p>
-                          <div className="managerSubmissionContentBody" dangerouslySetInnerHTML={{ __html: s.task_submitted_content?.text || '(내용 없음)' }}></div>
+                          <div className="managerSubmissionContentBody" dangerouslySetInnerHTML={{ __html: sanitizeHtml(s.task_submitted_content?.text) || '(내용 없음)' }}></div>
                         </div>
                         {Array.isArray(s.task_submitted_content?.attachments) && s.task_submitted_content.attachments.length > 0 && (
                           <div className="managerSubmissionAttachments">
@@ -685,7 +686,7 @@ function CurriculumView({ onOpenArticle }) {
                 <strong className="documentGuideTitle">사수(교육담당자)의 과제 작성 가이드</strong>
                 <div
                   className="document-template-content"
-                  dangerouslySetInnerHTML={{ __html: submissionModal.templateContent }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(submissionModal.templateContent) }}
                 ></div>
               </div>
 
