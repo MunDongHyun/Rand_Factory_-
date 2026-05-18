@@ -7,20 +7,17 @@ landfactory는 DBR/HBR 아티클을 기반으로 아티클 조회, RAG 질의응
 ## 주요 기능
 
 - 로그인 / 회원가입 / JWT 세션 복원
+- 회사 단위 일괄 회원가입 (`/api/users/signup/bulk`) — 회사 + 매니저 1명 + 학습자 N명 한 번에 등록
 - 역할 기반 화면 분기
   - `j`: 학습자
   - `m`: 매니저
   - `a`: 관리자
-- Dashboard 아티클 목록 조회
-- 아티클 상세 화면
+- Dashboard 아티클 목록 조회 / 아티클 상세
 - RAG 기반 비즈니스 질문 응답
-- AI 결과물 관리
-  - summary
-  - wordcloud
-  - framework
-- 커리큘럼 생성 및 조회
-- 과제 제출 및 피드백
-- 챗봇 세션 / 메시지 관리
+- AI 결과물 관리 (summary, wordcloud 등)
+- 커리큘럼 생성 / 조회 / 과제 작성·제출 / 매니저 피드백
+- 챗봇 세션 / 메시지 관리 (매니저 전용)
+- 마스터(매니저) 대시보드 — 회원관리, 학습자 진행 현황, PDF 보고서 출력
 - 401 응답 시 프론트 자동 로그아웃
 
 ## 기술 스택
@@ -74,22 +71,24 @@ landfactory/
 
 - `users`
 - `articles`
+- `authors`
 - `curriculum`
 - `ai_summaries`
 - `task_submissions`
 - `chatbot_sessions`
 - `chatbot_messages`
+- `user_activity`
 
 ### 현재 라우터
 
+- `health`
 - `user`
 - `article`
+- `author`
 - `rag`
 - `curriculum`
-- `ai_output`
 - `chatbot`
 - `task_submission`
-- `health`
 
 ### 현재 기준이 아닌 예전 구조
 
@@ -100,6 +99,16 @@ landfactory/
 - `point`
 - `framework`
 - `chat`
+
+## 권한 정책
+
+`user_role` 값은 `j` / `m` / `a` 세 종류이며, 라우터에서 역할별로 접근 범위를 제한합니다. 자세한 운영 규칙은 [CLAUDE.md](CLAUDE.md)를 참고하세요.
+
+| Role | 의미 | 접근 범위 |
+|------|------|----------|
+| `j` | 학습자 | 본인이 제출한 과제, 본인이 배정된 커리큘럼만 조회 |
+| `m` | 매니저 | 본인이 만든 커리큘럼 생성/수정, 본인 커리큘럼의 과제 피드백, 챗봇 사용 |
+| `a` | 관리자 | 전체 접근, 아티클 등록 전담 |
 
 ## 개발 환경 설정
 

@@ -2,6 +2,61 @@
 
 ---
 
+## 2026-05-18 - Codex + Claude (라우터 에러 메시지 한글화)
+
+### 배경
+- 백엔드 `HTTPException(detail=...)`의 영문 메시지가 프론트 `alert()`로 그대로 노출됨
+- 첫 Codex CLI 위임 시범도 겸함
+
+### 작업 분담
+- **Codex**: `server/app/routers/{chatbot, author, curriculum, article, user}.py` 5개 파일의 `detail` 영문 → 한글 (총 31개)
+- **Claude**: 톤 가이드 작성, 위임 프롬프트 작성, `compileall`/`git diff` 검증, `.gitattributes` 신설, CLAUDE.md/devlog 정리
+
+### 톤 통일 규칙
+- `"X not found"` → `"X을(를) 찾을 수 없습니다"`
+- `"Not found"` (권한 숨김용) → `"찾을 수 없습니다"` (짧게 유지)
+- `"Only Y can ..."` → `"...은 Y만 ...할 수 있습니다"`
+- 그 외는 자연스러운 존댓말 한국어로
+
+### 협업 패턴 (처음 시도)
+- chatbot/author/curriculum/article은 foreground로 한 파일씩 위임 → 검증 사이클 짧게 유지
+- user.py(가장 큰 11개)는 background 위임 + Claude는 그 동안 devlog/.gitattributes/CLAUDE.md 작업 병행
+- CLAUDE.md "Codex / Claude 하이브리드 협업 규칙" 섹션에 foreground/background 선택 기준과 위임 시 역할 명시 룰 추가
+
+### 발견 사항
+- PowerShell 5.1 콘솔 출력 인코딩이 CP949라서 UTF-8 파일의 한글이 콘솔에서 깨져 보임. 파일 자체는 정상 (Read 도구로 검증). Codex 프롬프트에 "PowerShell 콘솔 깨짐 무시" 안내 필요
+- Codex가 신규 라인을 LF로 저장 → git autocrlf 경고. `.gitattributes`(`* text=auto`)로 해결
+
+### 다음
+- 프론트(`alert()` 호출부)에서 백엔드 detail을 그대로 노출하는지 점검 — 한글화 효과가 실제 UX에 반영됐는지 확인 필요
+
+---
+
+## 2026-05-18 - Claude (Codex CLI 협업 환경 셋업)
+
+### 배경
+- 토큰/비용 절감과 단순 반복 작업 위임을 위해 Codex CLI를 보조 작업자로 도입
+- 메모리에 남은 이전 Codex 세션은 다른 환경 기록이었고, 로컬에는 CLI 미설치 상태였음
+
+### 작업
+- `npm install -g @openai/codex`로 OpenAI Codex CLI 0.130.0 설치 (`C:\Users\smhrd\AppData\Roaming\npm\codex.ps1`)
+- `CLAUDE.md`에 "Codex / Claude 하이브리드 협업 규칙" 섹션 추가
+  - devlog 허브 원칙, 작업 단위 작게 쪼개기, 같은 파일 동시 작업 금지, Codex 결과도 devlog 한 줄
+  - Codex CLI 호출 예시(`codex exec -s read-only/...`)도 함께 명시
+- 함께 진행한 부수 작업
+  - 풀: 원격 dev → 로컬 dev fast-forward (`e526642..f894df2`)
+  - 풀 직후 잘못된 위치에 깔린 npm 산출물 정리: 루트 `package.json/lock`, `server/package.json/lock` 삭제, `client/package.json`에 `jodit-react ^5.3.21` 추가 후 `npm install`
+  - `README.md` 현행화: 라우터 목록(`ai_output` 제거, `author` 추가), 핵심 테이블(`authors`, `user_activity` 추가), 주요 기능(`/signup/bulk`, 마스터 대시보드, PDF 보고서 등) 반영 및 권한 정책 표 신설
+
+### 결정
+- 협업 흐름은 "Codex는 좁은 단위 위임, Claude는 큰 흐름/조정/리뷰" 역할 분담
+- `task_submissions` 구조 검토 결과는 별도 결정 없이 사용자에게 의견만 전달(다른 팀원 진행 중)
+
+### 다음
+- 실제 협업 사이클을 한 번 돌려보면서 마찰점 발견 시 CLAUDE.md 규칙 보완
+
+---
+
 ## 2026-05-15 - Claude (인라인 스타일 정리 + chart.js 등록 통합 리팩토링)
 
 ### 배경

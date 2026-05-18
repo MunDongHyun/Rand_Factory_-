@@ -182,6 +182,27 @@ Codex/Claude 작업 규칙:
 - 파괴적 명령은 별도 규칙
   - `git reset`, 강제 push, 대량 삭제 등은 사용자 명시 요청과 확인 없이는 실행하지 않음
 
+## Codex / Claude 하이브리드 협업 규칙
+
+Claude Code(Anthropic)와 Codex CLI(OpenAI)를 함께 사용할 때 따르는 규칙입니다.
+
+- **devlog가 허브**: 큰 흐름, 결정, API 변경, 테스트 결과는 어느 도구로 작업했든 반드시 `docs/devlog.md`에 남김
+- **작업 단위는 작게 쪼개기**: "이 함수만 고쳐", "이 테스트만 추가해" 단위로 명확히 분리해서 위임
+- **같은 파일 동시 작업 금지**: 한 파일을 두 도구가 동시에 만지지 않음. 충돌 가능성이 있으면 우선 정지 후 사용자 확인
+- **위임 시작 시 역할 분담 명시**: Claude는 매 위임 시작 전 "Codex 담당 / Claude 담당 / 충돌 가능성" 한 묶음을 사용자에게 보여주고 진행. 사용자가 누가 어느 파일을 만지는지 추적 가능하게.
+- **foreground vs background 선택 기준**:
+  - **foreground** — 검증 사이클이 짧거나 결과 즉시 확인 필요(시범 단계, 짧은 변경, 실패 가능성 큰 첫 시도)
+  - **background** — Codex 작업이 5분+로 길거나, Claude가 그 사이 다른 파일/문서 작업을 병행할 수 있을 때. 같은 파일 충돌 없는지부터 확인
+- **Codex 결과도 devlog 한 줄**: Codex CLI에 위임한 작업도 마지막에 devlog에 짧게 요약 (`## YYYY-MM-DD - Codex (작업명)` 형식)
+- **커밋 컨벤션 공유**: 위의 "커밋 컨벤션" 섹션은 Codex/Claude 모두 동일하게 적용 (한글 설명, prefix 준수)
+- **PowerShell 콘솔의 한글 깨짐 무시**: Windows PowerShell 5.1은 콘솔 출력 인코딩이 CP949라 UTF-8 파일을 출력하면 한글이 깨져 보일 수 있음. 파일 자체는 정상이니 Codex가 깨진 출력을 보고 패닉하지 않도록 프롬프트에 미리 안내
+
+Codex CLI 호출 예시 (Claude가 Bash로 호출하는 경우):
+
+- `codex exec -s read-only "프롬프트"` — 읽기만 (분석/검토용, 안전)
+- `codex exec -s workspace-write "프롬프트"` — 자동 실행 + 워크스페이스 쓰기 허용 (exec는 항상 비대화 모드라 approval 옵션 불필요)
+- `codex review` — 코드 리뷰 전용
+
 ## 커밋 전 체크리스트
 
 1. `git status`로 변경 파일 확인
