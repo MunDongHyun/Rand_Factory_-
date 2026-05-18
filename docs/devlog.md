@@ -2,6 +2,82 @@
 
 ---
 
+## 2026-05-18 - Claude (Jodit Editor 깨짐 검증 + iframe 모드 적용)
+
+### 배경
+- 매니저가 templateModal/submissionModal에서 JoditEditor로 양식 작성 시 리스트(ul/ol) 마커가 안 보이는 문제
+- 표/색상/이미지 등 다른 옵션도 깨지는지 종합 검증 필요
+
+### 검증 방식
+- `client/src/components/JoditDemo.jsx` 임시 검증 페이지 신설 (`?demo=jodit` query로 진입)
+- 좌: JoditEditor 입력 / 우: Default + 학습자 컨텍스트(`curriculumPageContainer`) + Raw HTML 미리보기 3개
+- 종합 샘플 HTML(표/색상/리스트/이미지/폰트/링크/인용문/줄바꿈) 일괄 주입 버튼
+
+### 진단
+- 원인: `client/src/styles/theme.css` 3-9줄의 universal reset `* { padding: 0 }`이 ul/ol의 기본 `padding-left`를 0으로 만들어 마커가 컨테이너 밖으로 밀려 안 보임
+- 미리보기 영역(`dangerouslySetInnerHTML`)은 inline style이 박혀 살아남지만, 에디터 입력 영역은 페이지 CSS 직접 영향
+
+### 처방
+- JoditEditor config에 `iframe: true` 추가 → 에디터 본문을 iframe으로 격리해 외부 페이지 CSS reset 차단
+- `CurriculumView.jsx`의 templateModal(L580), submissionModal(L623) 두 JoditEditor 호출부 모두 적용
+
+### 검증 결과 (사용자 시각 확인)
+- ✅ 리스트(불릿/번호) 마커 정상 출력
+- ✅ 표/색상/하이라이트/폰트/링크/인용문/코드 모두 의도대로 출력
+- ⚠️ 외부 이미지 placeholder(`via.placeholder.com`)는 서비스 가용성 문제로 안 뜸 (jodit/CSS 문제 아님)
+
+### 결정 사항 (다음 작업 영향)
+- 이미지 입력 방식: **양식(매니저→학습자) = Paste→base64 inline**, **제출(학습자→매니저) = 첨부파일 분리**
+- 양식은 jodit 기본 paste 동작에 즉시 가능, 제출 첨부파일은 별도 인프라 필요
+
+### 정리
+- JoditDemo 검증 페이지 (JoditDemo.jsx, JoditDemo.css, main.jsx의 `?demo=jodit` 분기) 모두 제거
+
+---
+
+## 2026-05-18 - Claude (과제 양식 배포 + 학습자 제출 재설계 + 첨부파일 + UX 개선)
+
+### 배경
+- 위 Jodit 검증 항목에서 결정한 이미지 정책(양식=paste base64, 제출=첨부파일)을 실제 구현
+- 매니저 `saveTemplate`이 alert만 하던 더미 → 실제 PATCH로 학습자에게 양식 전달
+- 학습자 측 plain textarea → JoditEditor + 양식 가이드 + 첨부파일 통합 모달
+
+### 백엔드 (`server/app/routers/task_submission.py`)
+- `POST /api/task-submissions/{id}/attachments` — UploadFile, 본인 제출에만, 한 파일 최대 20MB
+- `GET /api/task-submissions/{id}/attachments/{stored_name}` — 인증/권한 가드 + `FileResponse`
+- `DELETE /api/task-submissions/{id}/attachments/{stored_name}` — 본인 첨부만
+- 저장: `server/uploads/task_attachments/{submission_id}/{uuid_원본}`. 파일명 sanitize + path traversal 차단(메타와 매칭된 stored_name만 다운로드)
+- 메타는 `task_submitted_content` JSON 안 `attachments` 배열(filename/stored_name/size/mime/uploaded_at)
+
+### `.gitignore`
+- `server/uploads/` 추가 (사용자 업로드 파일이 git에 들어가지 않도록)
+
+### 매니저 프론트 (`CurriculumView.jsx`)
+- `saveTemplate`: alert → `PATCH /api/curricula/{cur_id}`로 `cur_week_plan.assignments[i].template_content` 갱신 (저장 중 disabled)
+- 매니저 피드백 화면에 학습자 첨부 다운로드 링크 + 크기 표시 (axios `responseType: blob`로 인증 헤더 자동 동봉)
+
+### 학습자 프론트 (`LearnerCurriculumView.jsx`)
+- 제출 모달 재설계: 양식 가이드(`dangerouslySetInnerHTML`) + JoditEditor(`iframe: true` + `popup.selection` 비활성) + 첨부 영역
+- 본인 제출 내역: HTML 렌더 + 첨부 다운로드 링크
+- 첨부 처리: 메모리에 `File[]` 보관 → 본문 POST → 받은 submission_id로 첨부 차례로 업로드 → 일부 실패 시 alert
+- **전체화면(fullscreen) 토글**: 96vw × 94vh, 에디터 높이 350→600 자동 확대 (매니저 templateModal과 동일 패턴)
+- **움찔임 완화**: `toolbarSticky: false`, `popup: { selection: [] }`로 텍스트 선택 시 popup 안 뜨게
+
+### CSS (`Curriculum.css`)
+- 학습자 컨텍스트 HTML 렌더링 영역(`learnerSubmitTemplateContent` / `learnerWeekSubmissionBody` / `managerSubmissionContentBody`)에 `ul/ol/table/h/p` 기본 spacing 처방 — `theme.css`의 `* { padding: 0 }` 영향 차단
+- 학습자 제출 모달 디자인(`learnerSubmitModal*` + `.fullscreen`) + JoditEditor wrapper popup z-index 격리
+
+### 검증
+- backend `compileall`: pass
+- frontend `npm run build`: pass (5.59s, 청크 크기 경고는 기존 jodit/html2pdf 무게로 본 작업 무관)
+
+### 알려진 제한 / 다음 작업
+- 본문에 `dangerouslySetInnerHTML` 사용 — 같은 회사 내부 가정. 추후 DOMPurify sanitize 도입 권장
+- 첨부 업로드 일부 실패 시 본문은 제출되지만 실패 파일 alert (재시도 UI는 추후)
+- **DB 스키마 확장**(`task_submission_type`/`task_score`/`task_resubmit_requested` 컬럼, `task_submission_attachments` 테이블 + `authors`/`article_authors_mapping`/`user_activities` 신설)이 사용자 측 SQL로 정의됨. 다음 사이클에서 SQLAlchemy 모델/스키마/엔드포인트를 그 스키마로 마이그레이션 예정 (현재 JSON 안 attachments 배열을 별도 테이블로 이전)
+
+---
+
 ## 2026-05-18 - Codex + Claude (라우터 에러 메시지 한글화)
 
 ### 배경

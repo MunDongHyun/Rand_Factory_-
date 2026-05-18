@@ -125,6 +125,32 @@ function CurriculumView({ onOpenArticle }) {
       .finally(() => setSubmissionsLoading(false));
   }, [selectedId]);
 
+  const handleAttachmentDownload = async (submissionId, attachment) => {
+    try {
+      const res = await api.get(
+        `/task-submissions/${submissionId}/attachments/${attachment.stored_name}`,
+        { responseType: 'blob' },
+      );
+      const blobUrl = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.setAttribute('download', attachment.filename || attachment.stored_name);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      alert(err.response?.data?.detail || '첨부파일 다운로드에 실패했습니다.');
+    }
+  };
+
+  const formatAttachmentSize = (bytes) => {
+    if (!Number.isFinite(bytes)) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+  };
+
   const handleFeedbackSave = async (submissionId, status = 'feedback_given') => {
     const text = (feedbackDraft[submissionId] || '').trim();
     if (!text) {
@@ -236,8 +262,29 @@ function CurriculumView({ onOpenArticle }) {
   };
 
   const saveTemplate = async () => {
-    alert('학습자들에게 과제 템플릿이 배포되었습니다.');
-    setTemplateModal({ ...templateModal, open: false });
+    if (!selectedCurriculum) return;
+    // 현재 커리큘럼의 week_plan에서 해당 주차/assignment를 찾아 template_content만 갱신
+    const weekPlan = normalizeWeekPlan(selectedCurriculum.cur_week_plan).map((step) => ({ ...step }));
+    const targetWeek = weekPlan.find((s) => s.week === templateModal.week);
+    if (!targetWeek || !Array.isArray(targetWeek.assignments)) {
+      alert('대상 과제를 찾을 수 없습니다.');
+      return;
+    }
+    targetWeek.assignments = targetWeek.assignments.map((a, i) =>
+      i === templateModal.assignmentIdx ? { ...a, template_content: templateModal.content } : a
+    );
+    setTemplateModal((prev) => ({ ...prev, saving: true }));
+    try {
+      const res = await api.patch(`/curricula/${selectedCurriculum.cur_id}`, {
+        cur_week_plan: weekPlan,
+      });
+      setCurriculums((prev) => prev.map((c) => (c.cur_id === res.data.cur_id ? res.data : c)));
+      alert('학습자들에게 과제 템플릿이 배포되었습니다.');
+      setTemplateModal({ open: false, week: null, assignmentIdx: null, title: '', content: '' });
+    } catch (err) {
+      alert(err.response?.data?.detail || '템플릿 배포에 실패했습니다.');
+      setTemplateModal((prev) => ({ ...prev, saving: false }));
+    }
   };
 
   const openSubmissionModal = (week, idx, assignment) => {
@@ -451,6 +498,25 @@ function CurriculumView({ onOpenArticle }) {
                           <p className="managerSubmissionContentLabel">제출 내용</p>
                           <div className="managerSubmissionContentBody" dangerouslySetInnerHTML={{ __html: s.task_submitted_content?.text || '(내용 없음)' }}></div>
                         </div>
+                        {Array.isArray(s.task_submitted_content?.attachments) && s.task_submitted_content.attachments.length > 0 && (
+                          <div className="managerSubmissionAttachments">
+                            <p className="managerSubmissionContentLabel">📎 첨부파일</p>
+                            <ul className="managerSubmissionAttachmentList">
+                              {s.task_submitted_content.attachments.map((a, i) => (
+                                <li key={i} className="managerSubmissionAttachmentItem">
+                                  <button
+                                    type="button"
+                                    className="managerSubmissionAttachmentLink"
+                                    onClick={() => handleAttachmentDownload(s.task_submission_id, a)}
+                                  >
+                                    {a.filename || a.stored_name}
+                                  </button>
+                                  <span className="managerSubmissionAttachmentSize">{formatAttachmentSize(a.size)}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
                         {s.task_manager_feedback && (
                           <div className="managerSubmissionExistingFeedback">
                             <p className="managerSubmissionContentLabel">현재 피드백 ({formatDateTime(s.task_feedback_at)})</p>
@@ -587,13 +653,22 @@ function CurriculumView({ onOpenArticle }) {
                   popup: {
                     selection: [],             // ← 선택 팝업 최소화
                   },
+                  iframe: true,                // 페이지 글로벌 reset으로부터 에디터 내부 격리 (리스트 마커 등)
                 }}
                 onBlur={(newContent) => setTemplateModal({ ...templateModal, content: newContent })}
               />
             </div>
             <div className="confirmBtns">
-              <button className="confirmBtnBack" onClick={() => setTemplateModal({ ...templateModal, open: false })}>취소</button>
-              <button className="confirmBtnCreate" onClick={saveTemplate}>템플릿 배포</button>
+              <button
+                className="confirmBtnBack"
+                onClick={() => setTemplateModal({ ...templateModal, open: false })}
+                disabled={templateModal.saving}
+              >취소</button>
+              <button
+                className="confirmBtnCreate"
+                onClick={saveTemplate}
+                disabled={templateModal.saving}
+              >{templateModal.saving ? '배포 중...' : '템플릿 배포'}</button>
             </div>
           </div>
         </>
@@ -622,7 +697,12 @@ function CurriculumView({ onOpenArticle }) {
                 <div className="joditEditorWrapper">
                   <JoditEditor
                     value={submissionModal.content}
-                    config={{ height: 400, language: 'ko', placeholder: '담당자가 배포한 가이드에 맞추어 이곳에 과제를 작성하세요...' }}
+                    config={{
+                      height: 400,
+                      language: 'ko',
+                      placeholder: '담당자가 배포한 가이드에 맞추어 이곳에 과제를 작성하세요...',
+                      iframe: true,            // 페이지 글로벌 reset으로부터 에디터 내부 격리
+                    }}
                     onBlur={(newContent) => setSubmissionModal({ ...submissionModal, content: newContent })}
                   />
                 </div>
