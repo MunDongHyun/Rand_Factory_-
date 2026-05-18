@@ -95,6 +95,7 @@
   background: var(--line);
   margin-bottom: 50px;
 }
+
 /* ===========================
    AI 요약문 전체 래퍼
 =========================== */
@@ -286,7 +287,7 @@
 }
 
 .slideCard {
-  position: absolute;
+  position: relative;
   max-width: 420px;
   width: 100%;
   min-height: 320px;
@@ -304,10 +305,11 @@
   will-change: transform, box-shadow;
   transform: translate3d(0, 0, 0);
 
+  overflow: hidden;
   transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
     border-color 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
     box-shadow 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
-    max-width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)
+    max-width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 .slideCard.expanded {
@@ -316,16 +318,16 @@
 
 
 .slideCard.current {
-  position: ab;
+  position: absolute;
   opacity: 1;
   transform: translateZ(0) scale(1);
   z-index: 5;
   border: 1px solid #9CCAFF;
   cursor: pointer;
   transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
-              border-color 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
-              box-shadow 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
-              max-width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)
+    border-color 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
+    box-shadow 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
+    max-width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)
 }
 
 .slideCard.current:hover {
@@ -347,14 +349,21 @@
   opacity: 0.4;
   transform: translateX(-50%) translateZ(-200px) rotateY(15deg);
   z-index: 1;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 .slideCard.next {
   opacity: 0.4;
   transform: translateX(50%) translateZ(-200px) rotateY(-15deg);
   z-index: 1;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.slideCard.prev:hover,
+.slideCard.next:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
 .slideCardInner {
@@ -365,7 +374,26 @@
   flex: 1;
 }
 
+.slideCard.prev::after {
+  background: linear-gradient(to right, rgba(255, 255, 255, 0.9), transparent);
+}
 
+.slideCard.next::after {
+  background: linear-gradient(to left, rgba(255, 255, 255, 0.9), transparent);
+}
+
+.slideCard.prev::after,
+.slideCard.next::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 1;
+  transition: opacity 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  pointer-events: none;
+}
 
 .leftSection {
   flex: 1;
@@ -441,44 +469,44 @@
   padding: 0;
 }
 
-
-
-/* ===========================
-   네비게이션 버튼
-=========================== */
-.navGroup {
+.navArrowOverlay {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50px;
   display: flex;
-  gap: 16px;
-  margin-top: 20px;
-  z-index: 3;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
-.navBtn {
-  height: 48px;
-  padding: 0 28px;
-  border-radius: 24px;
-  border: none;
-  font-family: 'Pretendard', sans-serif;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s;
+
+.slideCard.prev:hover .navArrowOverlay,
+.slideCard.next:hover .navArrowOverlay {
+  opacity: 1;
 }
 
-.navBtn.prev {
-  background: rgba(255, 255, 255, 0.5);
-  color: #3A4A5C;
+.leftArrow {
+  left: 0;
+  background: linear-gradient(to right, rgba(255, 255, 255, 0.9), transparent);
 }
 
-.navBtn.next {
-  background: linear-gradient(142deg, #9CCAFF, #D8A6FF);
-  color: white;
-  box-shadow: 0 4px 15px rgba(156, 202, 255, 0.3);
+
+.rightArrow {
+  right: 0;
+  background: linear-gradient(to left, rgba(255, 255, 255, 0.9), transparent);
 }
 
-.navBtn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
+
+.navArrowOverlay span {
+  font-size: 2rem;
+  font-weight: bold;
+  filter: drop-shadow(0px 2px 4px rgb(255, 255, 255));
 }
+
 
 .summaryConclusion {
   display: flex;
