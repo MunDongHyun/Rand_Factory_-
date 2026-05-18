@@ -14,6 +14,7 @@ from app.schemas.curriculum import CurriculumCreate, CurriculumResponse, Curricu
 from app.schemas.rag import RagQuery, RagResponse
 from app.schemas.task_submission import (
     TaskSubmissionCreate,
+    TaskSubmissionAttachmentResponse,
     TaskSubmissionFeedbackUpdate,
     TaskSubmissionResponse,
 )
@@ -34,6 +35,7 @@ __all__ = [
     "RagQuery",
     "RagResponse",
     "TaskSubmissionCreate",
+    "TaskSubmissionAttachmentResponse",
     "TaskSubmissionFeedbackUpdate",
     "TaskSubmissionResponse",
     "TokenResponse",

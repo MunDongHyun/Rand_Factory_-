@@ -2,6 +2,31 @@
 
 ---
 
+## 2026-05-18 - Codex (과제 첨부파일 별도 테이블 전환)
+
+### 배경
+- 사용자 제공 SQL 기준으로 `task_submissions` 확장 컬럼과 `task_submission_attachments` 테이블을 백엔드 모델/스키마/라우터에 반영
+- 직전 구현은 첨부 메타를 `task_submitted_content.attachments` JSON에 저장했으나, DB 정규화 구조로 이전 필요
+
+### 변경
+- `TaskSubmission` 모델에 `task_submission_type`, `task_score`, `task_resubmit_requested` 컬럼 추가
+- `TaskSubmissionAttachment` 모델 추가: `file_original_name`, `file_storage_key`, `file_mime_type`, `file_size_bytes`, `file_sha256`, `file_uploaded_at`, `file_deleted_at`
+- 첨부 업로드/다운로드/삭제 라우터를 JSON 메타 방식에서 `task_submission_attachments` 테이블 조회/삽입/soft delete 방식으로 변경
+- 프론트 호환을 위해 API 응답의 `task_submitted_content.attachments`에는 기존 `filename/stored_name/size/mime` 형태를 계속 병합해서 내려줌
+- 피드백 저장 시 `resubmit_requested` 상태와 `task_resubmit_requested` Y/N 값을 동기화하고 `task_score` 필드를 받을 수 있게 확장
+- 기존 DB 적용용 SQL `docs/task_submission_schema_migration_2026_05_18.sql` 추가 (`create_all`은 기존 테이블 컬럼을 자동 변경하지 않음)
+
+### 검증
+- `git diff --check`: pass
+- backend `compileall`: pass
+- FastAPI app import: pass
+- frontend `npm run build`: pass (기존 큰 청크 경고만 있음)
+
+### 참고
+- 제공 SQL의 `task_submissions` CREATE TABLE에는 `task_submission_type` 줄과 `task_resubmit_requested` 줄 뒤 쉼표가 필요함
+
+---
+
 ## 2026-05-18 - Claude (Jodit Editor 깨짐 검증 + iframe 모드 적용)
 
 ### 배경
