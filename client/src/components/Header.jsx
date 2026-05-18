@@ -1,22 +1,23 @@
 import { useState } from 'react';
 import '../styles/Dashboard.css';
+import searchIcon from '../public/search_icon.png';
 
 function Header({ onViewChange, onLogout, onScrollToTop, onScrollToArticle, onSearch, onReset }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [inputValue, setInputValue] = useState(''); // 검색어 상태 추가
+  const [inputValue, setInputValue] = useState(''); 
 
   // 검색 실행 핸들러
   const handleSearchAction = () => {
     if (onSearch && inputValue.trim()) {
       onSearch(inputValue.trim());
-      // 검색 후 뷰를 아티클 페이지로 전환 (다른 뷰에 있을 때 검색할 경우를 대비)
+
       onViewChange('articles');
-      // 검색 실행 후 검색창 비우기
+
       setInputValue('');
     }
   };
 
-  // 엔터 키 입력 감지
+
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
       handleSearchAction();
@@ -48,12 +49,12 @@ function Header({ onViewChange, onLogout, onScrollToTop, onScrollToArticle, onSe
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
             />
-            {/* 돋보기 버튼 추가 */}
+
             <button 
               onClick={handleSearchAction} 
               style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', marginLeft: '5px' }}
             >
-              🔍
+              <img src={searchIcon} className='searchIconImg'></img>
             </button>
           </div>
 

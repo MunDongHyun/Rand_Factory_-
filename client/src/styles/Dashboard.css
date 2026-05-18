@@ -97,6 +97,12 @@
   height: 100%;
 }
 
+.searchIconImg {
+  width: 50%;
+  margin-left: -35px;
+  margin-top: 3px;
+}
+
 .avatarCircle {
   width: 40px;
   height: 40px;
