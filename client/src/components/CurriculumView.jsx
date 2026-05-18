@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../lib/api';
-import curri_nulll from '../public/curri_null.png';
+import curri_nulll from '../public/download_img.png';
 import '../styles/Curriculum.css';
 
 import JoditEditor from 'jodit-react';
@@ -36,6 +36,7 @@ const buildGeneratePayload = (form) => ({
 });
 
 function CurriculumView({ onOpenArticle }) {
+  const [downloadModalOpen, setDownloadModalOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [curriculums, setCurriculums] = useState([]);
@@ -63,8 +64,7 @@ function CurriculumView({ onOpenArticle }) {
   const [feedbackSavingId, setFeedbackSavingId] = useState(null);
   const [expandedSubmissionId, setExpandedSubmissionId] = useState(null);
 
-  const [templateModal, setTemplateModal] = useState({ open: false, week: null, assignmentIdx: null, title: '', content: '' });
-  const [submissionModal, setSubmissionModal] = useState({ open: false, week: null, assignmentIdx: null, title: '', templateContent: '', content: '', status: 'draft' });
+  const [templateModal, setTemplateModal] = useState({ open: false, week: null, assignmentIdx: null, title: '', content: '', fullscreen: false }); const [submissionModal, setSubmissionModal] = useState({ open: false, week: null, assignmentIdx: null, title: '', templateContent: '', content: '', status: 'draft' });
 
   const loadCurriculums = () => {
     setLoading(true);
@@ -388,84 +388,92 @@ function CurriculumView({ onOpenArticle }) {
           </aside>
           <div className="curriculumDetail">
             <div className="extracted-detail-header">
-              <div>
-                <h3 className="curriculumDetailTitle mb-8">{selectedCurriculum.cur_title}</h3>
-                <p className="curriculumDetailDesc no-margin">{selectedCurriculum.cur_learning_goal || ''}</p>
-              </div>
-              <div className="extracted-download-group">
-                <button onClick={handleDownloadTxt} className="extracted-btn-txt">📄 TXT 다운로드</button>
-                <button onClick={handleDownloadPdf} className="extracted-btn-pdf">📑 PDF 다운로드</button>
-              </div>
-            </div>
-            <div className="assignedLearnersBox">
-              <div className="assignedLearnersHeader">
-                <span className="assignedLearnersLabel">배정 학습자 {(selectedCurriculum.cur_assigned_learner_ids || []).length}명</span>
-                <button className="assignedLearnersEditBtn" onClick={() => { setAssignSelected(selectedCurriculum.cur_assigned_learner_ids || []); setAssignModalOpen(true); }}>배정 변경</button>
-              </div>
-              <div className="assignedLearnersList">
-                {(selectedCurriculum.cur_assigned_learner_ids || []).length === 0 ? (<span className="assignEmptyInline">배정된 학습자가 없습니다</span>) : ((selectedCurriculum.cur_assigned_learner_ids || []).map((id) => {
-                  const l = learners.find((x) => x.user_id === id); return <span key={id} className="assignedLearnerChip">{l ? l.user_name : `#${id}`}</span>;
-                }))}
+              <div className="curriculumTitleGroup">
+                <div className="curriculumTitleRow">
+                  <h3 className="curriculumDetailTitle">{selectedCurriculum.cur_title}</h3>
+                  <img
+                    src="./download_img.png"
+                    alt="다운로드"
+                    className="downloadIcon"
+                    onClick={() => setDownloadModalOpen(true)}
+                  />
+                </div>
+                <p className="curriculumDetailDesc">{selectedCurriculum.cur_learning_goal || ''}</p>
               </div>
             </div>
-            <div className="curriculumSteps mt-24">
+            <div className="assignedLearnersRow">
+              {(selectedCurriculum.cur_assigned_learner_ids || []).length === 0
+                ? <span className="assignEmptyInline">배정된 학습자가 없습니다</span>
+                : (selectedCurriculum.cur_assigned_learner_ids || []).map((id) => {
+                  const l = learners.find((x) => x.user_id === id);
+                  return <span key={id} className="assignedLearnerChip">{l ? l.user_name : `#${id}`}</span>;
+                })}
+              <button
+                className="assignedLearnersEditBtn"
+                onClick={() => { setAssignSelected(selectedCurriculum.cur_assigned_learner_ids || []); setAssignModalOpen(true); }}
+              >
+                변경
+              </button>
+            </div>
+            <div className="curriculumSteps">
               {normalizeWeekPlan(selectedCurriculum.cur_week_plan).map((step) => renderAccordionItem(step, detailExpandedWeek, (week) => setDetailExpandedWeek(prev => prev === week ? null : week)))}
             </div>
 
-            <div className="managerSubmissionSection">
-              <div className="managerSubmissionHeader">
-                <h3 className="managerSubmissionTitle">제출된 과제</h3>
-                <span className="managerSubmissionCount">{submissions.length}건</span>
-              </div>
-              {submissionsLoading && <p className="managerSubmissionLoading">제출 과제를 불러오는 중...</p>}
-              {!submissionsLoading && submissions.length === 0 && <p className="managerSubmissionEmpty">아직 제출된 과제가 없습니다.</p>}
-              <div className="managerSubmissionList">
-                {submissions.map((s) => {
-                  const isExpanded = expandedSubmissionId === s.task_submission_id;
-                  const statusClass = s.task_status || '';
-                  const statusLabel = { submitted: '피드백 대기', feedback_given: '피드백 완료', resubmit_requested: '재제출 요청' }[s.task_status] || '제출됨';
-                  return (
-                    <div key={s.task_submission_id} className="managerSubmissionItem">
-                      <div className="managerSubmissionItemHeader" onClick={() => setExpandedSubmissionId(prev => prev === s.task_submission_id ? null : s.task_submission_id)}>
-                        <div className="managerSubmissionItemMain">
-                          <span className="managerSubmissionWeek">{s.task_week_number}주차</span>
-                          <span className="managerSubmissionLearner">{s.learner_name || `#${s.task_learner_id}`}</span>
-                          <span className="managerSubmissionTime">{formatDateTime(s.task_submitted_at)}</span>
+          </div>
+          <div className="managerSubmissionSection">
+            <div className="managerSubmissionHeader">
+              <h3 className="managerSubmissionTitle">제출된 과제</h3>
+              <span className="managerSubmissionCount">{submissions.length}건</span>
+            </div>
+            {submissionsLoading && <p className="managerSubmissionLoading">제출 과제를 불러오는 중...</p>}
+            {!submissionsLoading && submissions.length === 0 && <p className="managerSubmissionEmpty">아직 제출된 과제가 없습니다.</p>}
+            <div className="managerSubmissionList">
+              {submissions.map((s) => {
+                const isExpanded = expandedSubmissionId === s.task_submission_id;
+                const statusClass = s.task_status || '';
+                const statusLabel = { submitted: '피드백 대기', feedback_given: '피드백 완료', resubmit_requested: '재제출 요청' }[s.task_status] || '제출됨';
+                return (
+                  <div key={s.task_submission_id} className="managerSubmissionItem">
+                    <div className="managerSubmissionItemHeader" onClick={() => setExpandedSubmissionId(prev => prev === s.task_submission_id ? null : s.task_submission_id)}>
+                      <div className="managerSubmissionItemMain">
+                        <span className="managerSubmissionWeek">{s.task_week_number}주차</span>
+                        <span className="managerSubmissionLearner">{s.learner_name || `#${s.task_learner_id}`}</span>
+                        <span className="managerSubmissionTime">{formatDateTime(s.task_submitted_at)}</span>
+                      </div>
+                      <div className="managerSubmissionItemRight">
+                        <span className={`managerSubmissionStatus ${statusClass}`}>{statusLabel}</span>
+                        <span className="managerSubmissionToggle">{isExpanded ? '▲' : '▼'}</span>
+                      </div>
+                    </div>
+                    {isExpanded && (
+                      <div className="managerSubmissionItemBody">
+                        <div className="managerSubmissionContent">
+                          <p className="managerSubmissionContentLabel">제출 내용</p>
+                          <div className="managerSubmissionContentBody" dangerouslySetInnerHTML={{ __html: s.task_submitted_content?.text || '(내용 없음)' }}></div>
                         </div>
-                        <div className="managerSubmissionItemRight">
-                          <span className={`managerSubmissionStatus ${statusClass}`}>{statusLabel}</span>
-                          <span className="managerSubmissionToggle">{isExpanded ? '▲' : '▼'}</span>
+                        {s.task_manager_feedback && (
+                          <div className="managerSubmissionExistingFeedback">
+                            <p className="managerSubmissionContentLabel">현재 피드백 ({formatDateTime(s.task_feedback_at)})</p>
+                            <div className="managerSubmissionContentBody">{s.task_manager_feedback}</div>
+                          </div>
+                        )}
+                        <div className="managerFeedbackForm">
+                          <p className="managerSubmissionContentLabel">{s.task_manager_feedback ? '피드백 수정' : '피드백 작성'}</p>
+                          <textarea className="managerFeedbackTextarea" placeholder="학습자에게 전달할 피드백을 입력하세요" value={feedbackDraft[s.task_submission_id] ?? ''} onChange={(e) => setFeedbackDraft((prev) => ({ ...prev, [s.task_submission_id]: e.target.value }))} />
+                          <div className="managerFeedbackBtns">
+                            <button className="managerFeedbackBtn secondary" onClick={() => handleFeedbackSave(s.task_submission_id, 'resubmit_requested')} disabled={feedbackSavingId === s.task_submission_id}>재제출 요청</button>
+                            <button className="managerFeedbackBtn primary" onClick={() => handleFeedbackSave(s.task_submission_id, 'feedback_given')} disabled={feedbackSavingId === s.task_submission_id}>{feedbackSavingId === s.task_submission_id ? '저장 중...' : '피드백 저장'}</button>
+                          </div>
                         </div>
                       </div>
-                      {isExpanded && (
-                        <div className="managerSubmissionItemBody">
-                          <div className="managerSubmissionContent">
-                            <p className="managerSubmissionContentLabel">제출 내용</p>
-                            <div className="managerSubmissionContentBody" dangerouslySetInnerHTML={{ __html: s.task_submitted_content?.text || '(내용 없음)' }}></div>
-                          </div>
-                          {s.task_manager_feedback && (
-                            <div className="managerSubmissionExistingFeedback">
-                              <p className="managerSubmissionContentLabel">현재 피드백 ({formatDateTime(s.task_feedback_at)})</p>
-                              <div className="managerSubmissionContentBody">{s.task_manager_feedback}</div>
-                            </div>
-                          )}
-                          <div className="managerFeedbackForm">
-                            <p className="managerSubmissionContentLabel">{s.task_manager_feedback ? '피드백 수정' : '피드백 작성'}</p>
-                            <textarea className="managerFeedbackTextarea" placeholder="학습자에게 전달할 피드백을 입력하세요" value={feedbackDraft[s.task_submission_id] ?? ''} onChange={(e) => setFeedbackDraft((prev) => ({ ...prev, [s.task_submission_id]: e.target.value }))} />
-                            <div className="managerFeedbackBtns">
-                              <button className="managerFeedbackBtn secondary" onClick={() => handleFeedbackSave(s.task_submission_id, 'resubmit_requested')} disabled={feedbackSavingId === s.task_submission_id}>재제출 요청</button>
-                              <button className="managerFeedbackBtn primary" onClick={() => handleFeedbackSave(s.task_submission_id, 'feedback_given')} disabled={feedbackSavingId === s.task_submission_id}>{feedbackSavingId === s.task_submission_id ? '저장 중...' : '피드백 저장'}</button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
+
       )}
 
       {modalOpen && (
@@ -502,6 +510,7 @@ function CurriculumView({ onOpenArticle }) {
 
       {assignModalOpen && selectedCurriculum && (
         <>
+
           <div className="confirmOverlay" onClick={() => !assignSaving && setAssignModalOpen(false)} />
           <div className="confirmModal assignModal">
             <div className="confirmHeader"><div className="confirmHeaderRight"><p className="confirmHeaderLabel">{selectedCurriculum.cur_title}</p><h3 className="confirmTitle">학습자 배정 변경</h3><div className="confirmDivider" /></div></div>
@@ -515,7 +524,7 @@ function CurriculumView({ onOpenArticle }) {
                 </div>
               )}
             </div>
-            <div className="confirmBtns mt-24"><button className="confirmBtnBack" onClick={() => setAssignModalOpen(false)} disabled={assignSaving}>취소</button><button className="confirmBtnCreate" onClick={handleAssignSave} disabled={assignSaving}>{assignSaving ? '저장 중...' : '저장'}</button></div>
+            <div className="confirmBtns"><button className="confirmBtnBack" onClick={() => setAssignModalOpen(false)} disabled={assignSaving}>취소</button><button className="confirmBtnCreate" onClick={handleAssignSave} disabled={assignSaving}>{assignSaving ? '저장 중...' : '저장'}</button></div>
           </div>
         </>
       )}
@@ -527,10 +536,10 @@ function CurriculumView({ onOpenArticle }) {
             <div className="confirmHeader"><div className="confirmHeaderRight"><p className="confirmHeaderLabel">{preview.cur_target_job || '직무 미지정'} | {preview.cur_duration_weeks}주차</p><h3 className="confirmTitle">이 커리큘럼을 저장할까요?</h3><div className="confirmDivider" /></div></div>
             <div className="confirmGoalBox"><p className="confirmGoalLabel">교육 목표 :</p><p className="confirmGoalText">{preview.cur_learning_goal || '교육 목표가 입력되지 않았습니다.'}</p></div>
             <p className="confirmProgramName">{preview.cur_title}</p>
-            <div className="confirmStepList mt-20">
+            <div className="confirmStepList">
               {previewWeeks.map((step) => renderAccordionItem(step, previewExpandedWeek, (week) => setPreviewExpandedWeek(prev => prev === week ? null : week)))}
             </div>
-            <div className="assignSection mt-24">
+            <div className="assignSection">
               <p className="assignSectionTitle">학습자 배정 (선택)</p><p className="assignSectionHint">선택한 학습자들이 자신의 화면에서 이 커리큘럼을 볼 수 있습니다. 나중에 변경 가능합니다.</p>
               {learners.length === 0 ? <p className="assignEmpty">같은 회사의 등록된 학습자가 없습니다.</p> : (
                 <div className="assignCheckList">
@@ -541,8 +550,8 @@ function CurriculumView({ onOpenArticle }) {
                 </div>
               )}
             </div>
-            {formError && <p className="curriculumFormError mt-16">{formError}</p>}
-            <div className="confirmBtns mt-24"><button className="confirmBtnBack" onClick={() => setConfirmOpen(false)} disabled={saving}>돌아가기</button><button className="confirmBtnCreate" onClick={handleSave} disabled={saving}>{saving ? '저장 중...' : '생성'}</button></div>
+            {formError && <p className="curriculumFormError">{formError}</p>}
+            <div className="confirmBtns"><button className="confirmBtnBack" onClick={() => setConfirmOpen(false)} disabled={saving}>돌아가기</button><button className="confirmBtnCreate" onClick={handleSave} disabled={saving}>{saving ? '저장 중...' : '생성'}</button></div>
           </div>
         </>
       )}
@@ -550,15 +559,35 @@ function CurriculumView({ onOpenArticle }) {
       {templateModal.open && (
         <>
           <div className="confirmOverlay" onClick={() => setTemplateModal({ ...templateModal, open: false })} />
-          <div className="confirmModal">
-            <h3 className="confirmTitle">과제 양식(템플릿) 배포</h3>
-            <p className="assignSectionHint mb-16">
+          <div className={`confirmModal templateModal ${templateModal.fullscreen ? 'fullscreen' : ''}`}>
+
+
+            <div className="modalTopBar">
+              <h3 className="confirmTitle">과제 양식(템플릿) 배포</h3>
+              <button
+                className="fullscreenBtn"
+                onClick={() => setTemplateModal(prev => ({ ...prev, fullscreen: !prev.fullscreen }))}
+              >
+                {templateModal.fullscreen ? '✕ 축소' : '⛶ 전체보기'}
+              </button>
+
+            </div>
+
+            <p className="assignSectionHint">
               학습자에게 전달될 '{templateModal.title}'의 작성 양식 가이드를 작성해주세요. 표나 양식을 지정해주면 학습자가 쉽게 채워넣을 수 있습니다.
             </p>
             <div className="templateEditorWrapper">
               <JoditEditor
                 value={templateModal.content}
-                config={{ height: 400, language: 'ko', placeholder: '표 삽입, 텍스트 색상 변경 등을 자유롭게 활용해 양식을 작성하세요...' }}
+                config={{
+                  height: templateModal.fullscreen ? 600 : 400,
+                  language: 'ko',
+                  placeholder: '표 삽입, 텍스트 색상 변경 등을 자유롭게 활용해 양식을 작성하세요...',
+                  toolbarSticky: false,        // ← 툴바 고정 해제
+                  popup: {
+                    selection: [],             // ← 선택 팝업 최소화
+                  },
+                }}
                 onBlur={(newContent) => setTemplateModal({ ...templateModal, content: newContent })}
               />
             </div>
@@ -575,12 +604,12 @@ function CurriculumView({ onOpenArticle }) {
           <div className="confirmOverlay" onClick={() => setSubmissionModal({ ...submissionModal, open: false })} />
           <div className="confirmModal submissionModal">
             <h3 className="confirmTitle">📝 과제 수행: {submissionModal.title}</h3>
-            
+
             <div className="document-workspace">
               <div className="document-guide-section">
                 <strong className="documentGuideTitle">사수(교육담당자)의 과제 작성 가이드</strong>
-                <div 
-                  className="document-template-content" 
+                <div
+                  className="document-template-content"
                   dangerouslySetInnerHTML={{ __html: submissionModal.templateContent }}
                 ></div>
               </div>
@@ -600,11 +629,22 @@ function CurriculumView({ onOpenArticle }) {
               </div>
             </div>
 
-            <div className="confirmBtns mt-24">
+            <div className="confirmBtns">
               <button className="confirmBtnBack" onClick={() => setSubmissionModal({ ...submissionModal, open: false })}>닫기</button>
               <button className="confirmBtnCreate btnSuccess" onClick={() => saveSubmission(false)}>임시 저장</button>
               <button className="confirmBtnCreate" onClick={() => saveSubmission(true)}>최종 제출하기</button>
             </div>
+          </div>
+        </>
+      )}
+
+      {downloadModalOpen && (
+        <>
+          <div className="downloadOverlay" onClick={() => setDownloadModalOpen(false)} />
+          <div className="downloadModal">
+            <p className="downloadModalTitle">다운로드 형식 선택</p>
+            <button className="downloadModalBtn" onClick={() => { handleDownloadTxt(); setDownloadModalOpen(false); }}>TXT 다운로드</button>
+            <button className="downloadModalBtn" onClick={() => { handleDownloadPdf(); setDownloadModalOpen(false); }}>PDF 다운로드</button>
           </div>
         </>
       )}
