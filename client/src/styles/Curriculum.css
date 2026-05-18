@@ -1,1651 +1,842 @@
 
 
-/* ===========================
-   커리큘럼 페이지
-   =========================== */
+/* =============================================
+   페이지 컨테이너
+   ============================================= */
+.curriculumPageContainer {
+  min-height: 100vh;
+  background: var(--bg);
+  padding: 40px 0px;
+  font-family: 'pretendard', sans-serif;
+  box-sizing: border-box;
+}
 
 
+.curriculumStatusMsg {
+  font-size: 14px;
+  color: #9C9C9C;
+  margin: 0;
+}
+
+.curriculumStatusMsg.error {
+  color: #e05252;
+}
+
+/* =============================================
+   빈 상태
+   ============================================= */
 .curriculumEmptyBox {
-  width: 100%;
-  min-height: 521px;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 4px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 24px;
-  padding: 48px;
+  padding: 80px 0;
+  gap: 20px;
 }
 
 .curriculumEmptyImage {
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
+  width: 120px;
+  opacity: 0.5;
 }
 
 .curriculumEmptyText {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 20px;
-  font-weight: 700;
-  color: #3A4A5C;
+  font-size: 16px;
+  color: #9C9C9C;
   margin: 0;
 }
 
 .curriculumCreateBtn {
-  width: 653px;
-  height: 59px;
+  padding: 12px 28px;
   background: #3A4A5C;
+  color: #fff;
   border: none;
-  font-family: 'Pretendard', sans-serif;
-  font-size: 20px;
-  font-weight: 500;
-  color: var(--card);
+  border-radius: 6px;
+  font-family: 'pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.2s ease;
 }
 
 .curriculumCreateBtn:hover {
-  background: #2d3c4d;
-  transform: translateY(-2px);
+  background: #2e3c4c;
 }
 
-/* ===========================
-   모달
-   =========================== */
-.modalOverlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 1300;
-  animation: fadeIn 0.2s ease;
-}
-
-.modalBox {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 1400;
-  background: var(--card);
-  border-radius: 12px;
-  padding: 48px;
-  width: 520px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-  animation: slideUp 0.25s ease;
-}
-
-@keyframes slideUp {
-  from { opacity: 0; transform: translate(-50%, -45%); }
-  to   { opacity: 1; transform: translate(-50%, -50%); }
-}
-
-.modalClose {
-  position: absolute;
-  top: 20px;
-  right: 24px;
-  background: none;
-  border: none;
-  font-size: 18px;
-  cursor: pointer;
-  color: var(--ink-muted);
-  transition: color 0.2s ease;
-}
-
-.modalClose:hover {
-  color: var(--ink);
-}
-
-.modalTitle {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 24px;
-  font-weight: 700;
-  color: #000000;
-  margin: 0 0 16px;
-}
-
-.modalDesc {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 16px;
-  color: var(--ink-muted);
-  line-height: 1.6;
-  margin: 0;
-}
-
-/* ===========================
-   커리큘럼 챗봇 모달
-   =========================== */
-.chatModalOverlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.75);
-  z-index: 1300;
-  animation: fadeIn 0.2s ease;
-}
-
-.chatModalContainer {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 1400;
-  width: 744px;
-  height: 732px;
-  background: var(--card);
-  border-radius: 23px;
-  display: flex;
-  overflow: hidden;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
-  animation: slideUp 0.25s ease;
-}
-
-/* 왼쪽 사이드바 */
-.chatSidebar {
-  width: 200px;
-  flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.24);
-  border-right: 1px solid #BEC6CF;
-  padding: 40px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  background: var(--ink);
-}
-
-.chatSidebarTitle {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--card);
-  margin: 0 0 16px;
-}
-
-.chatSidebarDivider {
-  width: 100%;
-  height: 1px;
-  background: var(--card);
-  margin-bottom: 20px;
-}
-
-.chatSidebarList {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.chatSidebarList li {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 16px;
-  font-weight: 400;
-  color: var(--card);
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
-  transition: background 0.2s ease;
-}
-
-.chatSidebarList li:hover {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-/* 오른쪽 챗봇 영역 */
-.chatMain {
-  text-align: center;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 32px 28px 24px;
-  position: relative;
-}
-
-.chatModalClose {
-  position: absolute;
-  top: 20px;
-  right: 24px;
-  background: none;
-  border: none;
-  font-size: 20px;
-  cursor: pointer;
-  color: #5C5C5C;
-  font-weight: 700;
-  transition: color 0.2s ease;
-}
-
-.chatModalClose:hover {
-  color: #000000;
-}
-
-.chatMainTitle {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--ink);
-  margin: 0 0 28px;
-  padding-right: 32px;
-}
-
-/* 대화 메시지 영역 */
-.chatMessages {
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.chatBotMessage {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-/* 챗봇 아바타 */
-.chatBotAvatar {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  object-fit: cover; 
-  flex-shrink: 0;
-  background-color: var(--bg-alt);
-}
-
-.chatBubble {
-  background: var(--bg);
-  border-radius: 30px;
-  padding: 14px 20px;
-  font-family: 'Pretendard', sans-serif;
-  font-size: 16px;
-  font-weight: 350;
-  color: var(--ink);
-  line-height: 1.6;
-  max-width: 320px;
-}
-
-/* 입력창 */
-.chatInputArea {
-  border: 1px solid #BEC6CF;
-  border-radius: 8px;
-  padding: 12px 16px;
-  display: flex;
-  align-items: center;
-}
-
-.chatInput {
-  width: 100%;
-  border: none;
-  outline: none;
-  font-family: 'Pretendard', sans-serif;
-  font-size: 15px;
-  color: var(--ink);
-  background: transparent;
-}
-
-.chatInput::placeholder {
-  color: #BEC6CF;
-}
-
-.curriculumGenerateForm {
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding-right: 4px;
-  text-align: left;
-}
-
-.curriculumFieldGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.curriculumField {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  font-family: 'Pretendard', sans-serif;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--ink);
-}
-
-.curriculumField input,
-.curriculumField textarea {
-  width: 100%;
-  border: 1px solid #BEC6CF;
-  border-radius: 8px;
-  padding: 11px 12px;
-  font-family: 'Pretendard', sans-serif;
-  font-size: 14px;
-  font-weight: 400;
-  color: var(--ink);
-  background: #FFFFFF;
-  outline: none;
-  box-sizing: border-box;
-}
-
-.curriculumField textarea {
-  resize: vertical;
-  min-height: 74px;
-  line-height: 1.5;
-}
-
-.curriculumField input:focus,
-.curriculumField textarea:focus {
-  border-color: #3A4A5C;
-  box-shadow: 0 0 0 3px rgba(58, 74, 92, 0.12);
-}
-
-.curriculumGenerateBtn {
-  width: 100%;
-  min-height: 48px;
-  border: none;
-  border-radius: 8px;
-  background: #3A4A5C;
-  color: #FFFFFF;
-  font-family: 'Pretendard', sans-serif;
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.curriculumGenerateBtn:hover {
-  transform: translateY(-1px);
-}
-
-.curriculumGenerateBtn:disabled,
-.confirmBtnBack:disabled,
-.confirmBtnCreate:disabled,
-.chatModalClose:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.curriculumFormError {
-  margin: 0;
-  color: #C33A3A;
-  font-family: 'Pretendard', sans-serif;
-  font-size: 13px;
-  line-height: 1.5;
-  text-align: center;
-}
-
-/* ===========================
-   커리큘럼 있을 때 레이아웃
-   =========================== */
+/* =============================================
+   메인 레이아웃
+   ============================================= */
 .curriculumLayout {
   display: flex;
-  gap: 0;
-  min-height: 600px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  align-items: stretch;
+  min-height: 584px;
+  border-radius: 10px;
   overflow: hidden;
-  background: var(--card);
+  border: 1px solid #BEC6CF;
 }
 
-/* 왼쪽 사이드바 */
+/* =============================================
+   사이드바
+   ============================================= */
 .curriculumSidebar {
-  width: 220px;
+  width: 300px;
   flex-shrink: 0;
   background: #3A4A5C;
-  padding: 36px 24px;
+  border-radius: 10px 0 0 10px;
+  padding: 32px 24px;
   display: flex;
   flex-direction: column;
+  gap: 0;
 }
 
 .curriculumSidebarTitle {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 18px;
-  font-weight: 700;
-  color: #FFFFFF;
-  margin: 0 0 12px;
+  font-family: 'pretendard', sans-serif;
+  font-weight: 600;
+  font-size: 24px;
+  line-height: 29px;
+  color: var(--card);
+  margin: 0 0 16px 0;
 }
 
 .curriculumSidebarDivider {
   width: 100%;
   height: 1px;
-  background: rgba(255,255,255,0.3);
-  margin-bottom: 20px;
+  background: #fff;
+  margin-bottom: 16px;
 }
 
 .curriculumSidebarList {
   list-style: none;
   padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  margin-bottom: 50px;
   flex: 1;
-}
-
-.curriculumSidebarItem {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 15px;
-  font-weight: 400;
-  color: rgba(255,255,255,0.7);
-  padding: 10px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
-}
-
-.curriculumSidebarItem:hover {
-  background: rgba(255,255,255,0.1);
-  color: #FFFFFF;
-}
-
-.curriculumSidebarItem.active {
-  background: rgba(255,255,255,0.2);
-  color: #FFFFFF;
-  font-weight: 600;
-}
-
-.curriculumSidebarAddBtn {
-  margin-top: 16px;
-  background: none;
-  border: 1px solid rgba(255,255,255,0.4);
-  border-radius: 8px;
-  color: #FFFFFF;
-  font-family: 'Pretendard', sans-serif;
-  font-size: 14px;
-  font-weight: 500;
-  padding: 10px;
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-.curriculumSidebarAddBtn:hover {
-  background: rgba(255,255,255,0.1);
-}
-
-/* 오른쪽 상세 */
-.curriculumDetail {
-  flex: 1;
-  padding: 40px 48px;
-  overflow-y: auto;
-}
-
-.curriculumDetailTitle {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 26px;
-  font-weight: 700;
-  color: var(--ink);
-  margin: 0 0 8px;
-}
-
-.curriculumDetailDesc {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 15px;
-  color: var(--ink-muted);
-  margin: 0 0 32px;
-}
-
-/* 주차별 카드 */
-.curriculumSteps {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.curriculumStepCard {
-  display: flex;
-  align-items: flex-start;
-  gap: 20px;
-  padding: 20px 24px;
-  border: 1.5px solid var(--line);
-  border-radius: 10px;
-  background: var(--bg);
-  transition: box-shadow 0.2s ease;
-}
-
-.curriculumStepCard:hover {
-  box-shadow: 0 4px 16px rgba(58, 74, 92, 0.1);
-}
-
-.stepWeek {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 13px;
-  font-weight: 700;
-  color: #FFFFFF;
-  background: #3A4A5C;
-  padding: 4px 12px;
-  border-radius: 20px;
-  white-space: nowrap;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.stepContent {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.stepTitle {
-  font-family: 'Pretendard', sans-serif;
+
+.curriculumSidebarItem {
+  width: 250px;
+  padding: 14px 16px;
+  border-radius: 6px;
+  font-family: 'pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 15px;
+  line-height: 19px;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.curriculumSidebarItem:hover {
+  background: rgba(217, 217, 217, 0.18);
+}
+
+.curriculumSidebarItem.active {
+  background: rgba(217, 217, 217, 0.28);
+}
+
+
+.curriculumSidebarAddBtn {
+  margin-top: auto;
+  width: 218px;
+  padding: 12px 0;
+  border: 1px solid #fff;
+  border-radius: 6px;
+  background: transparent;
+  font-family: 'pretendard', sans-serif;
+  font-weight: 500;
   font-size: 16px;
+  line-height: 19px;
+  color: #fff;
+  cursor: pointer;
+  align-self: center;
+  transition: background 0.15s;
+}
+
+.curriculumSidebarAddBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+
+.curriculumDetail {
+  flex: 1;
+  background: var(--card);
+  border-radius: 0;
+  padding: 32px 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  border-right: 1px solid var(--line);
+}
+  
+/* =============================================
+   상세 헤더
+   ============================================= */
+.extracted-detail-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+
+.curriculumDetailTitle {
+  font-family: 'pretendard', sans-serif;
   font-weight: 600;
-  color: var(--ink);
+  font-size: 25px;
+  line-height: 38px;
+  color: #3A4A5C;
   margin: 0;
 }
 
-.stepDesc {
-  font-family: 'Pretendard', sans-serif;
+
+.curriculumDetailDesc {
+  font-family: 'pretendard', sans-serif;
+  font-weight: 400;
   font-size: 14px;
-  color: var(--ink-muted);
-  line-height: 1.6;
+  line-height: 17px;
+  color: #9C9C9C;
   margin: 0;
 }
 
-/* ===========================
-   커리큘럼 저장 확인 모달
-   =========================== */
-.confirmOverlay {
+
+.assignedLearnersRow {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+}
+
+.assignedLearnersEditBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 14px;
+  height: 20px;
+  background: #3A4A5C;
+  border: none;
+  border-radius: 16px;
+  font-family: 'pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 13px;
+  color: #CAEDFD;
+  cursor: pointer;
+}
+
+.assignedLearnersEditBtn:hover {
+  background: #2e3c4c;
+}
+
+
+
+.assignedLearnerChip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 53px;
+  height: 20px;
+  border: 1px solid #000;
+  border-radius: 16px;
+  font-family: 'pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 13px;
+  color: #3A4A5C;
+  background: #fff;
+}
+
+.assignEmptyInline {
+  font-size: 12px;
+  color: #9C9C9C;
+}
+
+/* =============================================
+   아코디언: 커리큘럼 주차 (extracted-* 클래스)
+   ============================================= */
+.curriculumSteps {
+  margin-top: 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.extracted-accordion-item {
+  border: 1px solid rgba(58, 74, 92, 0.25);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+
+.extracted-accordion-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 10px 10px 15px;
+  min-height: 39px;
+  background: #fff;
+  cursor: pointer;
+  user-select: none;
+  box-sizing: border-box;
+  transition: background 0.12s;
+}
+
+.extracted-accordion-header:hover {
+  background: #f6f7f8;
+}
+
+.extracted-accordion-header.expanded {
+  background: #f6f7f8;
+}
+
+.extracted-week-label {
+  font-family: 'pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 17px;
+  color: #94B8C8;
+  min-width: 52px;
+  flex-shrink: 0;
+}
+
+.extracted-theme-label {
+  font-family: 'pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 17px;
+  color: #3A4A5C;
+  flex: 1;
+}
+
+.extracted-toggle-label {
+  font-size: 12px;
+  color: #CDD1D6;
+  flex-shrink: 0;
+}
+
+/* 아코디언 바디 */
+.extracted-accordion-body {
+  padding: 16px 20px;
+  background: #FAFAFA;
+  border-top: 1px solid rgba(58, 74, 92, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.extracted-section-margin {
+  margin-bottom: 4px;
+}
+
+/* 학습 목표 */
+.extracted-objective-title {
+  font-family: 'pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: #3A4A5C;
+  margin: 0 0 6px 0;
+}
+
+.extracted-objective-text {
+  font-family: 'pretendard', sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  color: #3A4A5C;
+  margin: 0;
+}
+
+/* 멘토링 과제 */
+.extracted-task-title {
+  font-family: 'pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: #3A4A5C;
+  margin: 0 0 6px 0;
+}
+
+.extracted-task-list {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.extracted-list-item {
+  font-family: 'pretendard', sans-serif;
+  font-size: 13px;
+  color: #3A4A5C;
+  margin-bottom: 3px;
+}
+
+/* 실무 수행 과제 카드 */
+.extracted-assignment-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.extracted-assignment-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.extracted-assignment-card {
+  padding: 12px 14px;
+  border: 1px solid rgba(58, 74, 92, 0.18);
+  border-radius: 4px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.extracted-assignment-name {
+  font-family: 'pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: #3A4A5C;
+}
+
+.extracted-guide-list {
+  margin: 4px 0 0 0;
+  padding-left: 18px;
+}
+
+.extracted-guide-item {
+  font-family: 'pretendard', sans-serif;
+  font-size: 12px;
+  color: #3A4A5C;
+  margin-bottom: 2px;
+}
+
+.extracted-submission-format {
+  font-family: 'pretendard', sans-serif;
+  font-size: 12px;
+  color: #9C9C9C;
+  margin-top: 4px;
+}
+
+.extracted-submission-format.has-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* 양식 배포 / 과제 작성 버튼 그룹 */
+.templateActionBtnGroup {
+  display: flex;
+  gap: 6px;
+}
+
+.template-action-btn {
+  padding: 5px 12px;
+  border-radius: 4px;
+  font-family: 'pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 11px;
+  cursor: pointer;
+  border: none;
+  transition: background 0.12s;
+}
+
+.template-action-btn.admin {
+  background: #EAF0F5;
+  color: #3A4A5C;
+  border: 1px solid #BEC6CF;
+}
+
+.template-action-btn.admin:hover {
+  background: #d6e0e8;
+}
+
+.template-action-btn.user {
+  background: #3A4A5C;
+  color: #fff;
+}
+
+.template-action-btn.user:hover {
+  background: #2e3c4c;
+}
+
+/* 교육담당자 코칭 가이드 */
+.extracted-instructor-box {
+  background: #EAF0F5;
+  border-radius: 4px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.extracted-instructor-title {
+  font-family: 'pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: #3A4A5C;
+  margin: 0 0 6px 0;
+}
+
+.extracted-guide-label {
+  font-family: 'pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  color: #3A4A5C;
+}
+
+.extracted-guide-list-no-margin {
+  margin: 4px 0 0 0;
+  padding-left: 18px;
+}
+
+.extracted-guide-item-small {
+  font-family: 'pretendard', sans-serif;
+  font-size: 12px;
+  color: #3A4A5C;
+  margin-bottom: 2px;
+}
+
+.extracted-coaching-list {
+  margin: 4px 0 0 0;
+  padding-left: 18px;
+}
+
+.extracted-coaching-item {
+  font-family: 'pretendard', sans-serif;
+  font-size: 12px;
+  color: #3A4A5C;
+  margin-bottom: 3px;
+}
+
+/* 참고 자료 & 예상 소요 */
+.extracted-footer-wrapper {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.extracted-ref-title {
+  font-family: 'pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: #3A4A5C;
+  margin: 0 0 6px 0;
+}
+
+.extracted-ref-item {
+  margin-bottom: 6px;
+}
+
+.extracted-ref-link {
+  font-family: 'pretendard', sans-serif;
+  font-size: 12px;
+  color: #3A4A5C;
+  text-decoration: underline;
+}
+
+.extracted-ref-link:hover {
+  color: #94B8C8;
+}
+
+.extracted-ref-doc {
+  font-family: 'pretendard', sans-serif;
+  font-size: 12px;
+  color: #3A4A5C;
+}
+
+.extracted-ref-small {
+  font-size: 11px;
+  color: #9C9C9C;
+}
+
+.extracted-ref-reason {
+  font-family: 'pretendard', sans-serif;
+  font-size: 11px;
+  color: #9C9C9C;
+  margin: 2px 0 0 0;
+}
+
+.extracted-time-badge {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  background: #F2F2EF;
+  border-radius: 4px;
+  font-family: 'pretendard', sans-serif;
+  font-size: 12px;
+  color: #3A4A5C;
+  white-space: nowrap;
+}
+
+.curriculumTitleGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.curriculumTitleRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+.downloadIcon {
+  width: 28px;
+  height: 30px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.downloadOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.81);
-  z-index: 1500;
-  animation: fadeIn 0.2s ease;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 100;
 }
 
-.confirmModal {
+.downloadModal {
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  z-index: 1600;
-  width: 922px;
-  background: #FFFFFF;
-  border-radius: 23px;
-  padding: 48px;
+  z-index: 101;
+  background: #fff;
+  border-radius: 8px;
+  padding: 24px 28px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  max-height: 86vh;
-  overflow-y: auto;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
-  animation: slideUp 0.25s ease;
+  gap: 12px;
+  box-shadow: 0 6px 24px rgba(58, 74, 92, 0.18);
+  min-width: 200px;
 }
 
-/* 상단 헤더*/
-.confirmHeader {
-  display: flex;
-  align-items: flex-start;
-  gap: 32px;
-}
-
-
-
-.confirmHeaderRight {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.confirmHeaderLabel {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 12px;
-  font-weight: 400;
-  color: #656565;
-  margin: 0;
-}
-
-.confirmTitle {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 28px;
+.downloadModalTitle {
+  font-family: 'pretendard', sans-serif;
   font-weight: 700;
-  color: var(--ink);
-  margin: 0;
-}
-
-.confirmDivider {
-  width: 100%;
-  height: 1px;
-  background: var(--line);
-  margin-top: 8px;
-}
-
-/* 교육 목표 */
-.confirmGoalBox {
-  background: var(--bg-alt);
-  padding: 16px 20px;
-  border-radius: 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.confirmGoalLabel {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--ink);
-  margin: 0;
-}
-
-.confirmGoalText {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 14px;
-  font-weight: 400;
-  color: var(--ink-muted);
-  text-align: left;
-  margin: 0;
-}
-
-/* 프로그램 이름 */
-.confirmProgramName {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--ink);
-  margin: 0;
-}
-
-/* 주차별 목록 */
-.confirmStepList {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  border: 1px solid var(--line);
-}
-
-.confirmStepRow {
-  display: flex;
-  align-items: center;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--line);
-  gap: 16px;
-}
-
-.confirmStepRow:last-child {
-  border-bottom: none;
-}
-
-.confirmStepWeek {
-  font-family: 'Pretendard', sans-serif;
   font-size: 15px;
+  color: #3A4A5C;
+  margin: 0 0 4px 0;
+}
+
+.downloadModalBtn {
+  padding: 10px 0;
+  background: #fff;
+  border: 1px solid #3A4A5C;
+  border-radius: 6px;
+  font-family: 'pretendard', sans-serif;
   font-weight: 500;
-  color: var(--ink-muted);
-  width: 60px;
-  flex-shrink: 0;
-  text-align: center;
-}
-
-.confirmStepDivider {
-  width: 3px;
-  height: 21px;
-  background: var(--bg-alt);
-  flex-shrink: 0;
-}
-
-.confirmStepTask {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 16px;
-  font-weight: 300;
-  color: var(--ink);
-  flex: 1;
-}
-
-.confirmStepTheme {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 12px;
-  color: #656565;
-  width: 310px;
-  text-align: left;
-  line-height: 1.5;
-}
-
-/* 버튼 */
-.confirmBtns {
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-}
-
-.confirmBtnBack,
-.confirmBtnCreate {
-  width: 108px;
-  height: 51px;
-  background: var(--ink);
-  border-radius: 10px;
-  border: none;
-  font-family: 'Pretendard', sans-serif;
-  font-size: 16px;
-  font-weight: 400;
-  color: #FFFFFF;
-  cursor: pointer;
-  transition: opacity 0.2s ease;
-}
-
-.confirmBtnBack:hover,
-.confirmBtnCreate:hover {
-  opacity: 0.8;
-}
-
-/* ===========================
-   학습자용 커리큘럼 (LearnerCurriculumView)
-   =========================== */
-
-.learnerInlineHint {
-  padding: 20px;
-  font-family: 'Pretendard', sans-serif;
-  font-size: 13px;
-  color: #888;
-  margin: 0;
-}
-
-.learnerInlineError {
-  padding: 20px;
-  font-family: 'Pretendard', sans-serif;
-  font-size: 13px;
-  color: #c33;
-  margin: 0;
-}
-
-.learnerInlineMuted {
-  padding: 20px;
-  font-family: 'Pretendard', sans-serif;
-  font-size: 13px;
-  color: #666;
-  margin: 0;
-}
-
-.learnerSubmitError {
-  padding: 0 24px;
-}
-
-.learnerCurriculumGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 20px;
-  margin-top: 20px;
-}
-
-.learnerCurriculumCard {
-  position: relative;
-  background: #ffffff;
-  border: 1px solid #e1e4e8;
-  border-radius: 14px;
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-}
-
-.learnerCurriculumCard:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-  border-color: #0366d6;
-}
-
-.learnerCurriculumCardHeader {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.learnerCurriculumCardSubtitle {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 12px;
-  color: #888;
-  margin: 0;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-}
-
-.learnerCurriculumCardTitle {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 18px;
-  font-weight: 700;
-  color: #24292e;
-  margin: 0;
-  line-height: 1.35;
-  letter-spacing: -0.01em;
-}
-
-.learnerCurriculumCardMeta {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.learnerCurriculumCardBadge {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  color: #0366d6;
-  background: rgba(3, 102, 214, 0.08);
-  border: 1px solid rgba(3, 102, 214, 0.2);
-  padding: 4px 10px;
-  border-radius: 999px;
-}
-
-.learnerCurriculumCardBadge.active {
-  color: #1a7f37;
-  background: rgba(26, 127, 55, 0.08);
-  border-color: rgba(26, 127, 55, 0.25);
-}
-
-.learnerCurriculumCardGoal {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 13px;
-  color: #555;
-  margin: 0;
-  line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  line-clamp: 3; 
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.learnerCurriculumCardFooter {
-  margin-top: auto;
-  font-family: 'Pretendard', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  color: #0366d6;
-  padding-top: 10px;
-  border-top: 1px dashed #e1e4e8;
-}
-
-/* 상세 */
-.learnerDetailHeader {
-  margin-top: 20px;
-  margin-bottom: 24px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #e1e4e8;
-}
-
-.learnerDetailSubtitle {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 12px;
-  color: #888;
-  margin: 0 0 6px;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-}
-
-.learnerDetailTitle {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 26px;
-  font-weight: 700;
-  color: #24292e;
-  margin: 0 0 10px;
-  letter-spacing: -0.02em;
-}
-
-.learnerDetailGoal {
-  font-family: 'Pretendard', sans-serif;
   font-size: 14px;
-  color: #444;
-  line-height: 1.6;
-  margin: 0;
-}
-
-/* 주차 스텝퍼 */
-.learnerWeekStepper {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 24px;
-}
-
-.learnerWeekStep {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-width: 56px;
-  height: 56px;
-  padding: 4px;
-  border: 1px solid #e1e4e8;
-  border-radius: 10px;
-  background: #ffffff;
+  color: #3A4A5C;
   cursor: pointer;
-  transition: all 0.2s ease;
-  font-family: 'Pretendard', sans-serif;
+  transition: background 0.12s;
 }
 
-.learnerWeekStep:hover {
-  border-color: #0366d6;
+.downloadModalBtn:hover {
+  background: #f0f3f5;
 }
 
-.learnerWeekStep.active {
-  background: linear-gradient(135deg, #0366d6, #6f42c1);
-  border-color: transparent;
-  color: #ffffff;
-  box-shadow: 0 4px 12px rgba(3, 102, 214, 0.3);
-}
-
-.learnerWeekStepNum {
-  font-size: 18px;
-  font-weight: 700;
-  line-height: 1;
-}
-
-.learnerWeekStepLabel {
-  font-size: 11px;
-  margin-top: 2px;
-  opacity: 0.7;
-}
-
-/* 주차 카드 */
-.learnerWeekList {
+/* =============================================
+   제출된 과제 섹션 (curriculumDetail 내부)
+   ============================================= */
+.managerSubmissionSection {
+  width: 325px;
+  flex-shrink: 0;
+  background: var(--card);
+  padding: 24px 16px;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.learnerWeekCard {
-  border: 1px solid #e1e4e8;
-  border-radius: 12px;
-  background: #ffffff;
-  overflow: hidden;
-}
-
-.learnerWeekCardHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-.learnerWeekCardHeader:hover {
-  background: #fafbfc;
-}
-
-.learnerWeekCardWeek {
-  display: inline-block;
-  font-family: 'Pretendard', sans-serif;
-  font-size: 14px;
-  font-weight: 700;
-  color: #0366d6;
-  min-width: 56px;
-}
-
-.learnerWeekCardTheme {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 15px;
-  font-weight: 600;
-  color: #24292e;
-}
-
-.learnerWeekCardToggle {
-  color: #888;
-  font-size: 12px;
-}
-
-.learnerWeekCardBody {
-  padding: 20px;
-  background: #fafbfc;
-  border-top: 1px solid #e1e4e8;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.learnerWeekSection {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.learnerWeekSectionTitle {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 14px;
-  font-weight: 700;
-  color: #24292e;
-  margin: 0;
-}
-
-.learnerWeekSectionText {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 13px;
-  color: #444;
-  line-height: 1.6;
-  margin: 0;
-}
-
-.learnerWeekSectionList {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 13px;
-  color: #444;
-  line-height: 1.6;
-  margin: 0;
-  padding-left: 20px;
-}
-
-.learnerWeekSectionList > li {
-  margin-bottom: 4px;
-}
-
-.learnerWeekArticle {
-  margin-bottom: 8px;
-}
-
-.learnerWeekArticleLink {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  color: #0366d6;
-  text-decoration: none;
-  border-bottom: 1px solid transparent;
-  transition: border-color 0.2s ease;
-}
-
-.learnerWeekArticleLink:hover {
-  border-color: #0366d6;
-}
-
-.learnerWeekArticleReason {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 12px;
-  color: #777;
-  margin: 4px 0 0 16px;
-  line-height: 1.5;
-}
-
-.learnerWeekFooter {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 8px;
-  padding-top: 12px;
-  border-top: 1px dashed #e1e4e8;
-}
-
-.learnerWeekBadge {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 12px;
-  color: #666;
-  background: #e1e4e8;
-  padding: 4px 10px;
-  border-radius: 999px;
-}
-
-.learnerWeekSubmitBtn {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  color: #ffffff;
-  background: linear-gradient(135deg, #0366d6, #6f42c1);
-  border: none;
-  padding: 8px 18px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: opacity 0.2s ease;
-}
-
-.learnerWeekSubmitBtn:hover:not(:disabled) {
-  opacity: 0.9;
-}
-
-.learnerWeekSubmitBtn:disabled {
-  background: #e1e4e8;
-  color: #888;
-  cursor: not-allowed;
-}
-
-/* 진행률 바 */
-.learnerProgressBar {
-  width: 100%;
-  height: 6px;
-  background: #e1e4e8;
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.learnerProgressFill {
-  height: 100%;
-  background: linear-gradient(90deg, #0366d6, #6f42c1);
-  transition: width 0.3s ease;
-}
-
-.learnerDetailProgress {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-top: 16px;
-}
-
-.learnerDetailProgress .learnerProgressBar {
-  flex: 1;
-  max-width: 400px;
-}
-
-.learnerDetailProgressText {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  color: #0366d6;
-  white-space: nowrap;
-}
-
-/* 스텝퍼 상태별 색 */
-.learnerWeekStep {
-  position: relative;
-}
-
-.learnerWeekStepDot {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #1a7f37;
-  box-shadow: 0 0 0 2px #ffffff;
-}
-
-.learnerWeekStep.submitted {
-  border-color: #1a7f37;
-  background: rgba(26, 127, 55, 0.04);
-}
-
-.learnerWeekStep.submitted.feedback_given {
-  border-color: #0366d6;
-  background: rgba(3, 102, 214, 0.06);
-}
-
-.learnerWeekStep.submitted.feedback_given .learnerWeekStepDot {
-  background: #0366d6;
-}
-
-.learnerWeekStep.submitted.resubmit_requested {
-  border-color: #d29922;
-  background: rgba(210, 153, 34, 0.06);
-}
-
-.learnerWeekStep.submitted.resubmit_requested .learnerWeekStepDot {
-  background: #d29922;
-}
-
-.learnerWeekStep.active .learnerWeekStepDot {
-  background: #ffffff;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
-}
-
-/* 카드 헤더 우측 상태 뱃지 */
-.learnerWeekCardHeaderRight {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.learnerWeekStatusBadge {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 999px;
-  color: #1a7f37;
-  background: rgba(26, 127, 55, 0.1);
-  border: 1px solid rgba(26, 127, 55, 0.25);
-  letter-spacing: -0.01em;
-}
-
-.learnerWeekStatusBadge.feedback_given {
-  color: #0366d6;
-  background: rgba(3, 102, 214, 0.1);
-  border-color: rgba(3, 102, 214, 0.25);
-}
-
-.learnerWeekStatusBadge.resubmit_requested {
-  color: #b8861b;
-  background: rgba(210, 153, 34, 0.12);
-  border-color: rgba(210, 153, 34, 0.35);
-}
-
-/* 제출 / 피드백 영역 */
-.learnerWeekSubmission {
-  background: #ffffff;
-  border: 1px solid #e1e4e8;
-  border-radius: 10px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.learnerWeekSubmissionMeta {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 12px;
-  color: #888;
-  margin: 0;
-}
-
-.learnerWeekSubmissionBody {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 13px;
-  color: #333;
-  line-height: 1.6;
-  background: #fafbfc;
-  border: 1px solid #e1e4e8;
-  border-radius: 8px;
-  padding: 12px;
-  white-space: pre-wrap;
-}
-
-.learnerWeekFeedback {
-  margin-top: 8px;
-  padding: 12px 14px;
-  background: linear-gradient(135deg, rgba(3, 102, 214, 0.04), rgba(111, 66, 193, 0.04));
-  border-left: 3px solid #0366d6;
-  border-radius: 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.learnerWeekFeedbackTitle {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 13px;
-  font-weight: 700;
-  color: #0366d6;
-  margin: 0;
-}
-
-.learnerWeekFeedbackMeta {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 11px;
-  color: #888;
-  margin: 0;
-}
-
-.learnerWeekFeedbackBody {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 13px;
-  color: #24292e;
-  line-height: 1.6;
-  margin: 0;
-  white-space: pre-wrap;
-}
-
-.learnerWeekFeedbackPending {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 12px;
-  color: #888;
-  margin: 0;
-  padding: 8px 0 0;
-  font-style: italic;
-}
-
-.learnerSubmitModalTitle {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 18px;
-  font-weight: 700;
-  color: #24292e;
-  padding: 0 4px;
-  letter-spacing: -0.01em;
-}
-
-/* ===========================
-   학습자 배정 (매니저 화면)
-   =========================== */
-
-.assignSection {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.assignSectionTitle {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 14px;
-  font-weight: 700;
-  color: #24292e;
-  margin: 0;
-}
-
-.assignSectionHint {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 12px;
-  color: #888;
-  margin: 0 0 8px;
-  line-height: 1.5;
-}
-
-.assignEmpty {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 13px;
-  color: #888;
-  padding: 16px;
-  text-align: center;
-  background: #fafbfc;
-  border: 1px dashed #e1e4e8;
-  border-radius: 8px;
-  margin: 0;
-}
-
-.assignCheckList {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 8px;
-  max-height: 280px;
-  overflow-y: auto;
-  padding: 4px;
-}
-
-.assignCheckItem {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  background: #ffffff;
-  border: 1px solid #e1e4e8;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  font-family: 'Pretendard', sans-serif;
-}
-
-.assignCheckItem:hover {
-  border-color: #0366d6;
-  background: #fafbfc;
-}
-
-.assignCheckItem.checked {
-  border-color: #0366d6;
-  background: rgba(3, 102, 214, 0.05);
-}
-
-.assignCheckItem input[type="checkbox"] {
-  margin: 0;
-  cursor: pointer;
-  accent-color: #0366d6;
-}
-
-.assignName {
-  font-size: 13px;
-  font-weight: 600;
-  color: #24292e;
-}
-
-.assignEmail {
-  font-size: 11px;
-  color: #888;
-  margin-left: auto;
-}
-
-/* 상세 화면의 배정 학습자 박스 */
-.assignedLearnersBox {
-  background: #fafbfc;
-  border: 1px solid #e1e4e8;
-  border-radius: 10px;
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.assignedLearnersHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.assignedLearnersLabel {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 13px;
-  font-weight: 700;
-  color: #24292e;
-}
-
-.assignedLearnersEditBtn {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  color: #0366d6;
-  background: transparent;
-  border: 1px solid #0366d6;
-  padding: 4px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.assignedLearnersEditBtn:hover {
-  background: #0366d6;
-  color: #ffffff;
-}
-
-.assignedLearnersList {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.assignedLearnerChip {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  color: #0366d6;
-  background: rgba(3, 102, 214, 0.08);
-  border: 1px solid rgba(3, 102, 214, 0.2);
-  padding: 4px 10px;
-  border-radius: 999px;
-}
-
-.assignEmptyInline {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 12px;
-  color: #888;
-  font-style: italic;
-}
-
-/* ===========================
-   매니저용 제출 과제 / 피드백
-   =========================== */
-
-.managerSubmissionSection {
-  margin-top: 40px;
-  padding-top: 24px;
-  border-top: 1px solid #e1e4e8;
-}
-
 .managerSubmissionHeader {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 16px;
+  gap: 8px;
 }
 
 .managerSubmissionTitle {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 18px;
+  font-family: 'pretendard', sans-serif;
   font-weight: 700;
-  color: #24292e;
+  font-size: 18px;
+  color: #3A4A5C;
   margin: 0;
-  letter-spacing: -0.01em;
 }
 
 .managerSubmissionCount {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  color: #0366d6;
-  background: rgba(3, 102, 214, 0.08);
-  padding: 3px 10px;
-  border-radius: 999px;
+  font-family: 'pretendard', sans-serif;
+  font-size: 13px;
+  color: #94B8C8;
+  font-weight: 500;
 }
 
+.managerSubmissionLoading,
 .managerSubmissionEmpty {
-  font-family: 'Pretendard', sans-serif;
   font-size: 13px;
-  color: #888;
-  padding: 20px;
-  text-align: center;
-  background: #fafbfc;
-  border: 1px dashed #e1e4e8;
-  border-radius: 8px;
+  color: #9C9C9C;
   margin: 0;
 }
 
 .managerSubmissionList {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
+/* ---------- 제출 아이템 ---------- */
 .managerSubmissionItem {
-  background: #ffffff;
-  border: 1px solid #e1e4e8;
-  border-radius: 10px;
+  border: 1px solid #3A4A5C;
+  border-radius: 2px;
   overflow: hidden;
 }
 
 .managerSubmissionItemHeader {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 18px;
+  flex-direction: row;
+  align-items: stretch;
   cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-.managerSubmissionItemHeader:hover {
-  background: #fafbfc;
 }
 
 .managerSubmissionItemMain {
   display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
+  flex: 1;
+  background: #3A4A5C;
+  padding: 7px 14px;
+  min-height: 28px;
+  box-sizing: border-box;
 }
 
 .managerSubmissionWeek {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 13px;
-  font-weight: 700;
-  color: #0366d6;
-  min-width: 48px;
+  font-family: 'pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 13px;
+  color: #94B8C8;
+  flex-shrink: 0;
 }
 
 .managerSubmissionLearner {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 14px;
-  font-weight: 600;
-  color: #24292e;
+  font-family: 'pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 13px;
+  color: #fff;
 }
 
+
 .managerSubmissionTime {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 12px;
-  color: #888;
-  font-variant-numeric: tabular-nums;
+  font-family: 'pretendard', sans-serif;
+  font-weight: 300;
+  font-size: 11px;
+  line-height: 13px;
+  color: #fff;
+  margin-left: auto;
 }
 
 .managerSubmissionItemRight {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-start;
+  flex-shrink: 0;
 }
+
 
 .managerSubmissionStatus {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 999px;
-  color: #d29922;
-  background: rgba(210, 153, 34, 0.1);
-  border: 1px solid rgba(210, 153, 34, 0.3);
-}
-
-.managerSubmissionStatus.feedback_given {
-  color: #1a7f37;
-  background: rgba(26, 127, 55, 0.1);
-  border-color: rgba(26, 127, 55, 0.3);
-}
-
-.managerSubmissionStatus.resubmit_requested {
-  color: #cb2431;
-  background: rgba(203, 36, 49, 0.1);
-  border-color: rgba(203, 36, 49, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 83px;
+  height: 21px;
+  background: #fff;
+  border: 1px solid #3A4A5C;
+  border-bottom: none;
+  border-radius: 2px 2px 0 0;
+  font-family: 'pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 8px;
+  line-height: 10px;
+  color: #3A4A5C;
+  white-space: nowrap;
 }
 
 .managerSubmissionToggle {
-  color: #888;
-  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 83px;
+  flex: 1;
+  background: #fff;
+  border-left: 1px solid rgba(58, 74, 92, 0.2);
+  font-size: 10px;
+  color: #3A4A5C;
 }
 
+/* ---------- 제출 아이템 바디 ---------- */
 .managerSubmissionItemBody {
-  padding: 18px;
-  background: #fafbfc;
-  border-top: 1px solid #e1e4e8;
+  padding: 14px 16px;
+  background: #fff;
+  border-top: 1px solid rgba(58, 74, 92, 0.15);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
 }
 
 .managerSubmissionContent,
-.managerSubmissionExistingFeedback,
+.managerSubmissionExistingFeedback {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.managerSubmissionContentLabel {
+  font-family: 'pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 12px;
+  color: #3A4A5C;
+  margin: 0;
+}
+
+.managerSubmissionContentBody {
+  font-family: 'pretendard', sans-serif;
+  font-size: 13px;
+  color: #3A4A5C;
+  background: #F2F2EF;
+  border-radius: 2px;
+  padding: 10px 12px;
+}
+
+/* ---------- 피드백 폼 ---------- */
 .managerFeedbackForm {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.managerSubmissionContentLabel {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 12px;
-  font-weight: 700;
-  color: #586069;
-  margin: 0;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-}
-
-.managerSubmissionContentBody {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 13px;
-  color: #24292e;
-  line-height: 1.6;
-  background: #ffffff;
-  border: 1px solid #e1e4e8;
-  border-radius: 6px;
-  padding: 12px;
-  white-space: pre-wrap;
-}
-
-.managerSubmissionExistingFeedback .managerSubmissionContentBody {
-  background: rgba(3, 102, 214, 0.04);
-  border-color: rgba(3, 102, 214, 0.2);
-}
-
 .managerFeedbackTextarea {
   width: 100%;
-  min-height: 100px;
-  font-family: 'Pretendard', sans-serif;
+  min-height: 72px;
+  padding: 10px 12px;
+  border: 1px solid rgba(58, 74, 92, 0.25);
+  border-radius: 2px;
+  font-family: 'pretendard', sans-serif;
   font-size: 13px;
-  color: #24292e;
-  background: #ffffff;
-  border: 1px solid #e1e4e8;
-  border-radius: 6px;
-  padding: 12px;
+  color: #3A4A5C;
   resize: vertical;
   box-sizing: border-box;
-  line-height: 1.6;
   outline: none;
-  transition: border-color 0.15s ease;
 }
 
 .managerFeedbackTextarea:focus {
-  border-color: #0366d6;
+  border-color: #3A4A5C;
 }
 
 .managerFeedbackBtns {
@@ -1655,29 +846,14 @@
 }
 
 .managerFeedbackBtn {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 8px 16px;
-  border-radius: 6px;
+  padding: 7px 16px;
+  border-radius: 4px;
+  font-family: 'pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 12px;
   cursor: pointer;
-  transition: opacity 0.2s ease;
-}
-
-.managerFeedbackBtn.primary {
-  background: linear-gradient(135deg, #0366d6, #6f42c1);
-  color: #ffffff;
   border: none;
-}
-
-.managerFeedbackBtn.secondary {
-  background: transparent;
-  color: #cb2431;
-  border: 1px solid rgba(203, 36, 49, 0.3);
-}
-
-.managerFeedbackBtn:hover:not(:disabled) {
-  opacity: 0.85;
+  transition: opacity 0.15s;
 }
 
 .managerFeedbackBtn:disabled {
@@ -1685,470 +861,574 @@
   cursor: not-allowed;
 }
 
-.extracted-accordion-item {
-  border: 1px solid #e1e4e8;
-  border-radius: 8px;
-  margin-bottom: 12px;
-  overflow: hidden;
-  background-color: #fff;
+.managerFeedbackBtn.secondary {
+  background: #fff;
+  border: 1px solid #3A4A5C;
+  color: #3A4A5C;
 }
 
-.extracted-accordion-header {
-  padding: 16px;
+.managerFeedbackBtn.secondary:hover:not(:disabled) {
+  background: #f0f3f5;
+}
+
+.managerFeedbackBtn.primary {
+  background: #3A4A5C;
+  color: #fff;
+}
+
+.managerFeedbackBtn.primary:hover:not(:disabled) {
+  background: #2e3c4c;
+}
+
+/* =============================================
+   공통 오버레이
+   ============================================= */
+.chatModalOverlay,
+.confirmOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 100;
+}
+
+/* =============================================
+   커리큘럼 생성 폼 모달
+   ============================================= */
+.chatModalContainer {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 101;
   display: flex;
-  align-items: center;
-  cursor: pointer;
-  background-color: #ffffff;
-  transition: background-color 0.2s;
+  width: 860px;
+  max-height: 90vh;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(58, 74, 92, 0.22);
 }
 
-.extracted-accordion-header.expanded {
-  background-color: #f0f4f8;
+.chatSidebar {
+  width: 260px;
+  flex-shrink: 0;
+  background: #3A4A5C;
+  padding: 28px 20px;
 }
 
-.extracted-week-label {
-  font-weight: bold;
-  width: 60px;
-  color: #0366d6;
+.chatSidebarTitle {
+  font-family: 'pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: #fff;
+  margin: 0 0 12px 0;
 }
 
-.extracted-theme-label {
-  flex: 1;
-  font-weight: 600;
-  font-size: 15px;
-  color: #24292e;
+.chatSidebarDivider {
+  width: 100%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.4);
+  margin-bottom: 14px;
 }
 
-.extracted-toggle-label {
-  font-size: 12px;
-  color: #888;
-}
-
-.extracted-accordion-body {
-  padding: 20px;
-  background-color: #fafbfc;
-  border-top: 1px solid #e1e4e8;
-}
-
-.extracted-section-margin {
-  margin-bottom: 16px;
-}
-
-.extracted-objective-title {
-  font-size: 14px;
-  color: #0366d6;
-  margin-bottom: 8px;
-  font-weight: bold;
-}
-
-.extracted-objective-text {
-  font-size: 13px;
-  color: #333;
-  line-height: 1.5;
+.chatSidebarList {
+  list-style: none;
+  padding: 0;
   margin: 0;
-}
-
-.extracted-task-title {
-  font-size: 14px;
-  color: #24292e;
-  margin-bottom: 8px;
-  font-weight: bold;
-}
-
-.extracted-task-list {
-  padding-left: 20px;
-  margin: 0;
-}
-
-.extracted-list-item {
-  font-size: 13px;
-  color: #444;
-  margin-bottom: 6px;
-  line-height: 1.5;
-}
-
-.extracted-assignment-wrapper {
-  margin-bottom: 16px;
-  border-top: 1px dashed #e1e4e8;
-  padding-top: 16px;
-}
-
-.extracted-assignment-grid {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 4px;
 }
 
-.extracted-assignment-card {
-  background-color: #fff;
-  border: 1px solid #d1d5da;
-  border-radius: 6px;
-  padding: 12px;
-}
-
-.extracted-assignment-name {
-  display: block;
-  font-size: 13px;
-  color: #0366d6;
-  margin-bottom: 8px;
-}
-
-.extracted-guide-list {
-  padding-left: 20px;
-  margin: 0 0 12px 0;
-  font-size: 13px;
-  color: #444;
-}
-
-.extracted-guide-item {
-  margin-bottom: 6px;
-  line-height: 1.4;
-  font-size: 13px;
-}
-
-.extracted-submission-format {
-  font-size: 12px;
-  font-weight: 600;
-  color: #28a745;
-  background-color: #e6ffed;
-  padding: 6px 10px;
-  display: inline-block;
+.chatSidebarList li {
+  font-family: 'pretendard', sans-serif;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.75);
+  padding: 8px 10px;
   border-radius: 4px;
 }
 
-.extracted-instructor-box {
-  margin-bottom: 16px;
-  padding: 16px;
-  background-color: #f0f8ff;
-  border: 1px solid #cce5ff;
-  border-radius: 6px;
+.chatMain {
+  flex: 1;
+  background: #fff;
+  padding: 32px 28px;
+  overflow-y: auto;
+  position: relative;
 }
 
-.extracted-instructor-title {
-  font-size: 13px;
-  color: #004085;
-  margin-bottom: 12px;
-  font-weight: bold;
-}
-
-.extracted-guide-label {
-  font-size: 12px;
-  color: #004085;
-  display: block;
-  margin-bottom: 6px;
-}
-
-.extracted-guide-list-no-margin {
-  padding-left: 20px;
-  margin: 0;
-}
-
-.extracted-guide-item-small {
-  font-size: 12px;
-  color: #004085;
-  margin-bottom: 4px;
-  line-height: 1.4;
-}
-
-.extracted-coaching-list {
-  padding-left: 20px;
-  margin: 0;
-  list-style-type: none;
-}
-
-.extracted-coaching-item {
-  font-size: 12px;
-  color: #004085;
-  margin-bottom: 6px;
-  line-height: 1.4;
-}
-
-.extracted-footer-wrapper {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-top: 20px;
-  border-top: 1px dashed #e1e4e8;
-  padding-top: 16px;
-}
-
-.extracted-ref-title {
-  font-size: 12px;
-  color: #666;
-  margin-bottom: 10px;
-  font-weight: bold;
-}
-
-.extracted-ref-item {
-  margin-bottom: 12px;
-  background-color: #f6f8fa;
-  padding: 10px;
-  border-radius: 6px;
-}
-
-.extracted-ref-link {
-  font-size: 13px;
-  font-weight: bold;
-  color: #0366d6;
-  text-decoration: none;
-}
-
-.extracted-ref-doc {
-  font-size: 13px;
-  font-weight: bold;
-  color: #444;
-}
-
-.extracted-ref-small {
-  font-size: 11px;
-  color: #888;
-}
-
-.extracted-ref-reason {
-  font-size: 12px;
-  color: #555;
-  margin: 6px 0 0 0;
-  line-height: 1.4;
-}
-
-.extracted-time-badge {
-  font-size: 12px;
-  color: #888;
-  white-space: nowrap;
-  background-color: #e1e4e8;
-  padding: 4px 8px;
-  border-radius: 12px;
-}
-
-.extracted-detail-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 16px;
-}
-
-.extracted-download-group {
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.extracted-btn-txt {
-  padding: 6px 12px;
-  background-color: #f3f4f6;
-  border: 1px solid #d1d5da;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: bold;
-  color: #24292e;
-}
-
-.extracted-btn-pdf {
-  padding: 6px 12px;
-  background-color: #0366d6;
+.chatModalClose {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  background: none;
   border: none;
-  border-radius: 6px;
+  font-size: 22px;
+  color: #9C9C9C;
   cursor: pointer;
-  font-size: 13px;
-  font-weight: bold;
-  color: #fff;
+  line-height: 1;
 }
 
-.template-action-btn {
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.2s;
+.chatModalClose:hover {
+  color: #3A4A5C;
 }
 
-.template-action-btn.admin {
-  background-color: #f3f4f6;
-  border: 1px solid #d1d5da;
-  color: #24292e;
+.chatMainTitle {
+  font-family: 'pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  color: #3A4A5C;
+  margin: 0 0 24px 0;
 }
 
-.template-action-btn.admin:hover {
-  background-color: #e1e4e8;
-}
-
-.template-action-btn.user {
-  background-color: #0366d6;
-  border: none;
-  color: #fff;
-}
-
-.template-action-btn.user:hover {
-  background-color: #005cc5;
-}
-
-/* 관리자 템플릿 작성 텍스트 에디터 */
-.template-editor-area {
-  width: 100%;
-  height: 300px;
-  padding: 16px;
-  border: 1px solid #d1d5da;
-  border-radius: 8px;
-  background-color: #fafbfc;
-  font-family: 'Pretendard', sans-serif;
-  font-size: 14px;
-  line-height: 1.6;
-  color: #24292e;
-  resize: vertical;
-  outline: none;
-}
-
-.template-editor-area:focus {
-  border-color: #0366d6;
-  box-shadow: 0 0 0 3px rgba(3, 102, 214, 0.1);
-}
-
-/* 학습자 과제 수행 워크스페이스 레이아웃 (워드/노션 느낌) */
-.document-workspace {
+.curriculumGenerateForm {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  margin-top: 20px;
 }
 
-.document-guide-section {
-  background-color: #e6f0fa;
-  border-left: 4px solid #0366d6;
-  padding: 16px;
-  border-radius: 0 8px 8px 0;
-}
-
-.document-template-content {
-  font-size: 13px;
-  color: #333;
-  line-height: 1.6;
-  white-space: pre-wrap;
-}
-
-.document-edit-section {
-  background-color: #fff;
-  border: 1px solid #d1d5da;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-}
-
-.document-toolbar {
-  background-color: #f6f8fa;
-  border-bottom: 1px solid #d1d5da;
-  padding: 12px 16px;
+.curriculumField {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.curriculumField span {
+  font-family: 'pretendard', sans-serif;
+  font-weight: 500;
   font-size: 13px;
-  font-weight: 600;
-  color: #586069;
+  color: #3A4A5C;
 }
 
-.document-toolbar .status-label {
-  background-color: #fff;
-  border: 1px solid #d1d5da;
-  padding: 4px 8px;
-  border-radius: 20px;
-  font-size: 11px;
-}
-
-.document-textarea {
+.curriculumField input,
+.curriculumField textarea {
+  padding: 10px 14px;
   width: 100%;
-  height: 400px;
-  padding: 24px;
-  border: none;
-  background-color: #fff;
+  box-sizing: border-box;
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
   font-family: 'Pretendard', sans-serif;
   font-size: 14px;
-  line-height: 1.8;
-  color: #24292e;
-  resize: vertical;
+  color: var(--ink);
+  background: var(--card);
   outline: none;
+  resize: vertical;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.document-textarea::placeholder {
-  color: #a3aab1;
+
+.curriculumField input:focus,
+.curriculumField textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(148, 184, 200, 0.2);
 }
 
-/* 로딩/에러 상태 메시지 */
-.curriculumStatusMsg {
-  padding: 20px;
-}
-.curriculumStatusMsg.error {
-  color: #c33;
-}
-.managerSubmissionLoading {
-  color: #666;
+.curriculumFieldGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
 }
 
-/* 제목/여백 유틸리티 클래스 */
-.curriculumDetailTitle.mb-8 {
-  margin-bottom: 8px;
-}
-.curriculumDetailDesc.no-margin {
+.curriculumFormError {
+  font-family: 'pretendard', sans-serif;
+  font-size: 13px;
+  color: #e05252;
   margin: 0;
 }
-.curriculumSteps.mt-24 {
-  margin-top: 24px;
-}
-.confirmStepList.mt-20 {
-  margin-top: 20px;
-}
-.assignSection.mt-24 {
-  margin-top: 24px;
-}
-.confirmBtns.mt-24 {
-  margin-top: 24px;
-}
-.curriculumFormError.mt-16 {
-  margin-top: 16px;
-}
-.assignSectionHint.mb-16 {
-  margin-bottom: 16px;
+
+.curriculumGenerateBtn {
+  padding: 12px 0;
+  background: #3A4A5C;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-family: 'pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.15s;
 }
 
-/* 템플릿 배포 및 과제 작성 액션 영역 */
-.extracted-submission-format.has-actions {
+.curriculumGenerateBtn:hover:not(:disabled) {
+  background: #2e3c4c;
+}
+
+.curriculumGenerateBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* =============================================
+   확인/저장/배정 변경 모달
+   ============================================= */
+.confirmModal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 101;
+  background: #fff;
+  border-radius: 10px;
+  width: 860px;
+  max-height: 92vh;
+  overflow-y: auto;
+  padding: 32px 28px;
+  box-shadow: 0 8px 32px rgba(58, 74, 92, 0.22);
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.confirmModal.assignModal {
+  width: 480px;
+}
+
+.confirmModal.submissionModal {
+  width: 900px;
+  max-width: 95vw;
+}
+
+
+/* 템플릿 모달 기본 크기 */
+.confirmModal.templateModal {
+  width: 860px;
+  max-height: 92vh;
+  transition: all 0.25s ease;
+  overflow: visible;    
+  overflow-y: visible;
+}
+
+/* 전체보기 상태 */
+.confirmModal.templateModal.fullscreen {
+  inset: 0;
+  transform: none;
+  width: 100vw;
+  height: 100vh;
+  max-height: 100vh;
+  border-radius: 0;
+  overflow-y: scroll;
+  margin: 0;
+  padding: 150px 40px;
+  z-index: 102;
+  display: flex;          
+  flex-direction: column;  
+}
+
+.confirmModal.templateModal.fullscreen .templateEditorWrapper {
+  max-height: none;     
+  flex: 1;                   
+}
+
+
+/* 모달 상단 바 */
+.modalTopBar {
+  display: flex;
   align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+/* 전체보기 버튼 */
+.fullscreenBtn {
+  padding: 6px 14px;
+  background: var(--bg);
+  border: 1.5px solid var(--line);
+  border-radius: 6px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.fullscreenBtn:hover {
+  background: var(--line);
+  color: var(--ink);
+}
+
+
+.confirmHeader {
+  display: flex;
+  flex-direction: column;
+}
+
+.confirmHeaderRight {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.confirmHeaderLabel {
+  font-family: 'pretendard', sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  color: #94B8C8;
+  margin: 0;
+}
+
+.confirmTitle {
+  font-family: 'pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  color: #3A4A5C;
+  margin: 0;
+}
+
+.confirmDivider {
+  height: 1px;
+  background: #BEC6CF;
   margin-top: 12px;
 }
 
-.templateActionBtnGroup {
+.confirmGoalBox {
+  background: #F2F2EF;
+  border-radius: 4px;
+  padding: 12px 14px;
   display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.confirmGoalLabel {
+  font-family: 'pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 12px;
+  color: #94B8C8;
+  margin: 0;
+}
+
+.confirmGoalText {
+  font-family: 'pretendard', sans-serif;
+  font-size: 14px;
+  color: #3A4A5C;
+  margin: 0;
+}
+
+.confirmProgramName {
+  font-family: 'pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: #3A4A5C;
+  margin: 0;
+}
+
+.confirmStepList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.confirmBtns {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.confirmBtnBack {
+  padding: 10px 22px;
+  background: #fff;
+  border: 1px solid #3A4A5C;
+  border-radius: 6px;
+  font-family: 'pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #3A4A5C;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.confirmBtnBack:hover:not(:disabled) {
+  background: #f0f3f5;
+}
+
+.confirmBtnBack:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.confirmBtnCreate {
+  padding: 10px 22px;
+  background: var(--ink);
+  border: none;
+  border-radius: 8px;
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.confirmBtnCreate:hover:not(:disabled) {
+  background: var(--primary);
+  transform: translateY(-1px);
+}
+
+.confirmBtnCreate:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.confirmBtnCreate.btnSuccess {
+  background: #4A7C59;
+}
+
+.confirmBtnCreate.btnSuccess:hover:not(:disabled) {
+  background: #3a6347;
+}
+
+/* =============================================
+   학습자 배정 영역 (모달 내부)
+   ============================================= */
+.assignSection {
+  display: flex;
+  flex-direction: column;
   gap: 8px;
 }
 
-/* 모달 레이아웃 확장 */
-.confirmModal.assignModal {
-  max-width: 560px;
-}
-.confirmModal.submissionModal {
-  max-width: 800px;
-  background-color: #f0f2f5;
+.assignSectionTitle {
+  font-family: 'pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: #3A4A5C;
+  margin: 0;
 }
 
-/* 에디터 래퍼 및 가이드 타이틀 */
+.assignSectionHint {
+  font-family: 'pretendard', sans-serif;
+  font-size: 12px;
+  color: #9C9C9C;
+  margin: 0;
+}
+
+.assignEmpty {
+  font-size: 13px;
+  color: #9C9C9C;
+}
+
+.assignCheckList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.assignCheckItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid rgba(58, 74, 92, 0.2);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.assignCheckItem input[type="checkbox"] {
+  accent-color: #3A4A5C;
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+.assignCheckItem.checked {
+  background: rgba(58, 74, 92, 0.06);
+  border-color: #3A4A5C;
+}
+
+.assignName {
+  font-family: 'pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: #3A4A5C;
+}
+
+.assignEmail {
+  font-family: 'pretendard', sans-serif;
+  font-size: 12px;
+  color: #9C9C9C;
+  margin-left: auto;
+}
+
+/* =============================================
+   템플릿 배포 모달 에디터
+   ============================================= */
 .templateEditorWrapper {
-  margin-bottom: 24px;
-}
-.joditEditorWrapper {
-  padding: 0;
-}
-.documentGuideTitle {
-  display: block;
-  margin-bottom: 8px;
-  color: #0366d6;
+  border: 1px solid rgba(58, 74, 92, 0.2);
+  border-radius: 4px;
+  overflow-y: auto;
+  max-height: 60vh;
 }
 
-/* 제출/임시저장 버튼 컬러 스왑 */
-.confirmBtnCreate.btnSuccess {
-  background-color: #28a745;
+/* =============================================
+   과제 수행 모달 (2컬럼 레이아웃)
+   ============================================= */
+.document-workspace {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  min-height: 420px;
 }
-.confirmBtnCreate.btnSuccess:hover {
-  background-color: #218838;
+
+.document-guide-section {
+  flex: 1;
+  border: 1px solid rgba(58, 74, 92, 0.2);
+  border-radius: 4px;
+  padding: 16px;
+  background: #F2F2EF;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+}
+
+.documentGuideTitle {
+  font-family: 'pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: #3A4A5C;
+}
+
+.document-template-content {
+  font-family: 'pretendard', sans-serif;
+  font-size: 13px;
+  color: #3A4A5C;
+  line-height: 1.6;
+}
+
+.document-edit-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.document-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #3A4A5C;
+  border-radius: 4px 4px 0 0;
+  font-family: 'pretendard', sans-serif;
+  font-size: 12px;
+  color: #fff;
+}
+
+.status-label {
+  font-family: 'pretendard', sans-serif;
+  font-size: 11px;
+  color: #94B8C8;
+}
+
+.joditEditorWrapper {
+  border: 1px solid rgba(58, 74, 92, 0.2);
+  border-radius: 0 0 4px 4px;
+  overflow: hidden;
+  flex: 1;
+}
+
+.templateEditorWrapper .jodit-popup,
+.templateEditorWrapper .jodit-popup__content,
+.joditEditorWrapper .jodit-popup,
+.joditEditorWrapper .jodit-popup__content {
+  z-index: 10000 !important;
 }
