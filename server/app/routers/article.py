@@ -110,7 +110,7 @@ def create_article(
     current_user: User = Depends(get_current_user),
 ):
     if current_user.user_role != "a":
-        raise HTTPException(status_code=403, detail="Only admin can create articles")
+        raise HTTPException(status_code=403, detail="게시글 생성은 관리자만 할 수 있습니다")
 
     article = Article(
         article_source=body.article_source,
@@ -278,7 +278,7 @@ def get_category_stats(
 ):
     """관리자(a) 전용: 카테고리별 조회수 합과 아티클 수 (도넛 차트용)."""
     if current_user.user_role != "a":
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(status_code=404, detail="찾을 수 없습니다")
 
     rows = (
         db.query(
@@ -311,7 +311,7 @@ def get_views_timeline(
 ):
     """관리자(a) 전용: 최근 N일 일별 아티클 조회 이벤트 수 (user_activities 기반)."""
     if current_user.user_role != "a":
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(status_code=404, detail="찾을 수 없습니다")
 
     today = date.today()
     start_date = today - timedelta(days=days - 1)
@@ -342,7 +342,7 @@ def get_article_summary(
 ):
     article = db.query(Article).filter(Article.article_id == article_id).first()
     if not article:
-        raise HTTPException(status_code=404, detail="Article not found")
+        raise HTTPException(status_code=404, detail="게시글을 찾을 수 없습니다")
 
     summary = (
         db.query(AiSummary)
@@ -351,7 +351,7 @@ def get_article_summary(
         .first()
     )
     if not summary:
-        raise HTTPException(status_code=404, detail="Article summary not found")
+        raise HTTPException(status_code=404, detail="게시글 요약을 찾을 수 없습니다")
     return summary
 
 
@@ -363,12 +363,12 @@ def get_article_insights(
 ):
     article = db.query(Article).filter(Article.article_id == article_id).first()
     if not article:
-        raise HTTPException(status_code=404, detail="Article not found")
+        raise HTTPException(status_code=404, detail="게시글을 찾을 수 없습니다")
 
     content = rag_service.get_article_content(article_id)
 
     if not content:
-        raise HTTPException(status_code=422, detail="Article content is not indexed yet")
+        raise HTTPException(status_code=422, detail="게시글 내용이 아직 색인되지 않았습니다")
 
     result = article_service.extract_insights(title=article.article_title, content=content)
     return ArticleInsightsResponse(
@@ -387,7 +387,7 @@ def record_article_view(
 ):
     article = db.query(Article).filter(Article.article_id == article_id).first()
     if not article:
-        raise HTTPException(status_code=404, detail="Article not found")
+        raise HTTPException(status_code=404, detail="게시글을 찾을 수 없습니다")
 
     # 1. 기존: 아티클 전체 조회수 증가
     db.execute(
@@ -420,7 +420,7 @@ def get_article(
 ):
     article = db.query(Article).filter(Article.article_id == article_id).first()
     if not article:
-        raise HTTPException(status_code=404, detail="Article not found")
+        raise HTTPException(status_code=404, detail="게시글을 찾을 수 없습니다")
 
     article_ids = [article.article_id]
     summary_article_ids = _summary_article_ids(db, article_ids)

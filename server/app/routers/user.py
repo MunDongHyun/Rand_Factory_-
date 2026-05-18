@@ -27,7 +27,7 @@ router = APIRouter(prefix="/api/users", tags=["users"])
 @router.post("/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def signup(body: UserCreate, db: Session = Depends(get_db)):
     if db.query(User).filter(User.user_email == body.email).first():
-        raise HTTPException(status_code=400, detail="Email already in use")
+        raise HTTPException(status_code=400, detail="이미 사용 중인 이메일입니다")
 
     user = User(
         user_email=body.email,
@@ -46,7 +46,7 @@ def signup(body: UserCreate, db: Session = Depends(get_db)):
 def signup_bulk(body: BulkSignupRequest, db: Session = Depends(get_db)):
     """회사 + 매니저(첫 직원) + 학습자들을 한 번에 등록."""
     if not body.employees:
-        raise HTTPException(status_code=400, detail="At least one employee required")
+        raise HTTPException(status_code=400, detail="직원이 최소 한 명 이상 필요합니다")
 
     emails = [e.email.lower() for e in body.employees]
     if len(set(emails)) != len(emails):
@@ -83,7 +83,7 @@ def signup_bulk(body: BulkSignupRequest, db: Session = Depends(get_db)):
 def login(body: UserLogin, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.user_email == body.email, User.user_deleted_at.is_(None)).first()
     if not user or not verify_password(body.password, user.user_pw):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="이메일 또는 비밀번호가 올바르지 않습니다")
     return TokenResponse(access_token=create_access_token(user.user_id))
 
 
@@ -99,7 +99,7 @@ def get_user_stats(
 ):
     """관리자(a) 전용: 회원 통계 (총수, 이번 달 가입자, 최다 회사)."""
     if current_user.user_role != "a":
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(status_code=404, detail="찾을 수 없습니다")
 
     active = db.query(User).filter(User.user_deleted_at.is_(None))
     total_users = active.count()
@@ -133,7 +133,7 @@ def list_users(
 ):
     """관리자(a) 전용: 전체 회원 목록 (페이지네이션)."""
     if current_user.user_role != "a":
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(status_code=404, detail="찾을 수 없습니다")
 
     query = db.query(User)
     total = query.count()
@@ -154,7 +154,7 @@ def get_signups_timeline(
 ):
     """관리자(a) 전용: 최근 N일 일별 신규 가입자 수."""
     if current_user.user_role != "a":
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(status_code=404, detail="찾을 수 없습니다")
 
     today = date.today()
     start_date = today - timedelta(days=days - 1)
@@ -191,7 +191,7 @@ def list_learners(
     - a (admin): 전체 활성 학습자
     """
     if current_user.user_role not in {"m", "a"}:
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(status_code=404, detail="찾을 수 없습니다")
 
     query = db.query(User).filter(
         User.user_role == "j",
@@ -211,11 +211,11 @@ def get_user_activity_summary(
 ):
     """관리자(a) 전용: 회원 1명의 활동 요약 (커리큘럼/과제/피드백 수)."""
     if current_user.user_role != "a":
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(status_code=404, detail="찾을 수 없습니다")
 
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다")
 
     # 지연 import (순환 방지)
     from app.models.curriculum import Curriculum
@@ -285,7 +285,7 @@ def get_user_activity_summary(
 def get_user(user_id: int, db: Session = Depends(get_db), _current_user: User = Depends(get_current_user)):
     user = db.query(User).filter(User.user_id == user_id, User.user_deleted_at.is_(None)).first()
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다")
     return user
 
 
@@ -303,11 +303,11 @@ def update_user(
     - 마지막 admin 강등/탈퇴 금지
     """
     if current_user.user_role != "a":
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(status_code=404, detail="찾을 수 없습니다")
 
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다")
 
     if user.user_id == current_user.user_id:
         raise HTTPException(status_code=400, detail="본인의 역할/탈퇴 상태는 변경할 수 없습니다")

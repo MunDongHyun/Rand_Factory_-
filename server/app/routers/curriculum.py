@@ -75,7 +75,7 @@ def create_curriculum(
     current_user: User = Depends(get_current_user),
 ):
     if current_user.user_role not in {"m", "a"}:
-        raise HTTPException(status_code=403, detail="Only manager/admin can create curricula")
+        raise HTTPException(status_code=403, detail="커리큘럼은 매니저/관리자만 생성할 수 있습니다")
 
     curriculum = Curriculum(
         cur_creator_id=current_user.user_id,
@@ -101,7 +101,7 @@ def generate_curriculum(
     current_user: User = Depends(get_current_user),
 ):
     if current_user.user_role not in {"m", "a"}:
-        raise HTTPException(status_code=403, detail="Only manager/admin can generate curricula")
+        raise HTTPException(status_code=403, detail="커리큘럼 자동 생성은 매니저/관리자만 사용할 수 있습니다")
 
     try:
         week_plan = curriculum_service.generate_week_plan(
@@ -141,7 +141,7 @@ def get_curriculum_stats(
 ):
     """관리자(a) 전용: 커리큘럼/학습자/과제 제출 통계."""
     if current_user.user_role != "a":
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(status_code=404, detail="찾을 수 없습니다")
 
     total_curricula = (
         db.query(func.count(Curriculum.cur_id))
@@ -186,7 +186,7 @@ def get_curriculum(
     query = _scope_curriculum_query(db.query(Curriculum), current_user)
     curriculum = query.filter(Curriculum.cur_id == cur_id).first()
     if not curriculum:
-        raise HTTPException(status_code=404, detail="Curriculum not found")
+        raise HTTPException(status_code=404, detail="커리큘럼을 찾을 수 없습니다")
     return curriculum
 
 
@@ -207,7 +207,7 @@ def update_curriculum(
         .first()
     )
     if not curriculum:
-        raise HTTPException(status_code=404, detail="Curriculum not found")
+        raise HTTPException(status_code=404, detail="커리큘럼을 찾을 수 없습니다")
 
     update_data = body.model_dump(exclude_unset=True)
     if "cur_assigned_learner_ids" in update_data:

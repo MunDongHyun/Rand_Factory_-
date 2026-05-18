@@ -60,7 +60,7 @@ def get_author(
 ):
     author = db.query(Author).filter(Author.author_numb == author_numb).first()
     if not author:
-        raise HTTPException(status_code=404, detail="Author not found")
+        raise HTTPException(status_code=404, detail="저자를 찾을 수 없습니다")
 
     articles = sorted(
         author.articles,
@@ -90,7 +90,7 @@ def send_email_to_author(
 ):
     author = db.query(Author).filter(Author.author_numb == author_numb).first()
     if not author:
-        raise HTTPException(status_code=404, detail="Author not found")
+        raise HTTPException(status_code=404, detail="저자를 찾을 수 없습니다")
     if not author.author_email:
         raise HTTPException(status_code=400, detail="이 저자는 등록된 이메일이 없습니다")
 

@@ -23,7 +23,7 @@ def create_session(
     current_user: User = Depends(get_current_user),
 ):
     if current_user.user_role not in {"m", "a"}:
-        raise HTTPException(status_code=403, detail="Only manager/admin can use chatbot")
+        raise HTTPException(status_code=403, detail="챗봇은 매니저/관리자만 사용할 수 있습니다")
 
     if body.cb_curriculum_id is not None:
         curriculum = (
@@ -35,7 +35,7 @@ def create_session(
             current_user.user_role == "a" or curriculum.cur_creator_id == current_user.user_id
         )
         if not owns_curriculum:
-            raise HTTPException(status_code=404, detail="Curriculum not found")
+            raise HTTPException(status_code=404, detail="커리큘럼을 찾을 수 없습니다")
 
     session = ChatbotSession(cb_manager_id=current_user.user_id, cb_curriculum_id=body.cb_curriculum_id)
     db.add(session)
@@ -70,7 +70,7 @@ def create_message(
         .first()
     )
     if not session:
-        raise HTTPException(status_code=404, detail="Chatbot session not found")
+        raise HTTPException(status_code=404, detail="챗봇 세션을 찾을 수 없습니다")
 
     message = ChatbotMessage(session_id=session_id, talker=body.talker, content=body.content)
     db.add(message)
@@ -91,7 +91,7 @@ def list_messages(
         .first()
     )
     if not session:
-        raise HTTPException(status_code=404, detail="Chatbot session not found")
+        raise HTTPException(status_code=404, detail="챗봇 세션을 찾을 수 없습니다")
 
     return (
         db.query(ChatbotMessage)
