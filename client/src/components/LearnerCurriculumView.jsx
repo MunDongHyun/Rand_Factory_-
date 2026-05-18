@@ -1,30 +1,77 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import JoditEditor from 'jodit-react';
 import api from '../lib/api';
 import { sanitizeHtml } from '../lib/sanitize';
+import { downloadAttachment, formatBytes } from '../lib/attachments';
 import '../styles/Curriculum.css';
 
 const JODIT_CONFIG_BASE = {
   language: 'ko',
   iframe: true,
   toolbarSticky: false,
+  buttons: ['bold', 'italic', 'ul', 'ol', 'table', 'link', 'undo', 'redo'],
+  removeButtons: ['source', 'fullsize', 'image', 'video', 'file', 'about'],
   popup: {
     selection: [], // 텍스트 선택 시 뜨는 popup 비활성화 — 움찔임 완화
   },
   placeholder: '사수가 배포한 양식에 맞추어 과제를 작성하세요...',
 };
 
-const formatBytes = (bytes) => {
-  if (!Number.isFinite(bytes)) return '';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
-};
-
 const normalizeWeekPlan = (plan) => {
   if (Array.isArray(plan)) return plan;
   if (plan && typeof plan === 'object') return [plan];
   return [];
+};
+
+const escapeHtml = (value) => String(value || '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;');
+
+const syncFormControlValues = (editor) => {
+  const sourceRoot = editor?.editor;
+  if (!sourceRoot) return editor?.value || '';
+
+  const clone = sourceRoot.cloneNode(true);
+  const sourceControls = sourceRoot.querySelectorAll('input, textarea, select');
+  const clonedControls = clone.querySelectorAll('input, textarea, select');
+
+  sourceControls.forEach((source, index) => {
+    const target = clonedControls[index];
+    if (!target) return;
+
+    const tag = source.tagName.toLowerCase();
+    if (tag === 'textarea') {
+      target.textContent = source.value;
+      target.setAttribute('value', source.value);
+      return;
+    }
+
+    if (tag === 'select') {
+      Array.from(target.options).forEach((option, optionIndex) => {
+        if (source.options[optionIndex]?.selected) {
+          option.setAttribute('selected', 'selected');
+        } else {
+          option.removeAttribute('selected');
+        }
+      });
+      return;
+    }
+
+    const type = (source.getAttribute('type') || 'text').toLowerCase();
+    if (type === 'checkbox' || type === 'radio') {
+      if (source.checked) {
+        target.setAttribute('checked', 'checked');
+      } else {
+        target.removeAttribute('checked');
+      }
+    }
+    target.setAttribute('value', source.value);
+  });
+
+  return clone.innerHTML;
 };
 
 const formatDateTime = (value) => {
@@ -55,6 +102,10 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
   const [submitFiles, setSubmitFiles] = useState([]); // File[]  메모리 상의 첨부 후보
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  const submitEditorRef = useRef(null);
+  const handleSubmitEditorRef = useCallback((editor) => {
+    submitEditorRef.current = editor;
+  }, []);
 
   // fullscreen 토글 시 config 객체 reference가 매번 새로 만들어지면 jodit이 reload되면서
   // 작성 중 내용이 onBlur 전에 사라질 수 있어 useMemo로 안정화 (height만 fullscreen 의존)
@@ -144,8 +195,19 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
   };
 
   const openSubmitModal = (curId, week) => {
+    const targetCurriculum = curriculums.find((c) => c.cur_id === curId) || selected;
+    const targetWeek = normalizeWeekPlan(targetCurriculum?.cur_week_plan).find((s) => s.week === week);
+    const templateAssignments = (targetWeek && Array.isArray(targetWeek.assignments))
+      ? targetWeek.assignments.filter((a) => a && a.template_content)
+      : [];
+    const initialContent = templateAssignments
+      .map((a) => {
+        const title = a.title ? `<h3>${escapeHtml(a.title)}</h3>` : '';
+        return `${title}${a.template_content}`;
+      })
+      .join('<hr>');
     setModalState({ curId, week, fullscreen: false });
-    setSubmitContent('');
+    setSubmitContent(initialContent);
     setSubmitFiles([]);
     setSubmitError(null);
   };
@@ -174,18 +236,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
 
   const handleAttachmentDownload = async (submissionId, attachment) => {
     try {
-      const res = await api.get(
-        `/task-submissions/${submissionId}/attachments/${attachment.stored_name}`,
-        { responseType: 'blob' },
-      );
-      const blobUrl = window.URL.createObjectURL(new Blob([res.data]));
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.setAttribute('download', attachment.filename || attachment.stored_name);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(blobUrl);
+      await downloadAttachment(submissionId, attachment);
     } catch (err) {
       alert(err.response?.data?.detail || '첨부파일 다운로드에 실패했습니다.');
     }
@@ -193,7 +244,8 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
 
   const handleSubmit = async () => {
     if (!modalState) return;
-    const trimmed = (submitContent || '').replace(/<p><br><\/p>/g, '').trim();
+    const latestContent = syncFormControlValues(submitEditorRef.current) || submitContent;
+    const trimmed = (latestContent || '').replace(/<p><br><\/p>/g, '').trim();
     if (!trimmed && submitFiles.length === 0) {
       setSubmitError('작성 내용이나 첨부파일 중 하나는 있어야 합니다.');
       return;
@@ -504,11 +556,6 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
 
       {/* 제출 모달 */}
       {modalState && (() => {
-        const week = normalizeWeekPlan(selected?.cur_week_plan).find((s) => s.week === modalState.week);
-        const templateAssignments = (week && Array.isArray(week.assignments))
-          ? week.assignments.filter((a) => a && a.template_content)
-          : [];
-
         return (
           <>
             <div className="emailModalOverlay" onClick={closeSubmitModal} />
@@ -532,29 +579,16 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
               <div className="emailModalDivider" />
 
               <div className="emailModalBody learnerSubmitModalBody">
-                {/* 사수가 배포한 양식 가이드 */}
-                {templateAssignments.length > 0 && (
-                  <section className="learnerSubmitTemplateSection">
-                    <h4 className="learnerSubmitSectionTitle">📋 사수가 배포한 양식</h4>
-                    {templateAssignments.map((a, idx) => (
-                      <div key={idx} className="learnerSubmitTemplateCard">
-                        <strong className="learnerSubmitTemplateTitle">{a.title}</strong>
-                        <div
-                          className="learnerSubmitTemplateContent"
-                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(a.template_content) }}
-                        />
-                      </div>
-                    ))}
-                  </section>
-                )}
-
                 {/* 본문 작성 (JoditEditor) */}
                 <section className="learnerSubmitEditorSection">
                   <h4 className="learnerSubmitSectionTitle">📝 과제 작성</h4>
+                  <p className="learnerSubmitSectionHint">사수가 배포한 양식이 에디터에 자동 적용되어 있습니다.</p>
                   <div className="learnerSubmitEditorWrapper">
                     <JoditEditor
                       value={submitContent}
                       config={joditConfig}
+                      editorRef={handleSubmitEditorRef}
+                      onChange={(newContent) => setSubmitContent(newContent)}
                       onBlur={(newContent) => setSubmitContent(newContent)}
                     />
                   </div>

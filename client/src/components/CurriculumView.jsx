@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../lib/api';
 import { sanitizeHtml } from '../lib/sanitize';
+import { downloadAttachment, formatBytes } from '../lib/attachments';
 import curri_nulll from '../public/download_img.png';
 import '../styles/Curriculum.css';
 
@@ -128,28 +129,10 @@ function CurriculumView({ onOpenArticle }) {
 
   const handleAttachmentDownload = async (submissionId, attachment) => {
     try {
-      const res = await api.get(
-        `/task-submissions/${submissionId}/attachments/${attachment.stored_name}`,
-        { responseType: 'blob' },
-      );
-      const blobUrl = window.URL.createObjectURL(new Blob([res.data]));
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.setAttribute('download', attachment.filename || attachment.stored_name);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(blobUrl);
+      await downloadAttachment(submissionId, attachment);
     } catch (err) {
       alert(err.response?.data?.detail || '첨부파일 다운로드에 실패했습니다.');
     }
-  };
-
-  const formatAttachmentSize = (bytes) => {
-    if (!Number.isFinite(bytes)) return '';
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
   };
 
   const handleFeedbackSave = async (submissionId, status = 'feedback_given') => {
@@ -512,7 +495,7 @@ function CurriculumView({ onOpenArticle }) {
                                   >
                                     {a.filename || a.stored_name}
                                   </button>
-                                  <span className="managerSubmissionAttachmentSize">{formatAttachmentSize(a.size)}</span>
+                                  <span className="managerSubmissionAttachmentSize">{formatBytes(a.size)}</span>
                                 </li>
                               ))}
                             </ul>
