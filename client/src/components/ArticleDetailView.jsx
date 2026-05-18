@@ -139,6 +139,12 @@ function ArticleDetailView({ article, onBack }) {
 
                 <div className="carouselWrapper">
                   <div className="sliderStage">
+                    {expandedCard !== null && currentStep > 0 && (
+                      <button className="sliderNavBtn left" onClick={() => goTo(currentStep - 1)}>&#10216;</button>
+                    )}
+                    {expandedCard !== null && currentStep < slides.length - 1 && (
+                      <button className="sliderNavBtn right" onClick={() => goTo(currentStep + 1)}>&#10217;</button>
+                    )}
                     <div className="slideProgress">
                       {slides.map((_, i) => (
                         <div key={i} className={`progressDot ${i === currentStep ? 'active' : ''}`} />
@@ -183,7 +189,11 @@ function ArticleDetailView({ article, onBack }) {
                                 <div className="cardNum">{slide.card_step}</div>
                                 <h2 className="cardTitle">{slide.card_title}</h2>
                                 <p className="cardMain">"{slide.core_message}"</p>
+                                <div className="cardKeyTag"># {slide.keyword}</div>
                               </div>
+
+
+
 
                               {expandedCard === index && (
                                 <>
@@ -196,7 +206,16 @@ function ArticleDetailView({ article, onBack }) {
                                 </>
                               )}
                             </div>
-                            <div className="cardKeyTag"># {slide.keyword}</div>
+                            <button
+                              className={`cardExpandBtn ${expandedCard === index ? 'isExpanded' : ''}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleCard(index);
+                              }}
+                            >
+                              {expandedCard === index ? '간략히 보기' : '자세히 보기'}
+                              <span className="arrowIcon">{expandedCard === index ? ' ▴' : ' ▾'}</span>
+                            </button>
                           </div>
                         );
                       })}

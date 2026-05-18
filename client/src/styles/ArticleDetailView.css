@@ -230,6 +230,7 @@
 .carouselWrapper {
   width: 100%;
   min-height: 550px;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -308,8 +309,8 @@
   overflow: hidden;
   transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
     border-color 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
-    box-shadow 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
-    max-width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)
+
 }
 
 .slideCard.expanded {
@@ -326,8 +327,8 @@
   cursor: pointer;
   transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
     border-color 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
-    box-shadow 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
-    max-width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)
+    box-shadow 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)
+
 }
 
 .slideCard.current:hover {
@@ -337,7 +338,9 @@
   box-shadow: 0 24px 48px rgba(216, 166, 255, 0.2);
 }
 
-
+.slideCard.expanded .cardExpandBtn {
+  color: var(--card);
+}
 
 .slideCard.prev,
 .slideCard.next {
@@ -395,6 +398,27 @@
   pointer-events: none;
 }
 
+.sliderNavBtn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  background: white;
+  border: 1px solid #9CCAFF;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 20px;
+  color: #9CCAFF;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sliderNavBtn.left { left: 0; }
+.sliderNavBtn.right { right: 0; }
+
 .leftSection {
   flex: 1;
   display: flex;
@@ -451,6 +475,45 @@
   margin: 0;
 }
 
+.cardExpandBtn {
+  -webkit-appearance: none;
+  appearance: none;
+  background-color: transparent; 
+  color: #7aaee0; 
+  margin-top: 12px;
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 7px 15px;
+
+  background:
+    linear-gradient(white, white) padding-box,
+    linear-gradient(135deg, #9CCAFF, #D8A6FF) border-box;
+  border: 1.5px solid transparent;
+  border-radius: 30px;
+
+  color: #7aaee0;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  z-index: 6;
+  transition: box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.cardExpandBtn:hover {
+  box-shadow: 0 4px 12px rgba(156, 202, 255, 0.35);
+  opacity: 0.85;
+}
+
+.cardExpandBtn.isExpanded {
+  background:
+    linear-gradient(135deg, rgba(156, 202, 255, 0.12), rgba(216, 166, 255, 0.12)) padding-box,
+    linear-gradient(135deg, #9CCAFF, #D8A6FF) border-box;
+  border: 1.5px solid transparent;
+}
+
 .dividerLine {
   width: 1px;
   background: linear-gradient(to bottom, transparent, var(--line), transparent);
@@ -459,7 +522,7 @@
 
 .carouselWrapper .cardKeyTag {
   color: #9CCAFF;
-  text-align: right;
+  text-align: left;
   margin-top: auto;
   margin-bottom: -20px;
   font-size: 13px;
