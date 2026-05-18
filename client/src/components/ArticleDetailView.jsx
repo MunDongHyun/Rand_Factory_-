@@ -2,9 +2,6 @@ import { useEffect, useState } from 'react';
 import api from '../lib/api';
 import "../styles/ArticleDetailView.css"
 
-
-
-
 function ArticleDetailView({ article, onBack }) {
   const [summary, setSummary] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
@@ -80,9 +77,7 @@ function ArticleDetailView({ article, onBack }) {
 
   return (
     <div className="articleDetailContainer">
-
       <div className="articleDetailContent">
-
         {displayArticle.article_thumbnail_url && (
           <div className="articleDetailHero">
             <img src={displayArticle.article_thumbnail_url} alt={displayArticle.article_title} loading="lazy" />
@@ -104,9 +99,7 @@ function ArticleDetailView({ article, onBack }) {
 
         {summary && (
           <div className="articleSummary">
-
             <div className='topDivider' />
-
 
             <div className="summaryHeader">
               <p className="summaryEyebrow">AI 요약문</p>
@@ -115,7 +108,6 @@ function ArticleDetailView({ article, onBack }) {
                 {[metadata.category].filter(Boolean).join(' · ')}
               </p>
 
-              {/* 원문 아티클 링크 */}
               {displayArticle.article_source_url && (
                 <a
                   className="originalArticleBtn"
@@ -129,19 +121,22 @@ function ArticleDetailView({ article, onBack }) {
 
               {summary.theme_analysis && (
                 <div className='summaryThemeWrapper'>
-
-
                   <div className="summaryDivider" />
                   <p className="summaryTheme">{summary.theme_analysis}</p>
-
-
                 </div>
               )}
             </div>
 
-
             {cardNews.length > 0 && (
-              <section className="summarySection">
+              <section
+                className="summarySection"
+                onClick={() => {
+                  if (expandedCard !== null) {
+                    setExpandedCard(null);
+                  }
+                }}
+              >
+
                 <div className="carouselWrapper">
                   <div className="sliderStage">
                     <div className="slideProgress">
@@ -151,8 +146,6 @@ function ArticleDetailView({ article, onBack }) {
                     </div>
 
                     <div className="slideCardTrack">
-
-
                       {slides.map((slide, index) => {
                         const diff = index - currentStep;
                         if (Math.abs(diff) > 1) return null;
@@ -162,14 +155,30 @@ function ArticleDetailView({ article, onBack }) {
                           <div key={index}
                             className={`slideCard ${pos} ${expandedCard === index ? 'expanded' : ''}`}
                             onClick={(e) => {
+                              e.stopPropagation();
                               if (pos === 'current') {
                                 e.currentTarget.style.transition = 'none';
-                                toggleCard(index);
+                                setExpandedCard(index);
+                              } else if (pos === 'prev') {
+                                goTo(currentStep - 1);
+                              } else if (pos === 'next') {
+                                goTo(currentStep + 1);
                               }
                             }}
                           >
-                            <div
-                              className="slideCardInner">
+
+                            {pos === 'prev' && (
+                              <div className="navArrowOverlay leftArrow">
+                                <span>&#10216;</span>
+                              </div>
+                            )}
+                            {pos === 'next' && (
+                              <div className="navArrowOverlay rightArrow">
+                                <span>&#10217;</span>
+                              </div>
+                            )}
+
+                            <div className="slideCardInner">
                               <div className="leftSection" >
                                 <div className="cardNum">{slide.card_step}</div>
                                 <h2 className="cardTitle">{slide.card_title}</h2>
@@ -191,30 +200,22 @@ function ArticleDetailView({ article, onBack }) {
                           </div>
                         );
                       })}
-                      <div
-                        className="slideClickArea right"
-                        onClick={() => currentStep < slides.length - 1 && goTo(currentStep + 1)}
-                      />
 
-                    </div>
-
-                    <div className="navGroup">
-                      <button
-                        className="navBtn prev"
-                        onClick={() => goTo(currentStep - 1)}
-                        disabled={currentStep === 0}
-                      >PREV</button>
-                      {currentStep === slides.length - 1 ? (
-                        <button className="navBtn next" onClick={() => goTo(0)}>REPLAY</button>
-                      ) : (
-                        <button className="navBtn next" onClick={() => goTo(currentStep + 1)}>NEXT</button>
+                      {currentStep === slides.length - 1 && (
+                        <div
+                          className="slideClickArea right replay"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            goTo(0)
+                          }}
+                          title="처음부터 다시 보기"
+                        />
                       )}
                     </div>
                   </div>
                 </div>
               </section>
             )}
-
 
             {conclusion && (
               <section className="summaryConclusion">
@@ -244,12 +245,11 @@ function ArticleDetailView({ article, onBack }) {
                 </div>
               </section>
             )}
-
           </div>
         )}
       </div>
       <button className="detailBackBtn" onClick={onBack}>목록으로</button>
-    </div>
+    </div >
   );
 }
 
