@@ -122,6 +122,7 @@ def generate_assignment_template(theme: str, learning_objective: str, assignment
     
     structured_llm = llm.with_structured_output(TemplateOutput)
 
+    # 👉 시스템 프롬프트에서 JoditEditor 단어 교체
     system_prompt = """
     당신은 실무 기반 교육 과제 템플릿(양식)을 제작하는 전문가입니다.
     사용자가 제공한 과제 정보를 바탕으로, 학습자가 직접 작성하기 쉬운 직관적인 HTML 형식의 과제 템플릿을 생성하세요.
@@ -131,7 +132,7 @@ def generate_assignment_template(theme: str, learning_objective: str, assignment
     2. '제출 형태'나 '가이드'에 표 형태의 요약이 필요하다면 반드시 <table> 태그를 사용하여 틀을 만들어주세요. (table 속성에 style="width: 100%; border-collapse: collapse; border: 1px solid #ccc;" 와 th, td에 테두리 스타일을 넣으세요)
     3. 용어 선택(매우 중요): 표의 헤더나 항목을 구분할 때 문맥에 맞지 않는 '채널(Channel)'이라는 단어의 사용을 엄격히 금지합니다.
     4. (★매우 중요) 학습자가 입력해야 할 '빈칸'이나 '밑줄(____)'을 절대 만들지 마세요. 그 대신 학습자가 직접 텍스트를 타이핑할 수 있도록 반드시 <input type="text" class="learner-input" placeholder="여기에 입력하세요"> 태그나, 내용이 긴 경우 <textarea class="learner-textarea" placeholder="여기에 내용을 상세히 입력하세요"></textarea> 태그를 넣어주세요.
-    5. 코드 블록(```html ... ```) 같은 마크다운 기호 없이, JoditEditor에 바로 렌더링 가능한 순수 HTML 문자열만 반환하세요.
+    5. 코드 블록(```html ... ```) 같은 마크다운 기호 없이, Tiptap 웹 에디터에 바로 렌더링 가능한 순수 HTML 문자열만 반환하세요.
     """
 
     user_prompt = f"""

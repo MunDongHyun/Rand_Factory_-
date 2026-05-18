@@ -1,24 +1,105 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import api from '../lib/api';
-import curri_nulll from '../public/curri_null.png';
-import downloadIconImg from '../public/download_img.png';
-import rodingRafaImg from '../public/roding_rafa.png';
+import { sanitizeHtml } from '../lib/sanitize';
 import '../styles/Curriculum.css';
-import JoditEditor from 'jodit-react';
 
-const initialForm = {
-  cur_title: '',
-  cur_duration_weeks: 4,
-  cur_target_job: '',
-  cur_target_industry: '',
-  cur_learning_goal: '',
-  required_content: '',
+// Tiptap 관련 모듈 Import 
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import { Table } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { TableHeader } from '@tiptap/extension-table-header';
+import Underline from '@tiptap/extension-underline';
+import TextAlign from '@tiptap/extension-text-align';
+import { TextStyle } from '@tiptap/extension-text-style';
+import { Color } from '@tiptap/extension-color';
+
+// Tiptap 에디터 커스텀 컴포넌트
+const TiptapEditor = ({ value, onChange, isFullscreen }) => {
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Underline,
+      TextStyle,
+      Color,
+      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      Table.configure({ resizable: true }),
+      TableRow,
+      TableHeader,
+      TableCell,
+    ],
+    content: value,
+    onUpdate: ({ editor }) => {
+      onChange(editor.getHTML());
+    },
+  });
+
+  useEffect(() => {
+    if (editor && value !== editor.getHTML()) {
+      editor.commands.setContent(value);
+    }
+  }, [value, editor]);
+
+  if (!editor) return null;
+
+  return (
+    <div className="tiptap-editor-wrapper">
+      <div className="tiptap-toolbar">
+        {/* 실행 취소 / 다시 실행 */}
+        <button type="button" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()}>↩️ 취소</button>
+        <button type="button" onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()}>↪️ 복구</button>
+        <span className="toolbar-divider">|</span>
+
+        {/* 텍스트 스타일 */}
+        <button type="button" onClick={() => editor.chain().focus().toggleBold().run()} className={editor.isActive('bold') ? 'is-active' : ''}><b>B</b></button>
+        <button type="button" onClick={() => editor.chain().focus().toggleItalic().run()} className={editor.isActive('italic') ? 'is-active' : ''}><i>I</i></button>
+        <button type="button" onClick={() => editor.chain().focus().toggleUnderline().run()} className={editor.isActive('underline') ? 'is-active' : ''}><u>U</u></button>
+        <button type="button" onClick={() => editor.chain().focus().toggleStrike().run()} className={editor.isActive('strike') ? 'is-active' : ''}><s>S</s></button>
+        
+        {/* 글자 색상 (간이 컬러 피커) */}
+        <input 
+          type="color" 
+          onInput={(e) => editor.chain().focus().setColor(e.target.value).run()} 
+          value={editor.getAttributes('textStyle').color || '#000000'}
+          className="tiptap-color-picker"
+          title="글자 색상"
+        />
+        <span className="toolbar-divider">|</span>
+
+        {/* 헤딩 및 리스트 */}
+        <button type="button" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={editor.isActive('heading', { level: 2 }) ? 'is-active' : ''}>H2</button>
+        <button type="button" onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} className={editor.isActive('heading', { level: 3 }) ? 'is-active' : ''}>H3</button>
+        <button type="button" onClick={() => editor.chain().focus().toggleBulletList().run()} className={editor.isActive('bulletList') ? 'is-active' : ''}>• 리스트</button>
+        <button type="button" onClick={() => editor.chain().focus().toggleOrderedList().run()} className={editor.isActive('orderedList') ? 'is-active' : ''}>1. 리스트</button>
+        <button type="button" onClick={() => editor.chain().focus().toggleBlockquote().run()} className={editor.isActive('blockquote') ? 'is-active' : ''}>인용구</button>
+        <span className="toolbar-divider">|</span>
+
+        {/* 텍스트 정렬 */}
+        <button type="button" onClick={() => editor.chain().focus().setTextAlign('left').run()} className={editor.isActive({ textAlign: 'left' }) ? 'is-active' : ''}>왼쪽</button>
+        <button type="button" onClick={() => editor.chain().focus().setTextAlign('center').run()} className={editor.isActive({ textAlign: 'center' }) ? 'is-active' : ''}>가운데</button>
+        <button type="button" onClick={() => editor.chain().focus().setTextAlign('right').run()} className={editor.isActive({ textAlign: 'right' }) ? 'is-active' : ''}>오른쪽</button>
+        <span className="toolbar-divider">|</span>
+
+        {/* 표 관련 */}
+        <button type="button" onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>표 삽입</button>
+        <button type="button" onClick={() => editor.chain().focus().addColumnBefore().run()} disabled={!editor.can().addColumnBefore()}>열 추가</button>
+        <button type="button" onClick={() => editor.chain().focus().addRowAfter().run()} disabled={!editor.can().addRowAfter()}>행 추가</button>
+        <button type="button" onClick={() => editor.chain().focus().deleteTable().run()} disabled={!editor.can().deleteTable()}>표 삭제</button>
+      </div>
+      <div className={`tiptap-editor-content ${isFullscreen ? 'fullscreen' : ''}`}>
+        <EditorContent editor={editor} />
+      </div>
+    </div>
+  );
 };
 
-const formatTasks = (tasks) => {
-  if (Array.isArray(tasks)) return tasks.join(', ');
-  if (typeof tasks === 'string') return tasks;
-  return '';
+
+const formatBytes = (bytes) => {
+  if (!Number.isFinite(bytes)) return '';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
 };
 
 const normalizeWeekPlan = (plan) => {
@@ -27,861 +108,255 @@ const normalizeWeekPlan = (plan) => {
   return [];
 };
 
-const buildGeneratePayload = (form) => ({
-  cur_title: form.cur_title.trim(),
-  cur_duration_weeks: Number(form.cur_duration_weeks),
-  cur_target_job: form.cur_target_job.trim() || null,
-  cur_target_industry: form.cur_target_industry.trim() || null,
-  cur_learning_goal: form.cur_learning_goal.trim() || null,
-  required_content: form.required_content.trim() || null,
-});
+const formatDateTime = (value) => {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+};
 
-function CurriculumView({ onOpenArticle }) {
-  const [downloadModalOpen, setDownloadModalOpen] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
+const STATUS_LABEL = { submitted: '피드백 대기 중', feedback_given: '피드백 받음', resubmit_requested: '재제출 요청됨' };
+
+function LearnerCurriculumView({ curriculumDetailRef }) {
   const [curriculums, setCurriculums] = useState([]);
-  const [selectedId, setSelectedId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [form, setForm] = useState(initialForm);
-  const [preview, setPreview] = useState(null);
-  const [generating, setGenerating] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState(null);
-  const [generatingTemplate, setGeneratingTemplate] = useState(false);
-
-  const [detailExpandedWeek, setDetailExpandedWeek] = useState(null);
-  const [previewExpandedWeek, setPreviewExpandedWeek] = useState(null);
-
-  const [learners, setLearners] = useState([]);
-  const [createAssignedIds, setCreateAssignedIds] = useState([]);
-  const [assignModalOpen, setAssignModalOpen] = useState(false);
-  const [assignSelected, setAssignSelected] = useState([]);
-  const [assignSaving, setAssignSaving] = useState(false);
-
   const [submissions, setSubmissions] = useState([]);
-  const [submissionsLoading, setSubmissionsLoading] = useState(false);
-  const [feedbackDraft, setFeedbackDraft] = useState({});
-  const [feedbackSavingId, setFeedbackSavingId] = useState(null);
-  const [expandedSubmissionId, setExpandedSubmissionId] = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
+  const [expandedWeek, setExpandedWeek] = useState(null);
 
-  const [templateModal, setTemplateModal] = useState({ open: false, week: null, assignmentIdx: null, title: '', content: '', fullscreen: false });
-  const [submissionModal, setSubmissionModal] = useState({ open: false, week: null, assignmentIdx: null, title: '', templateContent: '', content: '', status: 'draft' });
+  const [modalState, setModalState] = useState(null);
+  const [submitContent, setSubmitContent] = useState('');
+  const [submitFiles, setSubmitFiles] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
 
-  // --------------------------------------------------------
-  // 👉 새로 추가된 진행률 관련 상태 및 타이머 Ref
-  // --------------------------------------------------------
-  const [progress, setProgress] = useState(0);
-  const [loadingText, setLoadingText] = useState("");
-  const timerRef = useRef(null);
-  const textTimerRefs = useRef([]);
-
-  const loadCurriculums = () => {
-    setLoading(true);
-    setError(null);
-    return api.get('/curricula')
-      .then((res) => {
-        const list = Array.isArray(res.data) ? res.data : [];
-        setCurriculums(list);
-        setSelectedId((prev) => {
-          if (prev && list.some((c) => c.cur_id === prev)) return prev;
-          return list[0]?.cur_id ?? null;
-        });
-        return list;
-      })
-      .catch((err) => {
-        setError(err.response?.data?.detail || '커리큘럼을 불러오지 못했어요.');
-        return [];
-      })
-      .finally(() => setLoading(false));
+  const loadSubmissions = () => {
+    return api.get('/task-submissions/my')
+      .then((res) => setSubmissions(Array.isArray(res.data) ? res.data : []))
+      .catch(() => {});
   };
 
   useEffect(() => {
-    let mounted = true;
     setLoading(true);
-    setError(null);
-    api.get('/curricula')
-      .then((res) => {
-        if (!mounted) return;
-        const list = Array.isArray(res.data) ? res.data : [];
-        setCurriculums(list);
-        if (list.length > 0) setSelectedId(list[0].cur_id);
-      })
-      .catch((err) => {
-        if (!mounted) return;
-        setError(err.response?.data?.detail || '커리큘럼을 불러오지 못했어요.');
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
-    return () => { mounted = false; };
+    Promise.all([
+      api.get('/curricula')
+        .then((res) => setCurriculums(Array.isArray(res.data) ? res.data : []))
+        .catch((err) => setError(err.response?.data?.detail || '커리큘럼을 불러오지 못했어요.')),
+      loadSubmissions(),
+    ]).finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
-    api.get('/users/learners')
-      .then((res) => setLearners(Array.isArray(res.data) ? res.data : []))
-      .catch(() => setLearners([]));
-  }, []);
+    if (curriculumDetailRef) { curriculumDetailRef.current = Boolean(selectedId); }
+    const onPop = () => { if (!selectedId) return; setSelectedId(null); setExpandedWeek(null); if (curriculumDetailRef) { curriculumDetailRef.current = false; } };
+    window.addEventListener('popstate', onPop);
+    return () => { window.removeEventListener('popstate', onPop); if (curriculumDetailRef) { curriculumDetailRef.current = false; } };
+  }, [selectedId, curriculumDetailRef]);
 
-  useEffect(() => {
-    if (!selectedId) {
-      setSubmissions([]);
-      return;
-    }
-    setSubmissionsLoading(true);
-    api.get(`/task-submissions/by-curriculum/${selectedId}`)
-      .then((res) => setSubmissions(Array.isArray(res.data) ? res.data : []))
-      .catch(() => setSubmissions([]))
-      .finally(() => setSubmissionsLoading(false));
-  }, [selectedId]);
+  const selected = curriculums.find((c) => c.cur_id === selectedId) || null;
+
+  const getLatestSubmission = (curId, week) => {
+    const matches = submissions.filter((s) => s.task_curriculum_id === curId && s.task_week_number === week);
+    if (matches.length === 0) return null;
+    return matches.reduce((latest, s) => {
+      if (!latest) return s;
+      const t1 = new Date(latest.task_submitted_at || 0).getTime();
+      const t2 = new Date(s.task_submitted_at || 0).getTime();
+      return t2 > t1 ? s : latest;
+    }, null);
+  };
+
+  const submittedWeekCount = (curId) => {
+    const set = new Set(submissions.filter((s) => s.task_curriculum_id === curId).map((s) => s.task_week_number)); return set.size;
+  };
+
+  const handleSelect = (curId) => {
+    setSelectedId(curId); setExpandedWeek(null); window.history.pushState({ view: 'curriculum', curriculumDetail: true, curId }, ''); window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleBack = () => { setSelectedId(null); setExpandedWeek(null); };
+  const toggleWeek = (week) => { setExpandedWeek((prev) => (prev === week ? null : week)); };
+
+  const openSubmitModal = (curId, week) => { setModalState({ curId, week, fullscreen: false }); setSubmitContent(''); setSubmitFiles([]); setSubmitError(null); };
+  const toggleSubmitFullscreen = () => { setModalState((prev) => (prev ? { ...prev, fullscreen: !prev.fullscreen } : prev)); };
+  const closeSubmitModal = () => { if (submitting) return; setModalState(null); setSubmitContent(''); setSubmitFiles([]); setSubmitError(null); };
+
+  const handleFileSelect = (event) => {
+    const picked = Array.from(event.target.files || []); setSubmitFiles((prev) => [...prev, ...picked]); event.target.value = '';
+  };
+  const handleFileRemove = (idx) => { setSubmitFiles((prev) => prev.filter((_, i) => i !== idx)); };
 
   const handleAttachmentDownload = async (submissionId, attachment) => {
     try {
-      const res = await api.get(
-        `/task-submissions/${submissionId}/attachments/${attachment.stored_name}`,
-        { responseType: 'blob' },
-      );
+      const res = await api.get(`/task-submissions/${submissionId}/attachments/${attachment.stored_name}`, { responseType: 'blob' });
       const blobUrl = window.URL.createObjectURL(new Blob([res.data]));
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.setAttribute('download', attachment.filename || attachment.stored_name);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(blobUrl);
-    } catch (err) {
-      alert(err.response?.data?.detail || '첨부파일 다운로드에 실패했습니다.');
-    }
+      const link = document.createElement('a'); link.href = blobUrl; link.setAttribute('download', attachment.filename || attachment.stored_name);
+      document.body.appendChild(link); link.click(); link.remove(); window.URL.revokeObjectURL(blobUrl);
+    } catch (err) { alert(err.response?.data?.detail || '첨부파일 다운로드에 실패했습니다.'); }
   };
 
-  const formatAttachmentSize = (bytes) => {
-    if (!Number.isFinite(bytes)) return '';
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
-  };
-
-  const handleFeedbackSave = async (submissionId, status = 'feedback_given') => {
-    const text = (feedbackDraft[submissionId] || '').trim();
-    if (!text) {
-      alert('피드백 내용을 입력하세요.');
-      return;
-    }
-    setFeedbackSavingId(submissionId);
+  const handleSubmit = async () => {
+    if (!modalState) return;
+    const trimmed = (submitContent || '').replace(/<p><br><\/p>/g, '').trim();
+    if (!trimmed && submitFiles.length === 0) { setSubmitError('작성 내용이나 첨부파일 중 하나는 있어야 합니다.'); return; }
+    setSubmitting(true); setSubmitError(null);
     try {
-      const res = await api.patch(`/task-submissions/${submissionId}/feedback`, {
-        task_manager_feedback: text,
-        task_status: status,
-      });
-      setSubmissions((prev) => prev.map((s) =>
-        s.task_submission_id === submissionId ? { ...s, ...res.data } : s
-      ));
-      setFeedbackDraft((prev) => ({ ...prev, [submissionId]: '' }));
-    } catch (err) {
-      alert(err.response?.data?.detail || '피드백 저장에 실패했습니다.');
-    } finally {
-      setFeedbackSavingId(null);
-    }
+      const res = await api.post('/task-submissions', { task_curriculum_id: modalState.curId, task_week_number: modalState.week, task_submitted_content: { text: trimmed } });
+      const submissionId = res.data?.task_submission_id;
+      const failures = [];
+      for (const file of submitFiles) {
+        const formData = new FormData(); formData.append('file', file);
+        try { await api.post(`/task-submissions/${submissionId}/attachments`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }); } catch (err) { failures.push(`${file.name}: ${err.response?.data?.detail || '업로드 실패'}`); }
+      }
+      await loadSubmissions();
+      if (failures.length > 0) { alert(`제출은 완료됐지만 일부 첨부 업로드에 실패했습니다:\n${failures.join('\n')}`); }
+      setModalState(null); setSubmitContent(''); setSubmitFiles([]); setSubmitError(null);
+    } catch (err) { setSubmitError(err.response?.data?.detail || '제출에 실패했습니다.'); } finally { setSubmitting(false); }
   };
 
-  const formatDateTime = (value) => {
-    if (!value) return '';
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return '';
-    return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-  };
-
-  const selectedCurriculum = curriculums.find((c) => c.cur_id === selectedId);
-
-  const handleDownloadTxt = async () => {
-    if (!selectedCurriculum || !selectedCurriculum.cur_week_plan) return;
-    try {
-      const res = await api.post('/curricula/download/txt', normalizeWeekPlan(selectedCurriculum.cur_week_plan), { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([res.data]));
-      const link = document.createElement('a'); link.href = url; link.setAttribute('download', `${selectedCurriculum.cur_title}.txt`);
-      document.body.appendChild(link); link.click(); link.remove();
-    } catch (error) { alert('TXT 다운로드 중 오류가 발생했습니다.'); }
-  };
-
-  const handleDownloadPdf = async () => {
-    if (!selectedCurriculum || !selectedCurriculum.cur_week_plan) return;
-    try {
-      const res = await api.post('/curricula/download/pdf', normalizeWeekPlan(selectedCurriculum.cur_week_plan), { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([res.data]));
-      const link = document.createElement('a'); link.href = url; link.setAttribute('download', `${selectedCurriculum.cur_title}.pdf`);
-      document.body.appendChild(link); link.click(); link.remove();
-    } catch (error) { alert('PDF 다운로드 중 오류가 발생했습니다.'); }
-  };
-
-  // --------------------------------------------------------
-  // 👉 새로 추가된 타이머 정리 함수
-  // --------------------------------------------------------
-  const clearAllTimers = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    textTimerRefs.current.forEach(clearTimeout);
-    textTimerRefs.current = [];
-  };
-
-  const closeModal = () => {
-    if (generating || saving) return;
-    setModalOpen(false);
-    setConfirmOpen(false);
-    setPreview(null);
-    setFormError(null);
-    setPreviewExpandedWeek(null);
-    setCreateAssignedIds([]);
-    clearAllTimers(); // 타이머 초기화 추가
-  };
-
-  const handleChange = (event) => {
-    const { name, value } = event.target;
-    setForm((prev) => ({ ...prev, [name]: name === 'cur_duration_weeks' ? Number(value) : value }));
-  };
-
-  // --------------------------------------------------------
-  // 👉 진행률 바 로직이 포함되도록 수정된 handleGenerate
-  // --------------------------------------------------------
-  const handleGenerate = async (event) => {
-    event.preventDefault();
-    setFormError(null);
-    const payload = buildGeneratePayload(form);
-
-    if (!payload.cur_title) { setFormError('과정명을 입력해 주세요.'); return; }
-    if (!payload.cur_duration_weeks || payload.cur_duration_weeks < 1) { setFormError('기간은 1주 이상으로 입력해 주세요.'); return; }
-
-    setGenerating(true);
-    setProgress(0);
-    setLoadingText("웹 검색을 통해 최신 실무 트렌드를 분석하는 중...");
-
-    // 1. 가짜 진행도 타이머 시작
-    timerRef.current = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 90) {
-          clearInterval(timerRef.current);
-          return 90; // 90%에서 대기
-        }
-        const jump = Math.floor(Math.random() * 4) + 2; // 2~5% 랜덤 증가
-        return Math.min(prev + jump, 90);
-      });
-    }, 500);
-
-    // 2. 시간에 따른 텍스트 변경
-    textTimerRefs.current.push(
-      setTimeout(() => setLoadingText("주차별 학습 목표 및 세부 과제를 설정하는 중..."), 3500),
-      setTimeout(() => setLoadingText("교육 담당자용 피드백 가이드를 작성하는 중..."), 7000)
-    );
-
-    try {
-      // 3. 실제 API 호출
-      const res = await api.post('/curricula/generate', payload);
-
-      // 4. 완료 시 처리
-      clearAllTimers();
-      setProgress(100);
-      setLoadingText("커리큘럼 생성이 완료되었습니다!");
-
-      setTimeout(() => {
-        setPreview(res.data);
-        if (res.data?.cur_week_plan?.length > 0) setPreviewExpandedWeek(res.data.cur_week_plan[0].week);
-        setConfirmOpen(true);
-        setModalOpen(false); // 생성 모달을 닫고 미리보기 모달을 염
-        setGenerating(false);
-      }, 500);
-
-    } catch (err) {
-      clearAllTimers();
-      const detail = err.response?.data?.detail;
-      setFormError(Array.isArray(detail) ? detail[0].msg : detail || 'AI 커리큘럼 생성에 실패했어요.');
-      setGenerating(false);
-    }
-  };
-
-  const handleSave = async () => {
-    if (!preview) return;
-    setSaving(true); setFormError(null);
-    try {
-      const savePayload = {
-        cur_title: preview.cur_title, cur_duration_weeks: preview.cur_duration_weeks, cur_target_job: preview.cur_target_job || null,
-        cur_target_industry: preview.cur_target_industry || null, cur_learning_goal: preview.cur_learning_goal || null,
-        cur_learning_detail_goal: form.required_content.trim() || null, cur_week_plan: preview.cur_week_plan,
-        cur_assigned_learner_ids: createAssignedIds, cur_status: 'active',
-      };
-      const res = await api.post('/curricula', savePayload);
-      await loadCurriculums();
-      setSelectedId(res.data.cur_id); setForm(initialForm); setPreview(null); setConfirmOpen(false); setModalOpen(false); setCreateAssignedIds([]);
-    } catch (err) {
-      const detail = err.response?.data?.detail;
-      setFormError(Array.isArray(detail) ? detail[0].msg : detail || '커리큘럼 저장에 실패했어요.');
-    } finally { setSaving(false); }
-  };
-
-  const previewWeeks = normalizeWeekPlan(preview?.cur_week_plan);
-
-  const handleAssignSave = async () => {
-    if (!selectedCurriculum) return;
-    setAssignSaving(true);
-    try {
-      const res = await api.patch(`/curricula/${selectedCurriculum.cur_id}`, { cur_assigned_learner_ids: assignSelected });
-      setCurriculums((prev) => prev.map((c) => (c.cur_id === res.data.cur_id ? res.data : c)));
-      setAssignModalOpen(false);
-    } catch (err) { alert(err.response?.data?.detail || '배정 변경에 실패했습니다.'); } finally { setAssignSaving(false); }
-  };
-
-  const saveTemplate = async () => {
-    if (!selectedCurriculum) return;
-    // 현재 커리큘럼의 week_plan에서 해당 주차/assignment를 찾아 template_content만 갱신
-    const weekPlan = normalizeWeekPlan(selectedCurriculum.cur_week_plan).map((step) => ({ ...step }));
-    const targetWeek = weekPlan.find((s) => s.week === templateModal.week);
-    if (!targetWeek || !Array.isArray(targetWeek.assignments)) {
-      alert('대상 과제를 찾을 수 없습니다.');
-      return;
-    }
-    targetWeek.assignments = targetWeek.assignments.map((a, i) =>
-      i === templateModal.assignmentIdx ? { ...a, template_content: templateModal.content } : a
-    );
-    setTemplateModal((prev) => ({ ...prev, saving: true }));
-    try {
-      const res = await api.patch(`/curricula/${selectedCurriculum.cur_id}`, {
-        cur_week_plan: weekPlan,
-      });
-      setCurriculums((prev) => prev.map((c) => (c.cur_id === res.data.cur_id ? res.data : c)));
-      alert('학습자들에게 과제 템플릿이 배포되었습니다.');
-      setTemplateModal({ open: false, week: null, assignmentIdx: null, title: '', content: '' });
-    } catch (err) {
-      alert(err.response?.data?.detail || '템플릿 배포에 실패했습니다.');
-      setTemplateModal((prev) => ({ ...prev, saving: false }));
-    }
-  };
-
-  const openSubmissionModal = (week, idx, assignment) => {
-    setSubmissionModal({
-      open: true, week, assignmentIdx: idx, title: assignment.title,
-      templateContent: assignment.template_content || '사수가 작성한 템플릿 내용 및 가이드가 이곳에 표시됩니다.',
-      content: '', status: 'draft'
-    });
-  };
-
-  const saveSubmission = async (isSubmit) => {
-    if (isSubmit) alert('과제가 최종 제출되었습니다.'); else alert('작성 중인 내용이 임시 저장되었습니다.');
-    setSubmissionModal({ ...submissionModal, open: false });
-  };
-
-  const openTemplateModal = async (step, idx, assignment) => {
-    if (assignment.template_content && assignment.template_content.trim() !== '') {
-      setTemplateModal({
-        open: true, week: step.week, assignmentIdx: idx, title: assignment.title,
-        content: assignment.template_content
-      });
-      return;
-    }
-
-    setGeneratingTemplate(true);
-    try {
-      const payload = {
-        theme: step.theme || "주제 미지정",
-        learning_objective: step.learning_objective || "학습 목표 미지정",
-        assignment_title: assignment.title,
-        step_by_step_guide: assignment.step_by_step_guide || [],
-        expected_output_format: assignment.expected_output_format || assignment.submission || "지정되지 않음"
-      };
-
-      const res = await api.post('/curricula/generate-template', payload);
-
-      setTemplateModal({
-        open: true, week: step.week, assignmentIdx: idx, title: assignment.title,
-        content: res.data.template_content
-      });
-    } catch (err) {
-      alert(err.response?.data?.detail || '템플릿 생성 중 오류가 발생했습니다.');
-      setTemplateModal({
-        open: true, week: step.week, assignmentIdx: idx, title: assignment.title,
-        content: `[${assignment.title}] 관련 과제 양식을 자유롭게 작성해주세요.\n\n1. 핵심 지표:\n2. 분석 결과:\n3. 향후 전략:\n`
-      });
-    } finally {
-      setGeneratingTemplate(false);
-    }
-  };
-
-  const renderAccordionItem = (step, expandedState, toggleFunc, isPreview = false) => {
-    const isExpanded = expandedState === step.week;
+  if (!selected) {
     return (
-      <div key={step.week} className="extracted-accordion-item">
-        <div onClick={() => toggleFunc(step.week)} className={`extracted-accordion-header ${isExpanded ? 'expanded' : ''}`}>
-          <span className="extracted-week-label">{step.week}주차</span>
-          <span className="extracted-theme-label">{step.theme || '주제 미지정'}</span>
-          <span className="extracted-toggle-label">{isExpanded ? '▲ 접기' : '▼ 펼쳐보기'}</span>
+      <div className="curriculumPageContainer">
+        <h2 className="sectionTitle">내 학습 커리큘럼</h2>
+        {loading && <p className="learnerInlineHint">커리큘럼을 불러오는 중...</p>}
+        {error && <p className="learnerInlineError">{error}</p>}
+        {!loading && !error && curriculums.length === 0 && ( <p className="learnerInlineMuted">배정된 커리큘럼이 아직 없습니다.</p> )}
+        <div className="learnerCurriculumGrid">
+          {curriculums.map((c) => {
+            const weeks = normalizeWeekPlan(c.cur_week_plan).length || c.cur_duration_weeks || 0;
+            const submitted = submittedWeekCount(c.cur_id);
+            const progress = weeks > 0 ? Math.round((submitted / weeks) * 100) : 0;
+            return (
+              <div key={c.cur_id} className="learnerCurriculumCard" onClick={() => handleSelect(c.cur_id)}>
+                <div className="learnerCurriculumCardHeader"><p className="learnerCurriculumCardSubtitle">{c.cur_target_industry || '-'} · {c.cur_target_job || '-'}</p><h3 className="learnerCurriculumCardTitle">{c.cur_title}</h3></div>
+                <div className="learnerCurriculumCardMeta"><span className="learnerCurriculumCardBadge">{weeks}주 과정</span>{c.cur_status === 'active' && (<span className="learnerCurriculumCardBadge active">진행 중</span>)}<span className="learnerCurriculumCardBadge">제출 {submitted}/{weeks}</span></div>
+                <div className="learnerProgressBar"><div className="learnerProgressFill" style={{ width: `${progress}%` }} /></div>
+                {c.cur_learning_goal && (<p className="learnerCurriculumCardGoal">🎯 {c.cur_learning_goal}</p>)}
+                <div className="learnerCurriculumCardFooter">주차별 학습 보기 →</div>
+              </div>
+            );
+          })}
         </div>
-        {isExpanded && (
-          <div className="extracted-accordion-body">
-            {step.learning_objective && (
-              <div className="extracted-section-margin">
-                <h4 className="extracted-objective-title">🎯 이번 주차 학습 목표</h4>
-                <p className="extracted-objective-text">{step.learning_objective}</p>
-              </div>
-            )}
-            {(step.tasks || step.task) && (
-              <div className="extracted-section-margin">
-                <h4 className="extracted-task-title">📚 멘토링 및 실습 과제</h4>
-                <ul className="extracted-task-list">
-                  {Array.isArray(step.tasks || step.task) ? (step.tasks || step.task).map((t, idx) => (<li key={idx} className="extracted-list-item">{t}</li>)) : <p className="extracted-objective-text">{step.tasks || step.task}</p>}
-                </ul>
-              </div>
-            )}
-            {Array.isArray(step.assignments) && step.assignments.length > 0 && (
-              <div className="extracted-assignment-wrapper">
-                <h4 className="extracted-task-title">📝 실무 수행 과제</h4>
-                <div className="extracted-assignment-grid">
-                  {step.assignments.map((a, idx) => (
-                    <div key={idx} className="extracted-assignment-card">
-                      <strong className="extracted-assignment-name">[과제명] {a.title}</strong>
-                      {Array.isArray(a.step_by_step_guide) && a.step_by_step_guide.length > 0 && (
-                        <ul className="extracted-guide-list">
-                          {a.step_by_step_guide.map((guide, gIdx) => (<li key={gIdx} className="extracted-guide-item">{guide}</li>))}
-                        </ul>
-                      )}
-                      {a.description && <p className="extracted-guide-item">{a.description}</p>}
-                      <div className={`extracted-submission-format ${!isPreview ? 'has-actions' : ''}`}>
-                        <span>제출 형태: {a.expected_output_format || a.submission || '지정되지 않음'}</span>
-                        {!isPreview && (
-                          <div className="templateActionBtnGroup">
-                            <button className="template-action-btn admin" onClick={(e) => { e.stopPropagation(); openTemplateModal(step, idx, a); }}>양식 배포(관리자)</button>
-                            <button className="template-action-btn user" onClick={(e) => { e.stopPropagation(); openSubmissionModal(step.week, idx, a); }}>과제 작성(학습자)</button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {step.instructor_guide && (
-              <div className="extracted-instructor-box">
-                <h4 className="extracted-instructor-title">💡 교육담당자(사수) 코칭 가이드</h4>
-                {Array.isArray(step.instructor_guide.check_points) && step.instructor_guide.check_points.length > 0 && (
-                  <div className="extracted-section-margin">
-                    <strong className="extracted-guide-label">[평가 체크포인트]</strong>
-                    <ul className="extracted-guide-list-no-margin">
-                      {step.instructor_guide.check_points.map((cp, idx) => (<li key={idx} className="extracted-guide-item-small">{cp}</li>))}
-                    </ul>
-                  </div>
-                )}
-                {Array.isArray(step.instructor_guide.coaching_questions) && step.instructor_guide.coaching_questions.length > 0 && (
-                  <div>
-                    <strong className="extracted-guide-label">[1:1 미팅 권장 질문]</strong>
-                    <ul className="extracted-coaching-list">
-                      {step.instructor_guide.coaching_questions.map((cq, idx) => (<li key={idx} className="extracted-coaching-item">🗣️ {cq}</li>))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            )}
-            <div className="extracted-footer-wrapper">
-              <div>
-                {Array.isArray(step.recommended_articles) && step.recommended_articles.length > 0 && (
-                  <>
-                    <h4 className="extracted-ref-title">📖 참고 자료</h4>
-                    {step.recommended_articles.map((article, idx) => {
-                      const hasValidUrl = article.url && article.url.trim() !== "";
-                      return (
-                        <div key={idx} className="extracted-ref-item">
-                          {hasValidUrl ? (<a href={article.url} target="_blank" rel="noopener noreferrer" className="extracted-ref-link">🔗 {article.title}</a>) : (<span className="extracted-ref-doc">📁 {article.title} <span className="extracted-ref-small">(사내 문서 참고)</span></span>)}
-                          {(article.reason_for_reading || article.why_relevant) && (<p className="extracted-ref-reason">✓ {article.reason_for_reading || article.why_relevant}</p>)}
-                        </div>
-                      );
-                    })}
-                  </>
-                )}
-              </div>
-              {step.estimated_hours && (<div className="extracted-time-badge">⏱ 예상 소요: {step.estimated_hours}시간</div>)}
-            </div>
-          </div>
-        )}
       </div>
     );
-  };
+  }
+
+  const weekPlan = normalizeWeekPlan(selected.cur_week_plan);
+  const totalWeeks = weekPlan.length || selected.cur_duration_weeks;
+  const submittedCount = submittedWeekCount(selected.cur_id);
+  const progress = totalWeeks > 0 ? Math.round((submittedCount / totalWeeks) * 100) : 0;
 
   return (
     <div className="curriculumPageContainer">
-      <h2 className="sectionTitle">커리큘럼 관리</h2>
-      {loading && <p className="curriculumStatusMsg">커리큘럼을 불러오는 중...</p>}
-      {error && <p className="curriculumStatusMsg error">{error}</p>}
-      {!loading && !error && curriculums.length === 0 && (
-        <div className="curriculumEmptyBox">
-          <img src={curri_nulll} className="curriculumEmptyImage" alt="없음" />
-          <p className="curriculumEmptyText">생성된 커리큘럼이 존재하지 않습니다.</p>
-          <button className="curriculumCreateBtn" onClick={() => setModalOpen(true)}>커리큘럼 생성하기</button>
-        </div>
-      )}
-      {!loading && !error && curriculums.length > 0 && selectedCurriculum && (
+      <button className="authorBackBtn" onClick={handleBack}>← 커리큘럼 목록으로</button>
+      <div className="learnerDetailHeader">
+        <p className="learnerDetailSubtitle">{selected.cur_target_industry || '-'} · {selected.cur_target_job || '-'} · {totalWeeks}주 과정</p>
+        <h2 className="learnerDetailTitle">{selected.cur_title}</h2>
+        {selected.cur_learning_goal && (<p className="learnerDetailGoal">🎯 {selected.cur_learning_goal}</p>)}
+        <div className="learnerDetailProgress"><div className="learnerProgressBar"><div className="learnerProgressFill" style={{ width: `${progress}%` }} /></div><span className="learnerDetailProgressText">{submittedCount} / {totalWeeks} 주차 제출 ({progress}%)</span></div>
+      </div>
 
-        <div className="curriculumLayout">
-          <aside className="curriculumSidebar">
-            <p className="curriculumSidebarTitle">생성한 커리큘럼</p>
-            <div className="curriculumSidebarDivider" />
-            <ul className="curriculumSidebarList">
-              {curriculums.map((c) => (
-                <li
-                  key={c.cur_id}
-                  className={`curriculumSidebarItem ${selectedId === c.cur_id ? 'active' : ''}`}
-                  onClick={() => { setSelectedId(c.cur_id); setDetailExpandedWeek(null); }}
-                >
-                  {c.cur_title}
-                </li>
-              ))}
-            </ul>
-            <button className="curriculumSidebarAddBtn" onClick={() => setModalOpen(true)}>+ 새 커리큘럼</button>
-          </aside>
+      <div className="learnerWeekStepper">
+        {weekPlan.map((step) => {
+          const sub = getLatestSubmission(selected.cur_id, step.week);
+          const isActive = expandedWeek === step.week;
+          const stateClass = sub ? `submitted ${sub.task_status || ''}` : '';
+          return (<button key={step.week} className={`learnerWeekStep ${isActive ? 'active' : ''} ${stateClass}`} onClick={() => toggleWeek(step.week)}><span className="learnerWeekStepNum">{step.week}</span><span className="learnerWeekStepLabel">주차</span>{sub && <span className="learnerWeekStepDot" />}</button>);
+        })}
+      </div>
 
-          <div className="curriculumDetail">
-            <div className="extracted-detail-header">
-              <div className="curriculumTitleGroup">
-                <div className="curriculumTitleRow">
-                  <h3 className="curriculumDetailTitle">{selectedCurriculum.cur_title}</h3>
-                  <img
-                    src={downloadIconImg}
-                    alt="다운로드"
-                    className="downloadIcon"
-                    onClick={() => setDownloadModalOpen(true)}
-                  />
-                </div>
-                <p className="curriculumDetailDesc">{selectedCurriculum.cur_learning_goal || ''}</p>
+      <div className="learnerWeekList">
+        {weekPlan.length === 0 && (<p className="learnerInlineMuted">주차별 계획이 아직 없습니다.</p>)}
+        {weekPlan.map((step) => {
+          const isExpanded = expandedWeek === step.week;
+          const tasks = step.tasks || step.task;
+          const sub = getLatestSubmission(selected.cur_id, step.week);
+          const canResubmit = !sub || sub.task_status === 'resubmit_requested';
+          return (
+            <div key={step.week} className="learnerWeekCard">
+              <div className="learnerWeekCardHeader" onClick={() => toggleWeek(step.week)}>
+                <div><span className="learnerWeekCardWeek">{step.week}주차</span><span className="learnerWeekCardTheme">{step.theme || '주제 미지정'}</span></div>
+                <div className="learnerWeekCardHeaderRight">{sub && (<span className={`learnerWeekStatusBadge ${sub.task_status || ''}`}>{STATUS_LABEL[sub.task_status] || '제출됨'}</span>)}<span className="learnerWeekCardToggle">{isExpanded ? '▲' : '▼'}</span></div>
               </div>
-            </div>
-            <div className="assignedLearnersRow">
-              {(selectedCurriculum.cur_assigned_learner_ids || []).length === 0
-                ? <span className="assignEmptyInline">배정된 학습자가 없습니다</span>
-                : (selectedCurriculum.cur_assigned_learner_ids || []).map((id) => {
-                  const l = learners.find((x) => x.user_id === id);
-                  return <span key={id} className="assignedLearnerChip">{l ? l.user_name : `#${id}`}</span>;
-                })}
-              <button
-                className="assignedLearnersEditBtn"
-                onClick={() => { setAssignSelected(selectedCurriculum.cur_assigned_learner_ids || []); setAssignModalOpen(true); }}
-              >
-                변경
-              </button>
-            </div>
-            <div className="curriculumSteps">
-              {normalizeWeekPlan(selectedCurriculum.cur_week_plan).map((step) => renderAccordionItem(step, detailExpandedWeek, (week) => setDetailExpandedWeek(prev => prev === week ? null : week)))}
-            </div>
-          </div>
 
-          <div className="managerSubmissionSection">
-            <div className="managerSubmissionHeader">
-              <h3 className="managerSubmissionTitle">제출된 과제</h3>
-              <span className="managerSubmissionCount">{submissions.length}건</span>
-            </div>
-            {submissionsLoading && <p className="managerSubmissionLoading">제출 과제를 불러오는 중...</p>}
-            {!submissionsLoading && submissions.length === 0 && <p className="managerSubmissionEmpty">아직 제출된 과제가 없습니다.</p>}
-            <div className="managerSubmissionList">
-              {submissions.map((s) => {
-                const isExpanded = expandedSubmissionId === s.task_submission_id;
-                const statusClass = s.task_status || '';
-                const statusLabel = { submitted: '피드백 대기', feedback_given: '피드백 완료', resubmit_requested: '재제출 요청' }[s.task_status] || '제출됨';
-                return (
-                  <div key={s.task_submission_id} className="managerSubmissionItem">
-                    <div className="managerSubmissionItemHeader" onClick={() => setExpandedSubmissionId(prev => prev === s.task_submission_id ? null : s.task_submission_id)}>
-                      <div className="managerSubmissionItemMain">
-                        <span className="managerSubmissionWeek">{s.task_week_number}주차</span>
-                        <span className="managerSubmissionLearner">{s.learner_name || `#${s.task_learner_id}`}</span>
-                        <span className="managerSubmissionTime">{formatDateTime(s.task_submitted_at)}</span>
-                      </div>
-                      <div className="managerSubmissionItemRight">
-                        <span className={`managerSubmissionStatus ${statusClass}`}>{statusLabel}</span>
-                        <span className="managerSubmissionToggle">{isExpanded ? '▲' : '▼'}</span>
-                      </div>
-                    </div>
-                    {isExpanded && (
-                      <div className="managerSubmissionItemBody">
-                        <div className="managerSubmissionContent">
-                          <p className="managerSubmissionContentLabel">제출 내용</p>
-                          <div className="managerSubmissionContentBody" dangerouslySetInnerHTML={{ __html: s.task_submitted_content?.text || '(내용 없음)' }}></div>
-                        </div>
-                        {Array.isArray(s.task_submitted_content?.attachments) && s.task_submitted_content.attachments.length > 0 && (
-                          <div className="managerSubmissionAttachments">
-                            <p className="managerSubmissionContentLabel">📎 첨부파일</p>
-                            <ul className="managerSubmissionAttachmentList">
-                              {s.task_submitted_content.attachments.map((a, i) => (
-                                <li key={i} className="managerSubmissionAttachmentItem">
-                                  <button
-                                    type="button"
-                                    className="managerSubmissionAttachmentLink"
-                                    onClick={() => handleAttachmentDownload(s.task_submission_id, a)}
-                                  >
-                                    {a.filename || a.stored_name}
-                                  </button>
-                                  <span className="managerSubmissionAttachmentSize">{formatAttachmentSize(a.size)}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                        {s.task_manager_feedback && (
-                          <div className="managerSubmissionExistingFeedback">
-                            <p className="managerSubmissionContentLabel">현재 피드백 ({formatDateTime(s.task_feedback_at)})</p>
-                            <div className="managerSubmissionContentBody">{s.task_manager_feedback}</div>
-                          </div>
-                        )}
-                        <div className="managerFeedbackForm">
-                          <p className="managerSubmissionContentLabel">{s.task_manager_feedback ? '피드백 수정' : '피드백 작성'}</p>
-                          <textarea className="managerFeedbackTextarea" placeholder="학습자에게 전달할 피드백을 입력하세요" value={feedbackDraft[s.task_submission_id] ?? ''} onChange={(e) => setFeedbackDraft((prev) => ({ ...prev, [s.task_submission_id]: e.target.value }))} />
-                          <div className="managerFeedbackBtns">
-                            <button className="managerFeedbackBtn secondary" onClick={() => handleFeedbackSave(s.task_submission_id, 'resubmit_requested')} disabled={feedbackSavingId === s.task_submission_id}>재제출 요청</button>
-                            <button className="managerFeedbackBtn primary" onClick={() => handleFeedbackSave(s.task_submission_id, 'feedback_given')} disabled={feedbackSavingId === s.task_submission_id}>{feedbackSavingId === s.task_submission_id ? '저장 중...' : '피드백 저장'}</button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+              {isExpanded && (
+                <div className="learnerWeekCardBody">
+                  {step.learning_objective && (<section className="learnerWeekSection"><h4 className="learnerWeekSectionTitle">🎯 이번 주차 학습 목표</h4><p className="learnerWeekSectionText">{step.learning_objective}</p></section>)}
+                  {tasks && (<section className="learnerWeekSection"><h4 className="learnerWeekSectionTitle">📚 실습 과제</h4>{Array.isArray(tasks) ? (<ul className="learnerWeekSectionList">{tasks.map((t, i) => <li key={i}>{t}</li>)}</ul>) : (<p className="learnerWeekSectionText">{tasks}</p>)}</section>)}
+                  {Array.isArray(step.recommended_articles) && step.recommended_articles.length > 0 && (<section className="learnerWeekSection"><h4 className="learnerWeekSectionTitle">📖 추천 자료</h4>{step.recommended_articles.map((article, i) => { const targetUrl = article.url && article.url.trim() !== '' ? article.url : `https://www.google.com/search?q=${encodeURIComponent(article.title || '')}`; return (<div key={i} className="learnerWeekArticle"><a href={targetUrl} target="_blank" rel="noopener noreferrer" className="learnerWeekArticleLink">{article.url && article.url.trim() !== '' ? '🔗 ' : '🔍 '}{article.title}</a>{article.why_relevant && (<p className="learnerWeekArticleReason">- {article.why_relevant}</p>)}</div>); })}</section>)}
+                  {Array.isArray(step.success_criteria) && step.success_criteria.length > 0 && (<section className="learnerWeekSection"><h4 className="learnerWeekSectionTitle">✅ 체크리스트</h4><ul className="learnerWeekSectionList">{step.success_criteria.map((c, i) => <li key={i}>{c}</li>)}</ul></section>)}
 
-      )}
+                  {sub && (
+                    <section className="learnerWeekSubmission">
+                      <h4 className="learnerWeekSectionTitle">📝 내 제출</h4>
+                      <p className="learnerWeekSubmissionMeta">제출일: {formatDateTime(sub.task_submitted_at)}</p>
+                      <div className="learnerWeekSubmissionBody" dangerouslySetInnerHTML={{ __html: sanitizeHtml(sub.task_submitted_content?.text) || '(내용 없음)' }} />
+                      {Array.isArray(sub.task_submitted_content?.attachments) && sub.task_submitted_content.attachments.length > 0 && (<div className="learnerWeekSubmissionAttachments"><h5 className="learnerWeekFeedbackTitle">📎 첨부파일</h5><ul className="learnerSubmitAttachmentList">{sub.task_submitted_content.attachments.map((a, i) => (<li key={i} className="learnerSubmitAttachmentItem"><button type="button" className="learnerSubmitAttachmentLink" onClick={() => handleAttachmentDownload(sub.task_submission_id, a)}>{a.filename || a.stored_name}</button><span className="learnerSubmitAttachmentSize">{formatBytes(a.size)}</span></li>))}</ul></div>)}
+                      {sub.task_manager_feedback ? (<div className="learnerWeekFeedback"><h5 className="learnerWeekFeedbackTitle">🗨 매니저 피드백</h5><p className="learnerWeekFeedbackMeta">{formatDateTime(sub.task_feedback_at)}</p><p className="learnerWeekFeedbackBody">{sub.task_manager_feedback}</p></div>) : (<p className="learnerWeekFeedbackPending">아직 매니저 피드백이 없습니다.</p>)}
+                    </section>
+                  )}
 
-      {/* 모달 영역 시작 */}
-      {modalOpen && (
-        <>
-          <div className="chatModalOverlay" onClick={closeModal} />
-          <div className="chatModalContainer">
-            <aside className="chatSidebar">
-              <p className="chatSidebarTitle">생성한 커리큘럼</p>
-              <div className="chatSidebarDivider" />
-              <ul className="chatSidebarList">
-                {curriculums.length === 0 && <li>아직 없음</li>}
-                {curriculums.map((c) => <li key={c.cur_id}>{c.cur_title}</li>)}
-              </ul>
-            </aside>
-
-            <div className="chatMain">
-              <button className="chatModalClose" onClick={closeModal} disabled={generating || saving}>×</button>
-              {!generating ? (
-                <>
-                  <p className="chatMainTitle">AI로 커리큘럼 초안을 생성하세요</p>
-                  <form className="curriculumGenerateForm" onSubmit={handleGenerate}>
-                    <label className="curriculumField"><span>과정명</span><input name="cur_title" value={form.cur_title} onChange={handleChange} placeholder="예: 마케팅 신입 4주 온보딩" /></label>
-                    <div className="curriculumFieldGrid">
-                      <label className="curriculumField"><span>대상 직무</span><input name="cur_target_job" value={form.cur_target_job} onChange={handleChange} placeholder="예: 마케터" /></label>
-                      <label className="curriculumField"><span>산업</span><input name="cur_target_industry" value={form.cur_target_industry} onChange={handleChange} placeholder="예: IT" /></label>
-                    </div>
-                    <label className="curriculumField"><span>기간</span><input name="cur_duration_weeks" type="number" min="1" max="52" value={form.cur_duration_weeks} onChange={handleChange} /></label>
-                    <label className="curriculumField"><span>학습 목표</span><textarea name="cur_learning_goal" value={form.cur_learning_goal} onChange={handleChange} rows="3" placeholder="예: 디지털 마케팅 기초 역량 확보" /></label>
-                    <label className="curriculumField"><span>필수 포함 내용</span><textarea name="required_content" value={form.required_content} onChange={handleChange} rows="3" placeholder="예: GA4 분석, SEO 기본, 콘텐츠 마케팅 전략" /></label>
-                    {formError && <p className="curriculumFormError">{formError}</p>}
-                    <button className="curriculumGenerateBtn" type="submit">AI 커리큘럼 생성</button>
-                  </form>
-                </>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '400px' }}>
-                  <img
-                    src={rodingRafaImg}
-                    alt="커리큘럼 생성중"
-                    className="loadingImage"
-                    style={{ width: '96px', marginBottom: '24px' }}
-                  />
-                  <div style={{ width: '100%', maxWidth: '28rem', textAlign: 'center' }}>
-                    <h3 className="confirmTitle" style={{ marginBottom: '16px' }}>{loadingText}</h3>
-
-                    <div style={{ width: '100%', backgroundColor: '#e5e7eb', borderRadius: '9999px', height: '12px', marginBottom: '8px', overflow: 'hidden' }}>
-                      <div
-                        style={{
-                          width: `${progress}%`,
-                          backgroundColor: '#334155',
-                          height: '100%',
-                          borderRadius: '9999px',
-                          transition: 'width 0.3s ease-out'
-                        }}
-                      ></div>
-                    </div>
-                    <p style={{ fontSize: '14px', color: '#6b7280', fontWeight: '500' }}>{progress}%</p>
+                  <div className="learnerWeekFooter">
+                    {step.estimated_hours && (<span className="learnerWeekBadge">⏱ 예상 {step.estimated_hours}시간</span>)}
+                    <button className="learnerWeekSubmitBtn" onClick={() => openSubmitModal(selected.cur_id, step.week)} disabled={!canResubmit}>{sub ? (canResubmit ? '재제출하기' : '제출 완료') : '과제 제출하기'}</button>
                   </div>
                 </div>
               )}
             </div>
-          </div>
-        </>
-      )}
+          );
+        })}
+      </div>
 
-      {assignModalOpen && selectedCurriculum && (
-        <>
-          <div className="confirmOverlay" onClick={() => !assignSaving && setAssignModalOpen(false)} />
-          <div className="confirmModal assignModal">
-            <div className="confirmHeader"><div className="confirmHeaderRight"><p className="confirmHeaderLabel">{selectedCurriculum.cur_title}</p><h3 className="confirmTitle">학습자 배정 변경</h3><div className="confirmDivider" /></div></div>
-            <div className="assignSection">
-              {learners.length === 0 ? <p className="assignEmpty">같은 회사의 등록된 학습자가 없습니다.</p> : (
-                <div className="assignCheckList">
-                  {learners.map((l) => {
-                    const checked = assignSelected.includes(l.user_id);
-                    return (<label key={l.user_id} className={`assignCheckItem ${checked ? 'checked' : ''}`}><input type="checkbox" checked={checked} onChange={(e) => setAssignSelected((prev) => e.target.checked ? [...prev, l.user_id] : prev.filter((id) => id !== l.user_id))} /><span className="assignName">{l.user_name}</span><span className="assignEmail">{l.user_email}</span></label>);
-                  })}
+      {/* 👉 JoditEditor에서 TiptapEditor로 교체 */}
+      {modalState && (() => {
+        const week = normalizeWeekPlan(selected?.cur_week_plan).find((s) => s.week === modalState.week);
+        const templateAssignments = (week && Array.isArray(week.assignments)) ? week.assignments.filter((a) => a && a.template_content) : [];
+        return (
+          <>
+            <div className="emailModalOverlay" onClick={closeSubmitModal} />
+            <div className={`emailModal learnerSubmitModal ${modalState.fullscreen ? 'fullscreen' : ''}`}>
+              <div className="emailModalHeader">
+                <div className="learnerSubmitModalTitle">{modalState.week}주차 과제 제출</div>
+                <div className="learnerSubmitModalHeaderActions">
+                  <button type="button" className="learnerSubmitFullscreenBtn" onClick={toggleSubmitFullscreen} disabled={submitting}>{modalState.fullscreen ? '✕ 축소' : '⛶ 전체보기'}</button>
+                  <button className="emailModalClose" onClick={closeSubmitModal} disabled={submitting}>✕</button>
                 </div>
-              )}
-            </div>
-            <div className="confirmBtns"><button className="confirmBtnBack" onClick={() => setAssignModalOpen(false)} disabled={assignSaving}>취소</button><button className="confirmBtnCreate" onClick={handleAssignSave} disabled={assignSaving}>{assignSaving ? '저장 중...' : '저장'}</button></div>
-          </div>
-        </>
-      )}
-
-      {confirmOpen && preview && (
-        <>
-          <div className="confirmOverlay" onClick={() => !saving && setConfirmOpen(false)} />
-          <div className="confirmModal">
-            <div className="confirmHeader"><div className="confirmHeaderRight"><p className="confirmHeaderLabel">{preview.cur_target_job || '직무 미지정'} | {preview.cur_duration_weeks}주차</p><h3 className="confirmTitle">이 커리큘럼을 저장할까요?</h3><div className="confirmDivider" /></div></div>
-            <div className="confirmGoalBox"><p className="confirmGoalLabel">교육 목표 :</p><p className="confirmGoalText">{preview.cur_learning_goal || '교육 목표가 입력되지 않았습니다.'}</p></div>
-            <p className="confirmProgramName">{preview.cur_title}</p>
-            <div className="confirmStepList">
-              {previewWeeks.map((step) => renderAccordionItem(step, previewExpandedWeek, (week) => setPreviewExpandedWeek(prev => prev === week ? null : week),true))}
-            </div>
-            <div className="assignSection">
-              <p className="assignSectionTitle">학습자 배정 (선택)</p><p className="assignSectionHint">선택한 학습자들이 자신의 화면에서 이 커리큘럼을 볼 수 있습니다. 나중에 변경 가능합니다.</p>
-              {learners.length === 0 ? <p className="assignEmpty">같은 회사의 등록된 학습자가 없습니다.</p> : (
-                <div className="assignCheckList">
-                  {learners.map((l) => {
-                    const checked = createAssignedIds.includes(l.user_id);
-                    return (<label key={l.user_id} className={`assignCheckItem ${checked ? 'checked' : ''}`}><input type="checkbox" checked={checked} onChange={(e) => setCreateAssignedIds((prev) => e.target.checked ? [...prev, l.user_id] : prev.filter((id) => id !== l.user_id))} /><span className="assignName">{l.user_name}</span><span className="assignEmail">{l.user_email}</span></label>);
-                  })}
-                </div>
-              )}
-            </div>
-            {formError && <p className="curriculumFormError">{formError}</p>}
-            <div className="confirmBtns"><button className="confirmBtnBack" onClick={() => setConfirmOpen(false)} disabled={saving}>돌아가기</button><button className="confirmBtnCreate" onClick={handleSave} disabled={saving}>{saving ? '저장 중...' : '생성'}</button></div>
-          </div>
-        </>
-      )}
-
-      {templateModal.open && (
-        <>
-          <div className="confirmOverlay" onClick={() => setTemplateModal({ ...templateModal, open: false })} />
-          <div className={`confirmModal templateModal ${templateModal.fullscreen ? 'fullscreen' : ''}`}>
-            <div className="modalTopBar">
-              <h3 className="confirmTitle">과제 양식(템플릿) 배포</h3>
-              <button
-                className="fullscreenBtn"
-                onClick={() => setTemplateModal(prev => ({ ...prev, fullscreen: !prev.fullscreen }))}
-              >
-                {templateModal.fullscreen ? '✕ 축소' : '⛶ 전체보기'}
-              </button>
-
-            </div>
-
-            <p className="assignSectionHint">
-              학습자에게 전달될 '{templateModal.title}'의 작성 양식 가이드를 작성해주세요. 표나 양식을 지정해주면 학습자가 쉽게 채워넣을 수 있습니다.
-            </p>
-            <div className="templateEditorWrapper">
-              <JoditEditor
-                value={templateModal.content}
-                config={{
-                  height: templateModal.fullscreen ? 600 : 400,
-                  language: 'ko',
-                  placeholder: '표 삽입, 텍스트 색상 변경 등을 자유롭게 활용해 양식을 작성하세요...',
-                  toolbarSticky: false,
-                  popup: {
-                    selection: [],
-                  },
-                  iframe: true,                // 페이지 글로벌 reset으로부터 에디터 내부 격리 (리스트 마커 등)
-                }}
-                onBlur={(newContent) => setTemplateModal({ ...templateModal, content: newContent })}
-              />
-            </div>
-            <div className="confirmBtns">
-              <button
-                className="confirmBtnBack"
-                onClick={() => setTemplateModal({ ...templateModal, open: false })}
-                disabled={templateModal.saving}
-              >취소</button>
-              <button
-                className="confirmBtnCreate"
-                onClick={saveTemplate}
-                disabled={templateModal.saving}
-              >{templateModal.saving ? '배포 중...' : '템플릿 배포'}</button>
-            </div>
-          </div>
-        </>
-      )}
-
-      {generatingTemplate && (
-        <>
-          <div className="confirmOverlay loadingOverlay" />
-          <div className="confirmModal loadingModal">
-
-            <img
-              src={rodingRafaImg}
-              alt="템플릿 제작중"
-              className="loadingImage"
-            />
-
-            <div className="loadingTextWrapper">
-              <h3 className="confirmTitle">AI가 과제 템플릿 제작 중...</h3>
-              <p className="assignSectionHint">
-                과제명과 학습 목표, 제출 형식을 분석하여<br />
-                학습자가 작성하기 쉬운 최적의 양식을 구성하고 있습니다.
-              </p>
-            </div>
-
-          </div>
-        </>
-      )}
-
-      {submissionModal.open && (
-        <>
-          <div className="confirmOverlay" onClick={() => setSubmissionModal({ ...submissionModal, open: false })} />
-          <div className="confirmModal submissionModal">
-            <h3 className="confirmTitle">📝 과제 수행: {submissionModal.title}</h3>
-
-            <div className="document-workspace">
-              <div className="document-guide-section">
-                <strong className="documentGuideTitle">사수(교육담당자)의 과제 작성 가이드</strong>
-                <div
-                  className="document-template-content"
-                  dangerouslySetInnerHTML={{ __html: submissionModal.templateContent }}
-                ></div>
               </div>
+              <div className="emailModalDivider" />
 
-              <div className="document-edit-section">
-                <div className="document-toolbar">
-                  <span>과제 작성 에디터 (임시저장 가능)</span>
-                  <span className="status-label">{submissionModal.status === 'draft' ? '📝 작성 중' : '✅ 제출 완료'}</span>
-                </div>
-                <div className="joditEditorWrapper">
-                  <JoditEditor
-                    value={submissionModal.content}
-                    config={{
-                      height: 400,
-                      language: 'ko',
-                      placeholder: '담당자가 배포한 가이드에 맞추어 이곳에 과제를 작성하세요...',
-                      iframe: true,            // 페이지 글로벌 reset으로부터 에디터 내부 격리
-                    }}
-                    onBlur={(newContent) => setSubmissionModal({ ...submissionModal, content: newContent })}
+              <div className="emailModalBody learnerSubmitModalBody">
+                {templateAssignments.length > 0 && (
+                  <section className="learnerSubmitTemplateSection">
+                    <h4 className="learnerSubmitSectionTitle">📋 사수가 배포한 양식</h4>
+                    {templateAssignments.map((a, idx) => (<div key={idx} className="learnerSubmitTemplateCard"><strong className="learnerSubmitTemplateTitle">{a.title}</strong><div className="learnerSubmitTemplateContent" dangerouslySetInnerHTML={{ __html: sanitizeHtml(a.template_content) }} /></div>))}
+                  </section>
+                )}
+                
+                <section className="learnerSubmitEditorSection">
+                  <h4 className="learnerSubmitSectionTitle">📝 과제 작성</h4>
+                  <TiptapEditor
+                    value={submitContent}
+                    onChange={setSubmitContent}
+                    isFullscreen={modalState.fullscreen}
                   />
-                </div>
+                </section>
+
+                <section className="learnerSubmitAttachmentSection">
+                  <h4 className="learnerSubmitSectionTitle">📎 첨부파일</h4>
+                  <label className="learnerSubmitAttachmentPicker"><input type="file" multiple onChange={handleFileSelect} disabled={submitting} /><span>+ 파일 추가</span></label>
+                  {submitFiles.length > 0 && (<ul className="learnerSubmitFileList">{submitFiles.map((f, i) => (<li key={i} className="learnerSubmitFileItem"><span className="learnerSubmitFileName">{f.name}</span><span className="learnerSubmitFileSize">{formatBytes(f.size)}</span><button type="button" className="learnerSubmitFileRemove" onClick={() => handleFileRemove(i)} disabled={submitting}>삭제</button></li>))}</ul>)}
+                </section>
               </div>
+
+              {submitError && (<p className="emailingError learnerSubmitError">{submitError}</p>)}
+              <div className="emailModalFooter"><button className="emailSendBtn" onClick={handleSubmit} disabled={submitting}>{submitting ? '제출 중...' : '제출하기'}</button></div>
             </div>
-
-            <div className="confirmBtns">
-              <button className="confirmBtnBack" onClick={() => setSubmissionModal({ ...submissionModal, open: false })}>닫기</button>
-              <button className="confirmBtnCreate btnSuccess" onClick={() => saveSubmission(false)}>임시 저장</button>
-              <button className="confirmBtnCreate" onClick={() => saveSubmission(true)}>최종 제출하기</button>
-            </div>
-          </div>
-        </>
-      )}
-
-      {downloadModalOpen && (
-        <>
-          <div className="downloadOverlay" onClick={() => setDownloadModalOpen(false)} />
-          <div className="downloadModal">
-            <p className="downloadModalTitle">다운로드 형식 선택</p>
-            <button className="downloadModalBtn" onClick={() => { handleDownloadTxt(); setDownloadModalOpen(false); }}>TXT 다운로드</button>
-            <button className="downloadModalBtn" onClick={() => { handleDownloadPdf(); setDownloadModalOpen(false); }}>PDF 다운로드</button>
-          </div>
-        </>
-      )}
-
+          </>
+        );
+      })()}
     </div>
   );
 }
 
-export default CurriculumView;
+export default LearnerCurriculumView;
