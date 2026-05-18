@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import api from '../lib/api';
-import curri_nulll from '../public/download_img.png';
+import curri_nulll from '../public/curri_null.png';
+import downloadIconImg from '../public/download_img.png';
+import rodingRafaImg from '../public/roding_rafa.png';
 import '../styles/Curriculum.css';
-
 import JoditEditor from 'jodit-react';
 
 const initialForm = {
@@ -48,6 +49,7 @@ function CurriculumView({ onOpenArticle }) {
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState(null);
+  const [generatingTemplate, setGeneratingTemplate] = useState(false);
 
   const [detailExpandedWeek, setDetailExpandedWeek] = useState(null);
   const [previewExpandedWeek, setPreviewExpandedWeek] = useState(null);
@@ -64,7 +66,16 @@ function CurriculumView({ onOpenArticle }) {
   const [feedbackSavingId, setFeedbackSavingId] = useState(null);
   const [expandedSubmissionId, setExpandedSubmissionId] = useState(null);
 
-  const [templateModal, setTemplateModal] = useState({ open: false, week: null, assignmentIdx: null, title: '', content: '', fullscreen: false }); const [submissionModal, setSubmissionModal] = useState({ open: false, week: null, assignmentIdx: null, title: '', templateContent: '', content: '', status: 'draft' });
+  const [templateModal, setTemplateModal] = useState({ open: false, week: null, assignmentIdx: null, title: '', content: '', fullscreen: false });
+  const [submissionModal, setSubmissionModal] = useState({ open: false, week: null, assignmentIdx: null, title: '', templateContent: '', content: '', status: 'draft' });
+
+  // --------------------------------------------------------
+  // 👉 새로 추가된 진행률 관련 상태 및 타이머 Ref
+  // --------------------------------------------------------
+  const [progress, setProgress] = useState(0);
+  const [loadingText, setLoadingText] = useState("");
+  const timerRef = useRef(null);
+  const textTimerRefs = useRef([]);
 
   const loadCurriculums = () => {
     setLoading(true);
@@ -203,9 +214,24 @@ function CurriculumView({ onOpenArticle }) {
     } catch (error) { alert('PDF 다운로드 중 오류가 발생했습니다.'); }
   };
 
+  // --------------------------------------------------------
+  // 👉 새로 추가된 타이머 정리 함수
+  // --------------------------------------------------------
+  const clearAllTimers = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    textTimerRefs.current.forEach(clearTimeout);
+    textTimerRefs.current = [];
+  };
+
   const closeModal = () => {
     if (generating || saving) return;
-    setModalOpen(false); setConfirmOpen(false); setPreview(null); setFormError(null); setPreviewExpandedWeek(null); setCreateAssignedIds([]);
+    setModalOpen(false);
+    setConfirmOpen(false);
+    setPreview(null);
+    setFormError(null);
+    setPreviewExpandedWeek(null);
+    setCreateAssignedIds([]);
+    clearAllTimers(); // 타이머 초기화 추가
   };
 
   const handleChange = (event) => {
@@ -213,21 +239,62 @@ function CurriculumView({ onOpenArticle }) {
     setForm((prev) => ({ ...prev, [name]: name === 'cur_duration_weeks' ? Number(value) : value }));
   };
 
+  // --------------------------------------------------------
+  // 👉 진행률 바 로직이 포함되도록 수정된 handleGenerate
+  // --------------------------------------------------------
   const handleGenerate = async (event) => {
-    event.preventDefault(); setFormError(null);
+    event.preventDefault();
+    setFormError(null);
     const payload = buildGeneratePayload(form);
+
     if (!payload.cur_title) { setFormError('과정명을 입력해 주세요.'); return; }
     if (!payload.cur_duration_weeks || payload.cur_duration_weeks < 1) { setFormError('기간은 1주 이상으로 입력해 주세요.'); return; }
+
     setGenerating(true);
+    setProgress(0);
+    setLoadingText("웹 검색을 통해 최신 실무 트렌드를 분석하는 중...");
+
+    // 1. 가짜 진행도 타이머 시작
+    timerRef.current = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 90) {
+          clearInterval(timerRef.current);
+          return 90; // 90%에서 대기
+        }
+        const jump = Math.floor(Math.random() * 4) + 2; // 2~5% 랜덤 증가
+        return Math.min(prev + jump, 90);
+      });
+    }, 500);
+
+    // 2. 시간에 따른 텍스트 변경
+    textTimerRefs.current.push(
+      setTimeout(() => setLoadingText("주차별 학습 목표 및 세부 과제를 설정하는 중..."), 3500),
+      setTimeout(() => setLoadingText("교육 담당자용 피드백 가이드를 작성하는 중..."), 7000)
+    );
+
     try {
+      // 3. 실제 API 호출
       const res = await api.post('/curricula/generate', payload);
-      setPreview(res.data);
-      if (res.data?.cur_week_plan?.length > 0) setPreviewExpandedWeek(res.data.cur_week_plan[0].week);
-      setConfirmOpen(true);
+
+      // 4. 완료 시 처리
+      clearAllTimers();
+      setProgress(100);
+      setLoadingText("커리큘럼 생성이 완료되었습니다!");
+
+      setTimeout(() => {
+        setPreview(res.data);
+        if (res.data?.cur_week_plan?.length > 0) setPreviewExpandedWeek(res.data.cur_week_plan[0].week);
+        setConfirmOpen(true);
+        setModalOpen(false); // 생성 모달을 닫고 미리보기 모달을 염
+        setGenerating(false);
+      }, 500);
+
     } catch (err) {
+      clearAllTimers();
       const detail = err.response?.data?.detail;
       setFormError(Array.isArray(detail) ? detail[0].msg : detail || 'AI 커리큘럼 생성에 실패했어요.');
-    } finally { setGenerating(false); }
+      setGenerating(false);
+    }
   };
 
   const handleSave = async () => {
@@ -300,14 +367,43 @@ function CurriculumView({ onOpenArticle }) {
     setSubmissionModal({ ...submissionModal, open: false });
   };
 
-  const openTemplateModal = (week, idx, assignment) => {
-    setTemplateModal({
-      open: true, week, assignmentIdx: idx, title: assignment.title,
-      content: assignment.template_content || `[${assignment.title}] 관련 과제 양식을 자유롭게 작성해주세요.\n\n1. 핵심 지표:\n2. 분석 결과:\n3. 향후 전략:\n`
-    });
+  const openTemplateModal = async (step, idx, assignment) => {
+    if (assignment.template_content && assignment.template_content.trim() !== '') {
+      setTemplateModal({
+        open: true, week: step.week, assignmentIdx: idx, title: assignment.title,
+        content: assignment.template_content
+      });
+      return;
+    }
+
+    setGeneratingTemplate(true);
+    try {
+      const payload = {
+        theme: step.theme || "주제 미지정",
+        learning_objective: step.learning_objective || "학습 목표 미지정",
+        assignment_title: assignment.title,
+        step_by_step_guide: assignment.step_by_step_guide || [],
+        expected_output_format: assignment.expected_output_format || assignment.submission || "지정되지 않음"
+      };
+
+      const res = await api.post('/curricula/generate-template', payload);
+
+      setTemplateModal({
+        open: true, week: step.week, assignmentIdx: idx, title: assignment.title,
+        content: res.data.template_content
+      });
+    } catch (err) {
+      alert(err.response?.data?.detail || '템플릿 생성 중 오류가 발생했습니다.');
+      setTemplateModal({
+        open: true, week: step.week, assignmentIdx: idx, title: assignment.title,
+        content: `[${assignment.title}] 관련 과제 양식을 자유롭게 작성해주세요.\n\n1. 핵심 지표:\n2. 분석 결과:\n3. 향후 전략:\n`
+      });
+    } finally {
+      setGeneratingTemplate(false);
+    }
   };
 
-  const renderAccordionItem = (step, expandedState, toggleFunc) => {
+  const renderAccordionItem = (step, expandedState, toggleFunc, isPreview = false) => {
     const isExpanded = expandedState === step.week;
     return (
       <div key={step.week} className="extracted-accordion-item">
@@ -345,12 +441,14 @@ function CurriculumView({ onOpenArticle }) {
                         </ul>
                       )}
                       {a.description && <p className="extracted-guide-item">{a.description}</p>}
-                      <div className="extracted-submission-format has-actions">
+                      <div className={`extracted-submission-format ${!isPreview ? 'has-actions' : ''}`}>
                         <span>제출 형태: {a.expected_output_format || a.submission || '지정되지 않음'}</span>
-                        <div className="templateActionBtnGroup">
-                          <button className="template-action-btn admin" onClick={(e) => { e.stopPropagation(); openTemplateModal(step.week, idx, a); }}>양식 배포(관리자)</button>
-                          <button className="template-action-btn user" onClick={(e) => { e.stopPropagation(); openSubmissionModal(step.week, idx, a); }}>과제 작성(학습자)</button>
-                        </div>
+                        {!isPreview && (
+                          <div className="templateActionBtnGroup">
+                            <button className="template-action-btn admin" onClick={(e) => { e.stopPropagation(); openTemplateModal(step, idx, a); }}>양식 배포(관리자)</button>
+                            <button className="template-action-btn user" onClick={(e) => { e.stopPropagation(); openSubmissionModal(step.week, idx, a); }}>과제 작성(학습자)</button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -416,6 +514,7 @@ function CurriculumView({ onOpenArticle }) {
         </div>
       )}
       {!loading && !error && curriculums.length > 0 && selectedCurriculum && (
+
         <div className="curriculumLayout">
           <aside className="curriculumSidebar">
             <p className="curriculumSidebarTitle">생성한 커리큘럼</p>
@@ -433,13 +532,14 @@ function CurriculumView({ onOpenArticle }) {
             </ul>
             <button className="curriculumSidebarAddBtn" onClick={() => setModalOpen(true)}>+ 새 커리큘럼</button>
           </aside>
+
           <div className="curriculumDetail">
             <div className="extracted-detail-header">
               <div className="curriculumTitleGroup">
                 <div className="curriculumTitleRow">
                   <h3 className="curriculumDetailTitle">{selectedCurriculum.cur_title}</h3>
                   <img
-                    src="./download_img.png"
+                    src={downloadIconImg}
                     alt="다운로드"
                     className="downloadIcon"
                     onClick={() => setDownloadModalOpen(true)}
@@ -465,8 +565,8 @@ function CurriculumView({ onOpenArticle }) {
             <div className="curriculumSteps">
               {normalizeWeekPlan(selectedCurriculum.cur_week_plan).map((step) => renderAccordionItem(step, detailExpandedWeek, (week) => setDetailExpandedWeek(prev => prev === week ? null : week)))}
             </div>
-
           </div>
+
           <div className="managerSubmissionSection">
             <div className="managerSubmissionHeader">
               <h3 className="managerSubmissionTitle">제출된 과제</h3>
@@ -542,6 +642,7 @@ function CurriculumView({ onOpenArticle }) {
 
       )}
 
+      {/* 모달 영역 시작 */}
       {modalOpen && (
         <>
           <div className="chatModalOverlay" onClick={closeModal} />
@@ -554,21 +655,51 @@ function CurriculumView({ onOpenArticle }) {
                 {curriculums.map((c) => <li key={c.cur_id}>{c.cur_title}</li>)}
               </ul>
             </aside>
+
             <div className="chatMain">
               <button className="chatModalClose" onClick={closeModal} disabled={generating || saving}>×</button>
-              <p className="chatMainTitle">AI로 커리큘럼 초안을 생성하세요</p>
-              <form className="curriculumGenerateForm" onSubmit={handleGenerate}>
-                <label className="curriculumField"><span>과정명</span><input name="cur_title" value={form.cur_title} onChange={handleChange} placeholder="예: 마케팅 신입 4주 온보딩" /></label>
-                <div className="curriculumFieldGrid">
-                  <label className="curriculumField"><span>대상 직무</span><input name="cur_target_job" value={form.cur_target_job} onChange={handleChange} placeholder="예: 마케터" /></label>
-                  <label className="curriculumField"><span>산업</span><input name="cur_target_industry" value={form.cur_target_industry} onChange={handleChange} placeholder="예: IT" /></label>
+              {!generating ? (
+                <>
+                  <p className="chatMainTitle">AI로 커리큘럼 초안을 생성하세요</p>
+                  <form className="curriculumGenerateForm" onSubmit={handleGenerate}>
+                    <label className="curriculumField"><span>과정명</span><input name="cur_title" value={form.cur_title} onChange={handleChange} placeholder="예: 마케팅 신입 4주 온보딩" /></label>
+                    <div className="curriculumFieldGrid">
+                      <label className="curriculumField"><span>대상 직무</span><input name="cur_target_job" value={form.cur_target_job} onChange={handleChange} placeholder="예: 마케터" /></label>
+                      <label className="curriculumField"><span>산업</span><input name="cur_target_industry" value={form.cur_target_industry} onChange={handleChange} placeholder="예: IT" /></label>
+                    </div>
+                    <label className="curriculumField"><span>기간</span><input name="cur_duration_weeks" type="number" min="1" max="52" value={form.cur_duration_weeks} onChange={handleChange} /></label>
+                    <label className="curriculumField"><span>학습 목표</span><textarea name="cur_learning_goal" value={form.cur_learning_goal} onChange={handleChange} rows="3" placeholder="예: 디지털 마케팅 기초 역량 확보" /></label>
+                    <label className="curriculumField"><span>필수 포함 내용</span><textarea name="required_content" value={form.required_content} onChange={handleChange} rows="3" placeholder="예: GA4 분석, SEO 기본, 콘텐츠 마케팅 전략" /></label>
+                    {formError && <p className="curriculumFormError">{formError}</p>}
+                    <button className="curriculumGenerateBtn" type="submit">AI 커리큘럼 생성</button>
+                  </form>
+                </>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '400px' }}>
+                  <img
+                    src={rodingRafaImg}
+                    alt="커리큘럼 생성중"
+                    className="loadingImage"
+                    style={{ width: '96px', marginBottom: '24px' }}
+                  />
+                  <div style={{ width: '100%', maxWidth: '28rem', textAlign: 'center' }}>
+                    <h3 className="confirmTitle" style={{ marginBottom: '16px' }}>{loadingText}</h3>
+
+                    <div style={{ width: '100%', backgroundColor: '#e5e7eb', borderRadius: '9999px', height: '12px', marginBottom: '8px', overflow: 'hidden' }}>
+                      <div
+                        style={{
+                          width: `${progress}%`,
+                          backgroundColor: '#334155',
+                          height: '100%',
+                          borderRadius: '9999px',
+                          transition: 'width 0.3s ease-out'
+                        }}
+                      ></div>
+                    </div>
+                    <p style={{ fontSize: '14px', color: '#6b7280', fontWeight: '500' }}>{progress}%</p>
+                  </div>
                 </div>
-                <label className="curriculumField"><span>기간</span><input name="cur_duration_weeks" type="number" min="1" max="52" value={form.cur_duration_weeks} onChange={handleChange} /></label>
-                <label className="curriculumField"><span>학습 목표</span><textarea name="cur_learning_goal" value={form.cur_learning_goal} onChange={handleChange} rows="3" placeholder="예: 디지털 마케팅 기초 역량 확보" /></label>
-                <label className="curriculumField"><span>필수 포함 내용</span><textarea name="required_content" value={form.required_content} onChange={handleChange} rows="3" placeholder="예: GA4 분석, SEO 기본, 콘텐츠 마케팅 전략" /></label>
-                {formError && <p className="curriculumFormError">{formError}</p>}
-                <button className="curriculumGenerateBtn" type="submit" disabled={generating}>{generating ? 'AI 생성 중...' : 'AI 커리큘럼 생성'}</button>
-              </form>
+              )}
             </div>
           </div>
         </>
@@ -576,7 +707,6 @@ function CurriculumView({ onOpenArticle }) {
 
       {assignModalOpen && selectedCurriculum && (
         <>
-
           <div className="confirmOverlay" onClick={() => !assignSaving && setAssignModalOpen(false)} />
           <div className="confirmModal assignModal">
             <div className="confirmHeader"><div className="confirmHeaderRight"><p className="confirmHeaderLabel">{selectedCurriculum.cur_title}</p><h3 className="confirmTitle">학습자 배정 변경</h3><div className="confirmDivider" /></div></div>
@@ -603,7 +733,7 @@ function CurriculumView({ onOpenArticle }) {
             <div className="confirmGoalBox"><p className="confirmGoalLabel">교육 목표 :</p><p className="confirmGoalText">{preview.cur_learning_goal || '교육 목표가 입력되지 않았습니다.'}</p></div>
             <p className="confirmProgramName">{preview.cur_title}</p>
             <div className="confirmStepList">
-              {previewWeeks.map((step) => renderAccordionItem(step, previewExpandedWeek, (week) => setPreviewExpandedWeek(prev => prev === week ? null : week)))}
+              {previewWeeks.map((step) => renderAccordionItem(step, previewExpandedWeek, (week) => setPreviewExpandedWeek(prev => prev === week ? null : week),true))}
             </div>
             <div className="assignSection">
               <p className="assignSectionTitle">학습자 배정 (선택)</p><p className="assignSectionHint">선택한 학습자들이 자신의 화면에서 이 커리큘럼을 볼 수 있습니다. 나중에 변경 가능합니다.</p>
@@ -626,8 +756,6 @@ function CurriculumView({ onOpenArticle }) {
         <>
           <div className="confirmOverlay" onClick={() => setTemplateModal({ ...templateModal, open: false })} />
           <div className={`confirmModal templateModal ${templateModal.fullscreen ? 'fullscreen' : ''}`}>
-
-
             <div className="modalTopBar">
               <h3 className="confirmTitle">과제 양식(템플릿) 배포</h3>
               <button
@@ -649,9 +777,9 @@ function CurriculumView({ onOpenArticle }) {
                   height: templateModal.fullscreen ? 600 : 400,
                   language: 'ko',
                   placeholder: '표 삽입, 텍스트 색상 변경 등을 자유롭게 활용해 양식을 작성하세요...',
-                  toolbarSticky: false,        // ← 툴바 고정 해제
+                  toolbarSticky: false,
                   popup: {
-                    selection: [],             // ← 선택 팝업 최소화
+                    selection: [],
                   },
                   iframe: true,                // 페이지 글로벌 reset으로부터 에디터 내부 격리 (리스트 마커 등)
                 }}
@@ -670,6 +798,29 @@ function CurriculumView({ onOpenArticle }) {
                 disabled={templateModal.saving}
               >{templateModal.saving ? '배포 중...' : '템플릿 배포'}</button>
             </div>
+          </div>
+        </>
+      )}
+
+      {generatingTemplate && (
+        <>
+          <div className="confirmOverlay loadingOverlay" />
+          <div className="confirmModal loadingModal">
+
+            <img
+              src={rodingRafaImg}
+              alt="템플릿 제작중"
+              className="loadingImage"
+            />
+
+            <div className="loadingTextWrapper">
+              <h3 className="confirmTitle">AI가 과제 템플릿 제작 중...</h3>
+              <p className="assignSectionHint">
+                과제명과 학습 목표, 제출 형식을 분석하여<br />
+                학습자가 작성하기 쉬운 최적의 양식을 구성하고 있습니다.
+              </p>
+            </div>
+
           </div>
         </>
       )}

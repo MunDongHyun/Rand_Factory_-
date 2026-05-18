@@ -1,5 +1,3 @@
-
-
 /* =============================================
    페이지 컨테이너
    ============================================= */
@@ -67,7 +65,8 @@
 .curriculumLayout {
   display: flex;
   align-items: stretch;
-  min-height: 584px;
+  min-height: 600px;
+  height: calc(100vh - 160px);
   border-radius: 10px;
   overflow: hidden;
   border: 1px solid #BEC6CF;
@@ -85,6 +84,8 @@
   display: flex;
   flex-direction: column;
   gap: 0;
+  height: 100%;
+  overflow-y: auto;
 }
 
 .curriculumSidebarTitle {
@@ -166,10 +167,11 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  overflow-y: auto;
   border-right: 1px solid var(--line);
+  overflow-y: auto;
+  height: 100%;
 }
-  
+
 /* =============================================
    상세 헤더
    ============================================= */
@@ -644,14 +646,15 @@
    제출된 과제 섹션 (curriculumDetail 내부)
    ============================================= */
 .managerSubmissionSection {
-  width: 325px;
+  width: 340px;
   flex-shrink: 0;
   background: var(--card);
   padding: 24px 16px;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  overflow-y: auto;
+  height: 100%;
 }
 
 .managerSubmissionHeader {
@@ -1092,7 +1095,7 @@
   width: 860px;
   max-height: 92vh;
   transition: all 0.25s ease;
-  overflow: visible;    
+  overflow: visible;
   overflow-y: visible;
 }
 
@@ -1108,13 +1111,13 @@
   margin: 0;
   padding: 150px 40px;
   z-index: 102;
-  display: flex;          
-  flex-direction: column;  
+  display: flex;
+  flex-direction: column;
 }
 
 .confirmModal.templateModal.fullscreen .templateEditorWrapper {
-  max-height: none;     
-  flex: 1;                   
+  max-height: none;
+  flex: 1;
 }
 
 
@@ -1683,4 +1686,47 @@
 
 .managerSubmissionAttachments {
   margin-top: 12px;
+
+  .loadingOverlay {
+    z-index: 9999;
+  }
+
+  .confirmModal.loadingModal {
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 40px;
+    gap: 20px;
+    text-align: center;
+  }
+
+  .loadingImage {
+    width: 160px;
+    animation: floating 2s ease-in-out infinite;
+  }
+
+  .loadingTextWrapper h3.confirmTitle {
+    margin-bottom: 12px;
+  }
+
+  .loadingTextWrapper p.assignSectionHint {
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  @keyframes floating {
+    0% {
+      transform: translateY(0px);
+    }
+
+    50% {
+      transform: translateY(-15px);
+    }
+
+    100% {
+      transform: translateY(0px);
+    }
+  }
 }

@@ -27,10 +27,6 @@ class CurriculumUpdate(BaseModel):
     cur_assigned_learner_ids: list[int] | None = None
     cur_status: CurriculumStatus | None = None
 
-# ---------------------------------------------------------
-# [수정됨] 불필요해진 옛날 스키마(WeekPlanItem 등) 삭제 
-# ---------------------------------------------------------
-
 class CurriculumGenerateRequest(BaseModel):
     cur_title: str
     cur_duration_weeks: int
@@ -45,8 +41,6 @@ class CurriculumGenerateResponse(BaseModel):
     cur_target_job: str | None = None
     cur_target_industry: str | None = None
     cur_learning_goal: str | None = None
-    
-    # 🚀 핵심 수정 포인트: AI가 만든 최신 JSON 배열을 깎아내지 않고 그대로 내보냅니다.
     cur_week_plan: list[dict]
 
 class CurriculumResponse(BaseModel):
@@ -71,3 +65,13 @@ class CurriculumStatsResponse(BaseModel):
     total_curricula: int
     active_learners: int
     total_submissions: int
+    
+class TemplateGenerateRequest(BaseModel):
+    theme: str | None = None
+    learning_objective: str | None = None
+    assignment_title: str
+    step_by_step_guide: list[str] = []
+    expected_output_format: str | None = None
+
+class TemplateGenerateResponse(BaseModel):
+    template_content: str
