@@ -2,6 +2,37 @@
 
 ---
 
+## 2026-05-18 - Claude (Codex 점검 후속 버그/검증/UX 묶음 수정)
+
+### 배경
+- Codex로 코드 점검 진행 후 발견된 이슈와 추가 검토 항목 중 작고 영향이 큰 것 4건을 한 사이클에 일괄 처리
+
+### 수정 항목
+- **`curriculum.py` PDF 다운로드** (Codex 점검 시 자동 수정분): `pdf.output()` 무인자 호출 → `pdf.output(dest="S")` + `latin-1` 인코딩. fpdf 1.7.2의 stdout `UnicodeEncodeError` 회피
+- **`CurriculumView.jsx` 다운로드 아이콘** (Codex 점검 시 자동 수정분): `src="./download_img.png"` 문자열 경로 → `src={curri_nulll}` Vite import 자산 reference. 빌드 자산 해싱 정상화
+- **`schemas/task_submission.py` `task_score` 검증**: `Field(default=None, ge=0, le=100)` 추가. 잘못된 값 들어오면 DB CHECK 오류/500 대신 422 Validation Error로 응답
+- **`LearnerCurriculumView.jsx` jodit config `useMemo` 안정화**: `buildJoditConfig(fullscreen)`가 매 렌더 새 객체 생성 → `JODIT_CONFIG_BASE` 모듈 상수 + `useMemo`로 reference 안정화. fullscreen 토글 시 jodit이 reload되며 작성 중 내용이 onBlur 전에 손실되는 위험 제거
+- **`task_submission.py` `_strip_html` 헬퍼**: `_submission_type_from_content` / `upload_attachment`에서 JoditEditor의 빈 상태(`<p><br></p>` 등)를 `has_text=True`로 잘못 판단하던 문제 수정. `<태그>` 제거 + `&nbsp;` 등 공백 엔티티 정규화 후 길이로 판단
+
+### 검증
+- backend `compileall`: pass
+- frontend `npm run build`: pass (5.26s, 청크 크기 경고는 기존 라이브러리 무게로 본 작업 무관)
+
+### 풀 받음
+- `origin/dev`: `d282e85 전체적인 레이아웃 소규모 수정` (Header/Dashboard/theme.css/search_icon — 우리 변경분과 충돌 없음)
+- `theme.css`의 universal reset(`* { padding: 0 }`)은 변경되지 않아 학습자 컨텍스트 CSS 처방은 그대로 유효
+
+### 다음 사이클 후보 (Codex 점검 + 추가 검토 잔여)
+- **Codex #2**: DOMPurify sanitize 도입 (XSS 방어)
+- **Codex #3**: 첨부 업로드/삭제 원자성 보장 (DB-파일시스템 보상 트랜잭션)
+- **C**: MIME spoofing 방어 (python-magic 도입)
+- **H**: 한글 파일명 sanitize 패턴 개선
+- **G**: `handleAttachmentDownload`/`formatAttachmentSize` 헬퍼 추출 (lib/attachments.js)
+- **D/E/F**: 재제출 첨부 비대칭 / `task_resubmit_requested` 컬럼 중복 / 매니저 첨부 권한 정책 결정 후 처리
+- **Codex #5**: Alembic 마이그레이션 도입 (장기)
+
+---
+
 ## 2026-05-18 - Codex (과제 첨부파일 별도 테이블 전환)
 
 ### 배경

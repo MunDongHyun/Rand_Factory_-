@@ -315,7 +315,9 @@ async def download_curriculum_pdf(curriculum_data: list = Body(...)):
         
         pdf.cell(200, 10, txt=f"Week {week_num}: {theme_text}", ln=True)
 
-    pdf_output = pdf.output() 
+    pdf_output = pdf.output(dest="S")
+    if isinstance(pdf_output, str):
+        pdf_output = pdf_output.encode("latin-1")
     file_stream = io.BytesIO(pdf_output)
     file_stream.seek(0)
 

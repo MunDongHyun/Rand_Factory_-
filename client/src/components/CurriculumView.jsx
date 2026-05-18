@@ -439,7 +439,7 @@ function CurriculumView({ onOpenArticle }) {
                 <div className="curriculumTitleRow">
                   <h3 className="curriculumDetailTitle">{selectedCurriculum.cur_title}</h3>
                   <img
-                    src="./download_img.png"
+                    src={curri_nulll}
                     alt="다운로드"
                     className="downloadIcon"
                     onClick={() => setDownloadModalOpen(true)}
