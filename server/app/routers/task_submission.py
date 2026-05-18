@@ -29,12 +29,25 @@ router = APIRouter(prefix="/api/task-submissions", tags=["task-submissions"])
 ATTACHMENT_ROOT = Path(__file__).resolve().parents[2] / "uploads" / "task_attachments"
 ATTACHMENT_MAX_BYTES = 20 * 1024 * 1024  # 한 파일당 20MB
 _SAFE_NAME_PATTERN = re.compile(r"[^A-Za-z0-9._-]")
+_HTML_TAG_PATTERN = re.compile(r"<[^>]+>")
+_HTML_WHITESPACE_ENTITY = re.compile(r"&(nbsp|ensp|emsp|thinsp);", re.IGNORECASE)
 
 
 def _sanitize_filename(name: str) -> str:
     """원본 파일명에서 위험 문자 제거하고 확장자 보존. 경로 traversal 방지."""
     clean = _SAFE_NAME_PATTERN.sub("_", Path(name).name)
     return clean or "file"
+
+
+def _strip_html(value) -> str:
+    """간단한 HTML 태그/공백 엔티티 제거.
+    JoditEditor의 빈 상태(<p><br></p> 등)가 has_text=True로 잘못 인식되는 걸 방지.
+    """
+    if not value:
+        return ""
+    text = _HTML_TAG_PATTERN.sub("", str(value))
+    text = _HTML_WHITESPACE_ENTITY.sub(" ", text)
+    return text.strip()
 
 
 def _attachment_to_legacy_dict(attachment: TaskSubmissionAttachment) -> dict:
@@ -63,7 +76,7 @@ def _content_with_attachments(submission: TaskSubmission) -> dict:
 
 def _submission_type_from_content(submission: TaskSubmission) -> str:
     content = submission.task_submitted_content or {}
-    has_text = bool(str(content.get("text") or "").strip())
+    has_text = bool(_strip_html(content.get("text")))
     has_file = any(attachment.file_deleted_at is None for attachment in submission.attachments)
     if has_text and has_file:
         return "mixed"
@@ -358,7 +371,7 @@ async def upload_attachment(
     db.add(attachment)
     db.flush()
     content = submission.task_submitted_content or {}
-    submission.task_submission_type = "mixed" if str(content.get("text") or "").strip() else "file"
+    submission.task_submission_type = "mixed" if _strip_html(content.get("text")) else "file"
     db.commit()
     db.refresh(submission)
     return _submission_response(submission)

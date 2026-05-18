@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import JoditEditor from 'jodit-react';
 import api from '../lib/api';
 import '../styles/Curriculum.css';
 
-const buildJoditConfig = (fullscreen) => ({
-  height: fullscreen ? 600 : 350,
+const JODIT_CONFIG_BASE = {
   language: 'ko',
   iframe: true,
   toolbarSticky: false,
@@ -12,7 +11,7 @@ const buildJoditConfig = (fullscreen) => ({
     selection: [], // 텍스트 선택 시 뜨는 popup 비활성화 — 움찔임 완화
   },
   placeholder: '사수가 배포한 양식에 맞추어 과제를 작성하세요...',
-});
+};
 
 const formatBytes = (bytes) => {
   if (!Number.isFinite(bytes)) return '';
@@ -50,11 +49,18 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
   const [selectedId, setSelectedId] = useState(null);
   const [expandedWeek, setExpandedWeek] = useState(null);
 
-  const [modalState, setModalState] = useState(null); // { curId, week }
+  const [modalState, setModalState] = useState(null); // { curId, week, fullscreen }
   const [submitContent, setSubmitContent] = useState('');
   const [submitFiles, setSubmitFiles] = useState([]); // File[]  메모리 상의 첨부 후보
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+
+  // fullscreen 토글 시 config 객체 reference가 매번 새로 만들어지면 jodit이 reload되면서
+  // 작성 중 내용이 onBlur 전에 사라질 수 있어 useMemo로 안정화 (height만 fullscreen 의존)
+  const joditConfig = useMemo(
+    () => ({ ...JODIT_CONFIG_BASE, height: modalState?.fullscreen ? 600 : 350 }),
+    [modalState?.fullscreen],
+  );
 
   const loadSubmissions = () => {
     return api.get('/task-submissions/my')
@@ -547,7 +553,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
                   <div className="learnerSubmitEditorWrapper">
                     <JoditEditor
                       value={submitContent}
-                      config={buildJoditConfig(modalState.fullscreen)}
+                      config={joditConfig}
                       onBlur={(newContent) => setSubmitContent(newContent)}
                     />
                   </div>
