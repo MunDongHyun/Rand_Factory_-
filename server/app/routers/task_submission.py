@@ -1,8 +1,15 @@
+import mimetypes
+import re
+import uuid
 from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
+from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi.responses import FileResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -18,6 +25,17 @@ from app.schemas.task_submission import (
 )
 
 router = APIRouter(prefix="/api/task-submissions", tags=["task-submissions"])
+
+# 첨부파일 저장 루트 (server/uploads/task_attachments/{submission_id}/{stored_name})
+ATTACHMENT_ROOT = Path(__file__).resolve().parents[2] / "uploads" / "task_attachments"
+ATTACHMENT_MAX_BYTES = 20 * 1024 * 1024  # 한 파일당 20MB
+_SAFE_NAME_PATTERN = re.compile(r"[^A-Za-z0-9._-]")
+
+
+def _sanitize_filename(name: str) -> str:
+    """원본 파일명에서 위험 문자 제거하고 확장자 보존. 경로 traversal 방지."""
+    clean = _SAFE_NAME_PATTERN.sub("_", Path(name).name)
+    return clean or "file"
 
 
 def _week_exists(curriculum: Curriculum, week_number: int) -> bool:
@@ -226,6 +244,130 @@ def update_feedback(
     submission.task_manager_feedback = body.task_manager_feedback
     submission.task_feedback_at = datetime.now(timezone.utc)
     submission.task_status = body.task_status
+    db.commit()
+    db.refresh(submission)
+    return submission
+
+
+# ---------------------------------------------------------------------------
+# 첨부파일 (업로드 / 다운로드 / 삭제)
+# task_submitted_content JSON 안 "attachments" 배열에 메타 보관.
+# 실제 파일은 server/uploads/task_attachments/{submission_id}/{stored_name}
+# ---------------------------------------------------------------------------
+
+
+@router.post("/{submission_id}/attachments", response_model=TaskSubmissionResponse)
+async def upload_attachment(
+    submission_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """학습자가 본인 제출에 파일 첨부. 한 파일당 20MB 제한."""
+    submission = (
+        db.query(TaskSubmission)
+        .filter(TaskSubmission.task_submission_id == submission_id)
+        .first()
+    )
+    if not submission or not _can_access_submission(submission, current_user, db):
+        raise HTTPException(status_code=404, detail="과제 제출을 찾을 수 없습니다")
+    if current_user.user_role != "j" or submission.task_learner_id != current_user.user_id:
+        raise HTTPException(status_code=403, detail="본인 제출에만 파일을 첨부할 수 있습니다")
+
+    contents = await file.read()
+    if len(contents) > ATTACHMENT_MAX_BYTES:
+        raise HTTPException(status_code=413, detail="파일이 너무 큽니다 (최대 20MB)")
+    if not contents:
+        raise HTTPException(status_code=400, detail="빈 파일은 업로드할 수 없습니다")
+
+    safe_name = _sanitize_filename(file.filename or "file")
+    stored_name = f"{uuid.uuid4().hex}_{safe_name}"
+    target_dir = ATTACHMENT_ROOT / str(submission_id)
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target_path = target_dir / stored_name
+    target_path.write_bytes(contents)
+
+    content = dict(submission.task_submitted_content or {})
+    attachments = list(content.get("attachments") or [])
+    attachments.append({
+        "filename": file.filename or safe_name,
+        "stored_name": stored_name,
+        "size": len(contents),
+        "mime": file.content_type or mimetypes.guess_type(safe_name)[0] or "application/octet-stream",
+        "uploaded_at": datetime.now(timezone.utc).isoformat(),
+    })
+    content["attachments"] = attachments
+    submission.task_submitted_content = content
+    flag_modified(submission, "task_submitted_content")
+    db.commit()
+    db.refresh(submission)
+    return submission
+
+
+@router.get("/{submission_id}/attachments/{stored_name}")
+def download_attachment(
+    submission_id: int,
+    stored_name: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """첨부파일 다운로드. 본인 제출 또는 담당 매니저/관리자만."""
+    submission = (
+        db.query(TaskSubmission)
+        .filter(TaskSubmission.task_submission_id == submission_id)
+        .first()
+    )
+    if not submission or not _can_access_submission(submission, current_user, db):
+        raise HTTPException(status_code=404, detail="과제 제출을 찾을 수 없습니다")
+
+    # path traversal 차단: 메타에 등록된 stored_name과만 매칭
+    attachments = (submission.task_submitted_content or {}).get("attachments") or []
+    meta = next((a for a in attachments if a.get("stored_name") == stored_name), None)
+    if not meta:
+        raise HTTPException(status_code=404, detail="첨부파일을 찾을 수 없습니다")
+
+    file_path = ATTACHMENT_ROOT / str(submission_id) / stored_name
+    if not file_path.is_file():
+        raise HTTPException(status_code=404, detail="첨부파일을 찾을 수 없습니다")
+
+    return FileResponse(
+        path=file_path,
+        media_type=meta.get("mime") or "application/octet-stream",
+        filename=meta.get("filename") or stored_name,
+    )
+
+
+@router.delete("/{submission_id}/attachments/{stored_name}", response_model=TaskSubmissionResponse)
+def delete_attachment(
+    submission_id: int,
+    stored_name: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """본인 제출의 첨부파일 삭제."""
+    submission = (
+        db.query(TaskSubmission)
+        .filter(TaskSubmission.task_submission_id == submission_id)
+        .first()
+    )
+    if not submission or not _can_access_submission(submission, current_user, db):
+        raise HTTPException(status_code=404, detail="과제 제출을 찾을 수 없습니다")
+    if current_user.user_role != "j" or submission.task_learner_id != current_user.user_id:
+        raise HTTPException(status_code=403, detail="본인 제출의 첨부파일만 삭제할 수 있습니다")
+
+    content = dict(submission.task_submitted_content or {})
+    attachments = list(content.get("attachments") or [])
+    new_attachments = [a for a in attachments if a.get("stored_name") != stored_name]
+    if len(new_attachments) == len(attachments):
+        raise HTTPException(status_code=404, detail="첨부파일을 찾을 수 없습니다")
+
+    file_path = ATTACHMENT_ROOT / str(submission_id) / stored_name
+    if file_path.is_file():
+        file_path.unlink()
+
+    content["attachments"] = new_attachments
+    submission.task_submitted_content = content
+    flag_modified(submission, "task_submitted_content")
     db.commit()
     db.refresh(submission)
     return submission

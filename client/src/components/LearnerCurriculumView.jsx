@@ -1,6 +1,25 @@
 import { useEffect, useState } from 'react';
+import JoditEditor from 'jodit-react';
 import api from '../lib/api';
 import '../styles/Curriculum.css';
+
+const buildJoditConfig = (fullscreen) => ({
+  height: fullscreen ? 600 : 350,
+  language: 'ko',
+  iframe: true,
+  toolbarSticky: false,
+  popup: {
+    selection: [], // 텍스트 선택 시 뜨는 popup 비활성화 — 움찔임 완화
+  },
+  placeholder: '사수가 배포한 양식에 맞추어 과제를 작성하세요...',
+});
+
+const formatBytes = (bytes) => {
+  if (!Number.isFinite(bytes)) return '';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+};
 
 const normalizeWeekPlan = (plan) => {
   if (Array.isArray(plan)) return plan;
@@ -32,7 +51,8 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
   const [expandedWeek, setExpandedWeek] = useState(null);
 
   const [modalState, setModalState] = useState(null); // { curId, week }
-  const [submitText, setSubmitText] = useState('');
+  const [submitContent, setSubmitContent] = useState('');
+  const [submitFiles, setSubmitFiles] = useState([]); // File[]  메모리 상의 첨부 후보
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
 
@@ -117,33 +137,93 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
   };
 
   const openSubmitModal = (curId, week) => {
-    setModalState({ curId, week });
-    setSubmitText('');
+    setModalState({ curId, week, fullscreen: false });
+    setSubmitContent('');
+    setSubmitFiles([]);
     setSubmitError(null);
   };
 
+  const toggleSubmitFullscreen = () => {
+    setModalState((prev) => (prev ? { ...prev, fullscreen: !prev.fullscreen } : prev));
+  };
+
   const closeSubmitModal = () => {
+    if (submitting) return;
     setModalState(null);
-    setSubmitText('');
+    setSubmitContent('');
+    setSubmitFiles([]);
     setSubmitError(null);
+  };
+
+  const handleFileSelect = (event) => {
+    const picked = Array.from(event.target.files || []);
+    setSubmitFiles((prev) => [...prev, ...picked]);
+    event.target.value = ''; // 같은 파일 다시 선택 가능하게 reset
+  };
+
+  const handleFileRemove = (idx) => {
+    setSubmitFiles((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleAttachmentDownload = async (submissionId, attachment) => {
+    try {
+      const res = await api.get(
+        `/task-submissions/${submissionId}/attachments/${attachment.stored_name}`,
+        { responseType: 'blob' },
+      );
+      const blobUrl = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.setAttribute('download', attachment.filename || attachment.stored_name);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      alert(err.response?.data?.detail || '첨부파일 다운로드에 실패했습니다.');
+    }
   };
 
   const handleSubmit = async () => {
     if (!modalState) return;
-    if (!submitText.trim()) {
-      setSubmitError('내용을 입력하세요.');
+    const trimmed = (submitContent || '').replace(/<p><br><\/p>/g, '').trim();
+    if (!trimmed && submitFiles.length === 0) {
+      setSubmitError('작성 내용이나 첨부파일 중 하나는 있어야 합니다.');
       return;
     }
     setSubmitting(true);
     setSubmitError(null);
     try {
-      await api.post('/task-submissions', {
+      const res = await api.post('/task-submissions', {
         task_curriculum_id: modalState.curId,
         task_week_number: modalState.week,
-        task_submitted_content: { text: submitText.trim() },
+        task_submitted_content: { text: trimmed },
       });
+      const submissionId = res.data?.task_submission_id;
+
+      // 첨부파일 순차 업로드 (한 파일이라도 실패하면 사용자에게 알림)
+      const failures = [];
+      for (const file of submitFiles) {
+        const formData = new FormData();
+        formData.append('file', file);
+        try {
+          await api.post(
+            `/task-submissions/${submissionId}/attachments`,
+            formData,
+            { headers: { 'Content-Type': 'multipart/form-data' } },
+          );
+        } catch (err) {
+          failures.push(`${file.name}: ${err.response?.data?.detail || '업로드 실패'}`);
+        }
+      }
       await loadSubmissions();
-      closeSubmitModal();
+      if (failures.length > 0) {
+        alert(`제출은 완료됐지만 일부 첨부 업로드에 실패했습니다:\n${failures.join('\n')}`);
+      }
+      setModalState(null);
+      setSubmitContent('');
+      setSubmitFiles([]);
+      setSubmitError(null);
     } catch (err) {
       setSubmitError(err.response?.data?.detail || '제출에 실패했습니다.');
     } finally {
@@ -356,9 +436,30 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
                       <p className="learnerWeekSubmissionMeta">
                         제출일: {formatDateTime(sub.task_submitted_at)}
                       </p>
-                      <div className="learnerWeekSubmissionBody">
-                        {sub.task_submitted_content?.text || '(내용 없음)'}
-                      </div>
+                      <div
+                        className="learnerWeekSubmissionBody"
+                        dangerouslySetInnerHTML={{ __html: sub.task_submitted_content?.text || '(내용 없음)' }}
+                      />
+
+                      {Array.isArray(sub.task_submitted_content?.attachments) && sub.task_submitted_content.attachments.length > 0 && (
+                        <div className="learnerWeekSubmissionAttachments">
+                          <h5 className="learnerWeekFeedbackTitle">📎 첨부파일</h5>
+                          <ul className="learnerSubmitAttachmentList">
+                            {sub.task_submitted_content.attachments.map((a, i) => (
+                              <li key={i} className="learnerSubmitAttachmentItem">
+                                <button
+                                  type="button"
+                                  className="learnerSubmitAttachmentLink"
+                                  onClick={() => handleAttachmentDownload(sub.task_submission_id, a)}
+                                >
+                                  {a.filename || a.stored_name}
+                                </button>
+                                <span className="learnerSubmitAttachmentSize">{formatBytes(a.size)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
 
                       {sub.task_manager_feedback ? (
                         <div className="learnerWeekFeedback">
@@ -395,44 +496,111 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
       </div>
 
       {/* 제출 모달 */}
-      {modalState && (
-        <>
-          <div className="emailModalOverlay" onClick={closeSubmitModal} />
-          <div className="emailModal">
-            <div className="emailModalHeader">
-              <div className="learnerSubmitModalTitle">
-                {modalState.week}주차 과제 제출
+      {modalState && (() => {
+        const week = normalizeWeekPlan(selected?.cur_week_plan).find((s) => s.week === modalState.week);
+        const templateAssignments = (week && Array.isArray(week.assignments))
+          ? week.assignments.filter((a) => a && a.template_content)
+          : [];
+
+        return (
+          <>
+            <div className="emailModalOverlay" onClick={closeSubmitModal} />
+            <div className={`emailModal learnerSubmitModal ${modalState.fullscreen ? 'fullscreen' : ''}`}>
+              <div className="emailModalHeader">
+                <div className="learnerSubmitModalTitle">
+                  {modalState.week}주차 과제 제출
+                </div>
+                <div className="learnerSubmitModalHeaderActions">
+                  <button
+                    type="button"
+                    className="learnerSubmitFullscreenBtn"
+                    onClick={toggleSubmitFullscreen}
+                    disabled={submitting}
+                  >
+                    {modalState.fullscreen ? '✕ 축소' : '⛶ 전체보기'}
+                  </button>
+                  <button className="emailModalClose" onClick={closeSubmitModal} disabled={submitting}>✕</button>
+                </div>
               </div>
-              <button className="emailModalClose" onClick={closeSubmitModal}>✕</button>
-            </div>
-            <div className="emailModalDivider" />
+              <div className="emailModalDivider" />
 
-            <div className="emailModalBody">
-              <textarea
-                className="emailModalTextarea"
-                placeholder="과제 내용을 입력하세요"
-                value={submitText}
-                onChange={(e) => setSubmitText(e.target.value)}
-                autoFocus
-              />
-            </div>
+              <div className="emailModalBody learnerSubmitModalBody">
+                {/* 사수가 배포한 양식 가이드 */}
+                {templateAssignments.length > 0 && (
+                  <section className="learnerSubmitTemplateSection">
+                    <h4 className="learnerSubmitSectionTitle">📋 사수가 배포한 양식</h4>
+                    {templateAssignments.map((a, idx) => (
+                      <div key={idx} className="learnerSubmitTemplateCard">
+                        <strong className="learnerSubmitTemplateTitle">{a.title}</strong>
+                        <div
+                          className="learnerSubmitTemplateContent"
+                          dangerouslySetInnerHTML={{ __html: a.template_content }}
+                        />
+                      </div>
+                    ))}
+                  </section>
+                )}
 
-            {submitError && (
-              <p className="emailingError learnerSubmitError">{submitError}</p>
-            )}
+                {/* 본문 작성 (JoditEditor) */}
+                <section className="learnerSubmitEditorSection">
+                  <h4 className="learnerSubmitSectionTitle">📝 과제 작성</h4>
+                  <div className="learnerSubmitEditorWrapper">
+                    <JoditEditor
+                      value={submitContent}
+                      config={buildJoditConfig(modalState.fullscreen)}
+                      onBlur={(newContent) => setSubmitContent(newContent)}
+                    />
+                  </div>
+                </section>
 
-            <div className="emailModalFooter">
-              <button
-                className="emailSendBtn"
-                onClick={handleSubmit}
-                disabled={submitting}
-              >
-                {submitting ? '제출 중...' : '제출하기'}
-              </button>
+                {/* 첨부파일 */}
+                <section className="learnerSubmitAttachmentSection">
+                  <h4 className="learnerSubmitSectionTitle">📎 첨부파일</h4>
+                  <label className="learnerSubmitAttachmentPicker">
+                    <input
+                      type="file"
+                      multiple
+                      onChange={handleFileSelect}
+                      disabled={submitting}
+                    />
+                    <span>+ 파일 추가</span>
+                  </label>
+                  {submitFiles.length > 0 && (
+                    <ul className="learnerSubmitFileList">
+                      {submitFiles.map((f, i) => (
+                        <li key={i} className="learnerSubmitFileItem">
+                          <span className="learnerSubmitFileName">{f.name}</span>
+                          <span className="learnerSubmitFileSize">{formatBytes(f.size)}</span>
+                          <button
+                            type="button"
+                            className="learnerSubmitFileRemove"
+                            onClick={() => handleFileRemove(i)}
+                            disabled={submitting}
+                          >삭제</button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              </div>
+
+              {submitError && (
+                <p className="emailingError learnerSubmitError">{submitError}</p>
+              )}
+
+              <div className="emailModalFooter">
+                <button
+                  className="emailSendBtn"
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                >
+                  {submitting ? '제출 중...' : '제출하기'}
+                </button>
+              </div>
             </div>
-          </div>
-        </>
-      )}
+          </>
+        );
+      })()}
     </div>
   );
 }

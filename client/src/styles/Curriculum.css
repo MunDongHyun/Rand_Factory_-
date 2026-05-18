@@ -1432,3 +1432,255 @@
 .joditEditorWrapper .jodit-popup__content {
   z-index: 10000 !important;
 }
+
+/* ===========================
+   학습자 컨텍스트 HTML 렌더링 영역
+   theme.css의 universal reset(`* { padding: 0 }`)이 ul/ol 마커를 죽이지 않도록
+   에디터로 작성된 HTML이 표시될 영역에 list/table 기본 스타일을 되살림
+   =========================== */
+.learnerSubmitTemplateContent ul,
+.learnerSubmitTemplateContent ol,
+.learnerWeekSubmissionBody ul,
+.learnerWeekSubmissionBody ol,
+.managerSubmissionContentBody ul,
+.managerSubmissionContentBody ol {
+  padding-left: 24px;
+  margin: 8px 0;
+  list-style: revert;
+}
+
+.learnerSubmitTemplateContent table,
+.learnerWeekSubmissionBody table,
+.managerSubmissionContentBody table {
+  border-collapse: collapse;
+  margin: 8px 0;
+}
+
+.learnerSubmitTemplateContent p,
+.learnerWeekSubmissionBody p,
+.managerSubmissionContentBody p {
+  margin: 4px 0;
+}
+
+.learnerSubmitTemplateContent h1,
+.learnerSubmitTemplateContent h2,
+.learnerSubmitTemplateContent h3,
+.learnerWeekSubmissionBody h1,
+.learnerWeekSubmissionBody h2,
+.learnerWeekSubmissionBody h3,
+.managerSubmissionContentBody h1,
+.managerSubmissionContentBody h2,
+.managerSubmissionContentBody h3 {
+  margin: 12px 0 6px 0;
+}
+
+/* ===========================
+   학습자 제출 모달 (양식 가이드 + 에디터 + 첨부)
+   =========================== */
+.learnerSubmitModal {
+  width: 720px;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.learnerSubmitModal.fullscreen {
+  width: 96vw;
+  max-width: 96vw;
+  height: 94vh;
+  max-height: 94vh;
+}
+
+.learnerSubmitModalHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.learnerSubmitFullscreenBtn {
+  padding: 4px 10px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--ink);
+}
+
+.learnerSubmitFullscreenBtn:hover {
+  background: #f1f5f9;
+}
+
+.learnerSubmitFullscreenBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.learnerSubmitModalBody {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+  padding-right: 4px;
+  flex: 1;
+}
+
+/* jodit popup이 모달의 overflow scroll에 갇히지 않도록 wrapper 기준 격리 */
+.learnerSubmitEditorWrapper {
+  position: relative;
+}
+
+.learnerSubmitEditorWrapper .jodit-popup,
+.learnerSubmitEditorWrapper .jodit-popup__content {
+  z-index: 10000 !important;
+}
+
+.learnerSubmitSectionTitle {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.learnerSubmitTemplateSection {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+
+.learnerSubmitTemplateCard {
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+}
+
+.learnerSubmitTemplateCard:first-of-type {
+  margin-top: 0;
+}
+
+.learnerSubmitTemplateTitle {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.learnerSubmitTemplateContent {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #334155;
+}
+
+.learnerSubmitAttachmentSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.learnerSubmitAttachmentPicker {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  padding: 8px 14px;
+  border: 1px dashed #94a3b8;
+  border-radius: 6px;
+  background: #f8fafc;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.learnerSubmitAttachmentPicker input[type='file'] {
+  display: none;
+}
+
+.learnerSubmitFileList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.learnerSubmitFileItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.learnerSubmitFileName {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.learnerSubmitFileSize {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.learnerSubmitFileRemove {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.learnerSubmitFileRemove:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* ===========================
+   본인 제출 내역 / 매니저 화면의 첨부파일 목록
+   =========================== */
+.learnerSubmitAttachmentList,
+.managerSubmissionAttachmentList {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.learnerSubmitAttachmentItem,
+.managerSubmissionAttachmentItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.learnerSubmitAttachmentLink,
+.managerSubmissionAttachmentLink {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent, #5C3D30);
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.learnerSubmitAttachmentSize,
+.managerSubmissionAttachmentSize {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.managerSubmissionAttachments {
+  margin-top: 12px;
+}
