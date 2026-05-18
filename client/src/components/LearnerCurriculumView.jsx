@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import JoditEditor from 'jodit-react';
 import api from '../lib/api';
+import { sanitizeHtml } from '../lib/sanitize';
 import '../styles/Curriculum.css';
 
 const JODIT_CONFIG_BASE = {
@@ -444,7 +445,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
                       </p>
                       <div
                         className="learnerWeekSubmissionBody"
-                        dangerouslySetInnerHTML={{ __html: sub.task_submitted_content?.text || '(내용 없음)' }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(sub.task_submitted_content?.text) || '(내용 없음)' }}
                       />
 
                       {Array.isArray(sub.task_submitted_content?.attachments) && sub.task_submitted_content.attachments.length > 0 && (
@@ -540,7 +541,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
                         <strong className="learnerSubmitTemplateTitle">{a.title}</strong>
                         <div
                           className="learnerSubmitTemplateContent"
-                          dangerouslySetInnerHTML={{ __html: a.template_content }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(a.template_content) }}
                         />
                       </div>
                     ))}
