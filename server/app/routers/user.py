@@ -9,8 +9,6 @@ from app.core.security import create_access_token, get_current_user, hash_passwo
 from app.models.user import User
 from app.schemas.article import TimelinePoint, TimelineResponse
 from app.schemas.user import (
-    BulkSignupRequest,
-    BulkSignupResponse,
     TokenResponse,
     UserActivitySummary,
     UserCreate,
@@ -57,43 +55,6 @@ def signup(body: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
     return user
-
-
-@router.post("/signup/bulk", response_model=BulkSignupResponse, status_code=status.HTTP_201_CREATED)
-def signup_bulk(body: BulkSignupRequest, db: Session = Depends(get_db)):
-    """회사 + 매니저(첫 직원) + 학습자들을 한 번에 등록."""
-    if not body.employees:
-        raise HTTPException(status_code=400, detail="직원이 최소 한 명 이상 필요합니다")
-
-    emails = [e.email.lower() for e in body.employees]
-    if len(set(emails)) != len(emails):
-        raise HTTPException(status_code=400, detail="요청 안에 중복된 이메일이 있습니다.")
-
-    existing = db.query(User.user_email).filter(User.user_email.in_(emails)).first()
-    if existing:
-        raise HTTPException(status_code=400, detail=f"이미 사용 중인 이메일입니다: {existing[0]}")
-
-    users: list[User] = []
-    for i, emp in enumerate(body.employees):
-        user = User(
-            user_email=emp.email,
-            user_pw=hash_password(emp.password),
-            user_name=emp.name,
-            user_company=body.company,
-            user_role="m" if i == 0 else "j",
-        )
-        db.add(user)
-        users.append(user)
-
-    try:
-        db.commit()
-    except Exception:
-        db.rollback()
-        raise HTTPException(status_code=400, detail="가입 처리에 실패했습니다. 이메일 중복 또는 입력값을 확인해주세요.")
-
-    for u in users:
-        db.refresh(u)
-    return BulkSignupResponse(users=users)
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -363,6 +324,12 @@ def update_user(
             user.user_deleted_at = datetime.now(timezone.utc)
     elif body.is_deleted is False:
         user.user_deleted_at = None
+
+    # 매니저 승급/강등에 따른 회사 초대 코드 자동 발급/회수
+    if user.user_role == "m" and not user.user_invite_code:
+        user.user_invite_code = invite_code_service.generate_unique_invite_code(db)
+    elif user.user_role != "m" and user.user_invite_code:
+        user.user_invite_code = None
 
     db.commit()
     db.refresh(user)

@@ -180,7 +180,8 @@
   transition: background 0.12s ease;
 }
 
-.signup-company-option:hover {
+.signup-company-option:hover,
+.signup-company-option.is-highlighted {
   background: var(--bg-alt);
 }
 

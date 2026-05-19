@@ -338,6 +338,20 @@ function Dashboard({ user, onLogout }) {
         onReset={resetDashboard}
       />
 
+      {user?.user_role === 'm' && user?.user_invite_code && (
+        <div className="managerInviteNotice">
+          <span className="managerInviteNotice__label">내 회사 초대 코드</span>
+          <code className="managerInviteNotice__code">{user.user_invite_code}</code>
+          <button
+            type="button"
+            className="managerInviteNotice__copy"
+            onClick={() => navigator.clipboard?.writeText(user.user_invite_code)}
+          >
+            복사
+          </button>
+        </div>
+      )}
+
       {view === 'articles' && <HeroBanner onCreateCurriculum={() => setView('curriculum')} onOpenArticle={openArticleDetail} />}
 
 

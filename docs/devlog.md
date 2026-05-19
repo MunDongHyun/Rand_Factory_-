@@ -2253,3 +2253,58 @@
 - `user_invite_code` 컬럼은 DB에 ALTER 완료 상태였고 이번 사이클에서 ORM 모델만 동기화
 
 ---
+
+## 2026-05-19 - Claude (사이클 D/E/F: bulk 폐기 + 매니저 코드 발급 + 회사 dropdown UX V2)
+
+### 사이클 D — `/signup/bulk` 엔드포인트 폐기
+- 단일 `/signup`(`invite_code` 기반) 정책으로 일원화됐으므로 bulk 흐름 완전 제거
+- `server/app/routers/user.py`에서 `signup_bulk` 함수 + import 제거
+- `server/app/schemas/user.py`에서 `BulkSignupEmployee`, `BulkSignupRequest`, `BulkSignupResponse` 제거
+- `CLAUDE.md` 폐기 정책 섹션 — "엔드포인트 잔존" → "제거됨"으로 수정
+- `README.md` 회원가입 소개 — 일괄 등록 표현 제거, 단일 `/signup` 흐름으로 갱신
+- 정적/grep 검색에서 `BulkSignup` / `signup_bulk` / `signup/bulk` 잔재 없음 확인
+
+### 사이클 E — 매니저 승급 시 자동 코드 발급 + 본인 조회 + 대시보드 표시
+- 백엔드
+  - `server/app/schemas/user.py` — `UserResponse`에 `user_invite_code: str | None = None` 노출
+  - `server/app/routers/user.py PATCH /{user_id}` — Role 갱신 후 분기:
+    - `user_role == 'm'`이고 코드 없으면 → `invite_code_service.generate_unique_invite_code(db)`로 자동 발급
+    - `user_role != 'm'`이고 코드 있으면 → `None`으로 회수 (강등 시 회사 외 노출 방지)
+  - admin 시뮬레이션 흐름: `PATCH /api/users/{user_id}` body에 `user_role: "m"` → 코드 자동 발급 + 응답에 포함
+- 프론트
+  - `client/src/components/Dashboard.jsx` — `user_role === 'm' && user_invite_code` 조건으로 상단 안내 박스 표시 (모든 뷰에서 보임)
+  - 코드 + "복사" 버튼 (`navigator.clipboard.writeText`)
+  - `client/src/styles/Dashboard.css` — `.managerInviteNotice*` 스타일 추가
+- 재발급 1회 제한 추적 컬럼(`user_invite_code_reissued_at`) 및 `POST /me/invite-code/reissue` 라우터는 V2로 보류 (사용자 결정 옵션 c)
+
+### 사이클 F — 회사 dropdown UX V2 (키보드 네비)
+- `client/src/components/Signup.jsx`
+  - state `highlightedIndex` 추가, dropdown DOM 참조 `dropdownRef`
+  - 매칭 결과 갱신 시 `highlightedIndex`를 0으로 초기화 (결과 없으면 -1)
+  - 강조된 옵션을 `scrollIntoView({block: 'nearest'})`로 스크롤 영역 안에 유지
+  - `handleCompanyKeyDown` 핸들러:
+    - `ArrowDown` / `ArrowUp` — 순환 이동
+    - `Enter` — 강조 항목 선택 (`preventDefault`로 form submit 차단)
+    - `Escape` — dropdown 닫기 (입력값 유지)
+    - dropdown 닫혀 있을 때 `ArrowDown` — 열기
+  - `onMouseEnter`로 마우스 hover와 키보드 강조 통일
+  - `aria-autocomplete`, `aria-expanded`, `aria-activedescendant`, `aria-selected` 등 ARIA 속성 추가
+- `client/src/styles/Signup.css` — `.signup-company-option.is-highlighted` 추가 (hover와 동일 스타일)
+
+### 검증
+- `python -m compileall -q app` 통과
+- `npm run build` 통과 (4.95s)
+- 동작 시나리오 (사용자 보고 정리됨):
+  - 일반 회원 가입(c): 회사 선택 + 자동완성 + 키보드 ↑↓/Enter/Esc 동작
+  - 학습자 가입(j): 초대 코드 입력 → 매니저 회사 상속
+  - 매니저 승급(admin PATCH): 코드 자동 발급, Dashboard 상단 박스 + 복사 버튼 표시
+
+### 결정 사항 / 미결
+- 회사 이름 `(주)` 처리: 현재 **검색만 정규화, 표시/저장은 원본 유지**로 둠. (a) 표시/저장도 정규화 / (c) 그대로 — 사용자 결정 보류
+- 사이클 G (이메일 인증): 진행 중단. 정책 결정 필요 (전체 구현 / 시뮬레이션만 / 미구현 중 택1)
+
+### 다음 작업
+- 이후 작업은 Codex CLI로 위임 예정 (토큰 절약 목적, [[feedback-codex-collab]] 룰 적용)
+- 같은 파일 충돌 주의: `Signup.jsx`, `Dashboard.jsx`, `routers/user.py` 등은 이번 사이클에서 만진 파일이라 Codex가 동시 작업 시 위험
+
+---
