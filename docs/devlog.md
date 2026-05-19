@@ -2097,3 +2097,24 @@
 - 회사 초대 코드 재발급 1회 제한 추적용 `user_invite_code_reissued_at` 컬럼은 아직 DB에 추가 안 됨 (재발급 기능 구현 사이클에서 같이 ALTER)
 
 ---
+
+## 2026-05-19 - Claude (tiptap 의존성 누락 보강)
+
+### 배경
+- `ce8fea3` 커밋(`커리큘럼 페이지에서 과제제출(학습자)버튼 일단 분리...`)에서 `@tiptap/*` import가 도입됐으나 `client/package.json`에는 추가되지 않음
+- 결과적으로 다른 팀원이 풀 받은 후 `npm install`만으로는 빌드 실패하는 상태 (dev 브랜치 빌드 깨짐)
+- 로컬에는 본인이 별도 `npm install`로 설치돼 있어 빌드 가능했지만 origin에 반영되지 않음
+
+### 변경
+- `client/package.json` / `client/package-lock.json` 동기화
+- 로컬에 실제 설치된 버전(`^3.23.4`) 기준으로 dependency 추가
+  - `@tiptap/core`, `@tiptap/react`, `@tiptap/pm`, `@tiptap/starter-kit`
+  - `@tiptap/extension-color`, `extension-highlight`, `extension-image`, `extension-link`
+  - `@tiptap/extension-table`, `extension-table-cell`, `extension-table-header`, `extension-table-row`
+  - `@tiptap/extension-text-align`, `extension-text-style`, `extension-underline`
+
+### 주의
+- jodit-react(^5.3.21)는 일단 그대로 둠 — 완전 교체 작업 확인 후 정리 필요
+- 사용처 4개 파일 (`CurriculumView.jsx`, `LearnerCurriculumView.jsx`, `sanitize.js`, `Curriculum.css`) 코드는 이미 origin/dev에 반영되어 있으므로 이번 커밋은 의존성 동기화만
+
+---
