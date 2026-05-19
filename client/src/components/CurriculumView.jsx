@@ -117,7 +117,7 @@ const buildGeneratePayload = (form) => ({
   cur_target_industry: form.cur_target_industry.trim() || null, cur_learning_goal: form.cur_learning_goal.trim() || null, required_content: form.required_content.trim() || null,
 });
 
-function CurriculumView({ onOpenArticle }) {
+function CurriculumView({ onOpenArticle, onModalToggle }) {
   const [downloadModalOpen, setDownloadModalOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -198,6 +198,14 @@ function CurriculumView({ onOpenArticle }) {
       .then((res) => setSubmissions(Array.isArray(res.data) ? res.data : [])).catch(() => setSubmissions([])).finally(() => setSubmissionsLoading(false));
   }, [selectedId]);
 
+  useEffect(() => {
+    if (onModalToggle) {
+      const anyModalOpen = modalOpen || downloadModalOpen || assignModalOpen || templateModal.open;
+      onModalToggle(anyModalOpen);
+    }
+  }, [modalOpen, downloadModalOpen, assignModalOpen, templateModal.open, onModalToggle]);
+
+
   const handleAttachmentDownload = async (submissionId, attachment) => {
     try { await downloadAttachment(submissionId, attachment); } catch (err) { alert(err.response?.data?.detail || '첨부파일 다운로드에 실패했습니다.'); }
   };
@@ -242,7 +250,7 @@ function CurriculumView({ onOpenArticle }) {
 
   const closeModal = () => {
     if (generating || saving) return;
-    setModalOpen(false); setConfirmOpen(false); setPreview(null); setFormError(null); setPreviewExpandedWeek(null); setCreateAssignedIds([]);
+    setModalOpen(false); setConfirmOpen(false); setPreview(null); setFormError(null); setPreviewExpandedWeek(null); setCreateAssignedIds([]);  if (onModalToggle) onModalToggle(false);;
   };
 
   const handleChange = (event) => {
@@ -458,284 +466,284 @@ function CurriculumView({ onOpenArticle }) {
         </div>
       )}
       {!loading && !error && curriculums.length > 0 && selectedCurriculum && (
-        <div>
-        <div className="assignedLearnersBar">
-          <button type="button" className="assignedLearnersBarArrow" onClick={() => scrollAssignedLearners('left')}>‹</button>
-          <div className="assignedLearnersBarScroll" ref={assignedLearnersBarRef}>
-            {(selectedCurriculum.cur_assigned_learner_ids || []).length === 0 ? (
-              <span className="assignEmptyInline">배정된 학습자가 없습니다</span>
-            ) : (
-              (selectedCurriculum.cur_assigned_learner_ids || []).map((id) => {
-                const l = learners.find((x) => x.user_id === id);
-                return (
-                  <span
-                    key={id}
-                    className={`assignedLearnerChip ${selectedLearnerId === id && viewMode === 'learner' ? 'active' : ''}`}
-                    onClick={() => handleLearnerChipClick(id)}
-                  >
-                    {l ? l.user_name : `#${id}`}
-                  </span>
-                );
-              })
-            )}
-          </div>
-          <button type="button" className="assignedLearnersBarArrow" onClick={() => scrollAssignedLearners('right')}>›</button>
-          <button className="assignedLearnersEditBtn" onClick={() => { setAssignSelected(selectedCurriculum.cur_assigned_learner_ids || []); setAssignModalOpen(true); }}>변경</button>
-        </div>
-
-        <div className="curriculumLayout">
-
-          <aside className="curriculumSidebar">
-            <p className="curriculumSidebarTitle">생성한 커리큘럼</p>
-            <div className="curriculumSidebarDivider" />
-            <ul className="curriculumSidebarList">
-              {curriculums.map((c) => (
-                <li
-                  key={c.cur_id}
-                  className={`curriculumSidebarItem ${selectedId === c.cur_id ? 'active' : ''}`}
-                  onClick={() => { setSelectedId(c.cur_id); setDetailExpandedWeek(null); setViewMode('curriculum'); }}
-                >
-                  {c.cur_title}
-                </li>
-              ))}
-            </ul>
-            <button className="curriculumSidebarAddBtn" onClick={() => setModalOpen(true)}>+ 새 커리큘럼</button>
-          </aside>
-
-          <div className="curriculumLeft">
-
-            {viewMode === 'curriculum' && (
-              <>
-                <div className="extracted-detail-header">
-                  <div className="curriculumTitleGroup">
-                    <div className="curriculumTitleRow">
-                      <h3 className="curriculumDetailTitle">{selectedCurriculum.cur_title}</h3>
-                      <img src={curri_nulll} alt="다운로드" className="downloadIcon" onClick={() => setDownloadModalOpen(true)} />
-                    </div>
-                    <p className="curriculumDetailDesc">{selectedCurriculum.cur_learning_goal || ''}</p>
-                  </div>
-                </div>
-
-                
-
-
-                <div className="curriculumSteps">
-                  {normalizeWeekPlan(selectedCurriculum.cur_week_plan).map((step) => (
-                    <div
-                      key={step.week}
-                      className={`extracted-accordion-item ${selectedWeek === step.week ? 'active' : ''}`}
-                      onClick={() => setSelectedWeek(prev => prev === step.week ? null : step.week)}
+        <div className="curriculumWrapper">
+          <div className="assignedLearnersBar">
+            <button type="button" className="assignedLearnersBarArrow" onClick={() => scrollAssignedLearners('left')}>‹</button>
+            <div className="assignedLearnersBarScroll" ref={assignedLearnersBarRef}>
+              {(selectedCurriculum.cur_assigned_learner_ids || []).length === 0 ? (
+                <span className="assignEmptyInline">배정된 학습자가 없습니다</span>
+              ) : (
+                (selectedCurriculum.cur_assigned_learner_ids || []).map((id) => {
+                  const l = learners.find((x) => x.user_id === id);
+                  return (
+                    <span
+                      key={id}
+                      className={`assignedLearnerChip ${selectedLearnerId === id && viewMode === 'learner' ? 'active' : ''}`}
+                      onClick={() => handleLearnerChipClick(id)}
                     >
-                      <div className={`extracted-accordion-header ${selectedWeek === step.week ? 'expanded' : ''}`}>
-                        <span className="extracted-week-label">{step.week}주차</span>
-                        <span className="extracted-theme-label">{step.theme || '주제 미지정'}</span>
-                        <span className="extracted-toggle-label">{selectedWeek === step.week ? '◀' : '▶'}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
+                      {l ? l.user_name : `#${id}`}
+                    </span>
+                  );
+                })
+              )}
+            </div>
+            <button type="button" className="assignedLearnersBarArrow" onClick={() => scrollAssignedLearners('right')}>›</button>
+            <button className="assignedLearnersEditBtn" onClick={() => { setAssignSelected(selectedCurriculum.cur_assigned_learner_ids || []); setAssignModalOpen(true); }}>변경</button>
+          </div>
 
-            {viewMode === 'learner' && (() => {
-              const learnerSubmissions = submissions.filter(s => s.task_learner_id === selectedLearnerId);
-              const learner = learners.find(l => l.user_id === selectedLearnerId);
-              return (
+          <div className="curriculumLayout">
+
+            <aside className="curriculumSidebar">
+              <p className="curriculumSidebarTitle">생성한 커리큘럼</p>
+              <div className="curriculumSidebarDivider" />
+              <ul className="curriculumSidebarList">
+                {curriculums.map((c) => (
+                  <li
+                    key={c.cur_id}
+                    className={`curriculumSidebarItem ${selectedId === c.cur_id ? 'active' : ''}`}
+                    onClick={() => { setSelectedId(c.cur_id); setDetailExpandedWeek(null); setViewMode('curriculum'); }}
+                  >
+                    {c.cur_title}
+                  </li>
+                ))}
+              </ul>
+              <button className="curriculumSidebarAddBtn" onClick={() => setModalOpen(true)}>+ 새 커리큘럼</button>
+            </aside>
+
+            <div className="curriculumLeft">
+
+              {viewMode === 'curriculum' && (
                 <>
-                  <div className="learnerViewHeader">
-                    <p className="learnerViewName">{learner?.user_name || `#${selectedLearnerId}`}</p>
-                    <p className="learnerViewHint">제출한 과제 목록</p>
+                  <div className="extracted-detail-header">
+                    <div className="curriculumTitleGroup">
+                      <div className="curriculumTitleRow">
+                        <h3 className="curriculumDetailTitle">{selectedCurriculum.cur_title}</h3>
+                        <img src={curri_nulll} alt="다운로드" className="downloadIcon" onClick={() => setDownloadModalOpen(true)} />
+                      </div>
+                      <p className="curriculumDetailDesc">{selectedCurriculum.cur_learning_goal || ''}</p>
+                    </div>
                   </div>
+
+
+
+
                   <div className="curriculumSteps">
-                    {learnerSubmissions.length === 0 && (
-                      <p className="managerSubmissionEmpty">제출된 과제가 없습니다.</p>
-                    )}
-                    {learnerSubmissions.map((s) => {
-                      const statusLabel = {
-                        submitted: '피드백 대기',
-                        feedback_given: '피드백 완료',
-                        resubmit_requested: '재제출 요청',
-                      }[s.task_status] || '제출됨';
-                      return (
-                        <div
-                          key={s.task_submission_id}
-                          className={`extracted-accordion-item ${selectedSubmissionId === s.task_submission_id ? 'active' : ''}`}
-                          onClick={() => setSelectedSubmissionId(prev => prev === s.task_submission_id ? null : s.task_submission_id)}
-                        >
-                          <div className={`extracted-accordion-header ${selectedSubmissionId === s.task_submission_id ? 'expanded' : ''}`}>
-                            <span className="extracted-week-label">{s.task_week_number}주차</span>
-                            <span className="extracted-theme-label">{s.task_assignment_title || '제출 과제'}</span>
-                            <span className={`submissionStatusBadge ${s.task_status || ''}`}>{statusLabel}</span>
-                          </div>
+                    {normalizeWeekPlan(selectedCurriculum.cur_week_plan).map((step) => (
+                      <div
+                        key={step.week}
+                        className={`extracted-accordion-item ${selectedWeek === step.week ? 'active' : ''}`}
+                        onClick={() => setSelectedWeek(prev => prev === step.week ? null : step.week)}
+                      >
+                        <div className={`extracted-accordion-header ${selectedWeek === step.week ? 'expanded' : ''}`}>
+                          <span className="extracted-week-label">{step.week}주차</span>
+                          <span className="extracted-theme-label">{step.theme || '주제 미지정'}</span>
+                          <span className="extracted-toggle-label">{selectedWeek === step.week ? '◀' : '▶'}</span>
                         </div>
-                      );
-                    })}
+                      </div>
+                    ))}
                   </div>
                 </>
-              );
-            })()}
-          </div>
+              )}
 
-          <div className="curriculumRight">
+              {viewMode === 'learner' && (() => {
+                const learnerSubmissions = submissions.filter(s => s.task_learner_id === selectedLearnerId);
+                const learner = learners.find(l => l.user_id === selectedLearnerId);
+                return (
+                  <>
+                    <div className="learnerViewHeader">
+                      <p className="learnerViewName">{learner?.user_name || `#${selectedLearnerId}`}</p>
+                      <p className="learnerViewHint">제출한 과제 목록</p>
+                    </div>
+                    <div className="curriculumSteps">
+                      {learnerSubmissions.length === 0 && (
+                        <p className="managerSubmissionEmpty">제출된 과제가 없습니다.</p>
+                      )}
+                      {learnerSubmissions.map((s) => {
+                        const statusLabel = {
+                          submitted: '피드백 대기',
+                          feedback_given: '피드백 완료',
+                          resubmit_requested: '재제출 요청',
+                        }[s.task_status] || '제출됨';
+                        return (
+                          <div
+                            key={s.task_submission_id}
+                            className={`extracted-accordion-item ${selectedSubmissionId === s.task_submission_id ? 'active' : ''}`}
+                            onClick={() => setSelectedSubmissionId(prev => prev === s.task_submission_id ? null : s.task_submission_id)}
+                          >
+                            <div className={`extracted-accordion-header ${selectedSubmissionId === s.task_submission_id ? 'expanded' : ''}`}>
+                              <span className="extracted-week-label">{s.task_week_number}주차</span>
+                              <span className="extracted-theme-label">{s.task_assignment_title || '제출 과제'}</span>
+                              <span className={`submissionStatusBadge ${s.task_status || ''}`}>{statusLabel}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
 
-            {viewMode === 'curriculum' && (() => {
-              const weekData = normalizeWeekPlan(selectedCurriculum.cur_week_plan).find(s => s.week === selectedWeek);
-              if (!weekData) return (
-                <div className="curriculumRightEmpty">
-                  <p>왼쪽에서 주차를 선택하면 내용이 표시됩니다.</p>
-                </div>
-              );
-              return (
-                <div className="curriculumRightContent">
-                  <div className="extracted-accordion-body" style={{ border: 'none', background: 'transparent' }}>
-                    {weekData.learning_objective && (
-                      <div className="extracted-section-margin">
-                        <h4 className="extracted-objective-title">🎯 이번 주차 학습 목표</h4>
-                        <p className="extracted-objective-text">{weekData.learning_objective}</p>
+            <div className="curriculumRight">
+
+              {viewMode === 'curriculum' && (() => {
+                const weekData = normalizeWeekPlan(selectedCurriculum.cur_week_plan).find(s => s.week === selectedWeek);
+                if (!weekData) return (
+                  <div className="curriculumRightEmpty">
+                    <p>왼쪽에서 주차를 선택하면 내용이 표시됩니다.</p>
+                  </div>
+                );
+                return (
+                  <div className="curriculumRightContent">
+                    <div className="extracted-accordion-body" style={{ border: 'none', background: 'transparent' }}>
+                      {weekData.learning_objective && (
+                        <div className="extracted-section-margin">
+                          <h4 className="extracted-objective-title">🎯 이번 주차 학습 목표</h4>
+                          <p className="extracted-objective-text">{weekData.learning_objective}</p>
+                        </div>
+                      )}
+                      {(weekData.tasks || weekData.task) && (
+                        <div className="extracted-section-margin">
+                          <h4 className="extracted-task-title">📚 멘토링 및 실습 과제</h4>
+                          <ul className="extracted-task-list">
+                            {Array.isArray(weekData.tasks || weekData.task)
+                              ? (weekData.tasks || weekData.task).map((t, idx) => <li key={idx} className="extracted-list-item">{t}</li>)
+                              : <p className="extracted-objective-text">{weekData.tasks || weekData.task}</p>}
+                          </ul>
+                        </div>
+                      )}
+                      {Array.isArray(weekData.assignments) && weekData.assignments.length > 0 && (
+                        <div className="extracted-assignment-wrapper">
+                          <h4 className="extracted-task-title">📝 실무 수행 과제</h4>
+                          <div className="extracted-assignment-grid">
+                            {weekData.assignments.map((a, idx) => (
+                              <div key={idx} className="extracted-assignment-card">
+                                <strong className="extracted-assignment-name">[과제명] {a.title}</strong>
+                                {Array.isArray(a.step_by_step_guide) && a.step_by_step_guide.length > 0 && (
+                                  <ul className="extracted-guide-list">
+                                    {a.step_by_step_guide.map((guide, gIdx) => <li key={gIdx} className="extracted-guide-item">{guide}</li>)}
+                                  </ul>
+                                )}
+                                {a.description && <p className="extracted-guide-item">{a.description}</p>}
+                                <div className="extracted-submission-format has-actions">
+                                  <span>제출 형태: {a.expected_output_format || a.submission || '지정되지 않음'}</span>
+                                  <div className="templateActionBtnGroup">
+                                    <button className="template-action-btn admin" onClick={(e) => { e.stopPropagation(); openTemplateModal(weekData.week, idx, a); }}>양식 배포(관리자)</button>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {weekData.instructor_guide && (
+                        <div className="extracted-instructor-box">
+                          <h4 className="extracted-instructor-title">💡 교육담당자(사수) 코칭 가이드</h4>
+                          {Array.isArray(weekData.instructor_guide.check_points) && weekData.instructor_guide.check_points.length > 0 && (
+                            <div className="extracted-section-margin">
+                              <strong className="extracted-guide-label">[평가 체크포인트]</strong>
+                              <ul className="extracted-guide-list-no-margin">
+                                {weekData.instructor_guide.check_points.map((cp, idx) => <li key={idx} className="extracted-guide-item-small">{cp}</li>)}
+                              </ul>
+                            </div>
+                          )}
+                          {Array.isArray(weekData.instructor_guide.coaching_questions) && weekData.instructor_guide.coaching_questions.length > 0 && (
+                            <div>
+                              <strong className="extracted-guide-label">[1:1 미팅 권장 질문]</strong>
+                              <ul className="extracted-coaching-list">
+                                {weekData.instructor_guide.coaching_questions.map((cq, idx) => <li key={idx} className="extracted-coaching-item">🗣️ {cq}</li>)}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      <div className="extracted-footer-wrapper">
+                        <div>
+                          {Array.isArray(weekData.recommended_articles) && weekData.recommended_articles.length > 0 && (
+                            <>
+                              <h4 className="extracted-ref-title">📖 참고 자료</h4>
+                              {weekData.recommended_articles.map((article, idx) => {
+                                const hasValidUrl = article.url && article.url.trim() !== "";
+                                return (
+                                  <div key={idx} className="extracted-ref-item">
+                                    {hasValidUrl
+                                      ? <a href={article.url} target="_blank" rel="noopener noreferrer" className="extracted-ref-link">🔗 {article.title}</a>
+                                      : <span className="extracted-ref-doc">📁 {article.title} <span className="extracted-ref-small">(사내 문서 참고)</span></span>}
+                                    {(article.reason_for_reading || article.why_relevant) && (
+                                      <p className="extracted-ref-reason">✓ {article.reason_for_reading || article.why_relevant}</p>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </>
+                          )}
+                        </div>
+                        {weekData.estimated_hours && <div className="extracted-time-badge">⏱ 예상 소요: {weekData.estimated_hours}시간</div>}
                       </div>
-                    )}
-                    {(weekData.tasks || weekData.task) && (
-                      <div className="extracted-section-margin">
-                        <h4 className="extracted-task-title">📚 멘토링 및 실습 과제</h4>
-                        <ul className="extracted-task-list">
-                          {Array.isArray(weekData.tasks || weekData.task)
-                            ? (weekData.tasks || weekData.task).map((t, idx) => <li key={idx} className="extracted-list-item">{t}</li>)
-                            : <p className="extracted-objective-text">{weekData.tasks || weekData.task}</p>}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {viewMode === 'learner' && (() => {
+                const s = submissions.find(sub => sub.task_submission_id === selectedSubmissionId);
+                if (!s) return (
+                  <div className="curriculumRightEmpty">
+                    <p>왼쪽에서 과제를 선택하면 상세 내용이 표시됩니다.</p>
+                  </div>
+                );
+                const statusLabel = {
+                  submitted: '피드백 대기',
+                  feedback_given: '피드백 완료',
+                  resubmit_requested: '재제출 요청',
+                }[s.task_status] || '제출됨';
+                return (
+                  <div className="managerSubmissionItemBody" style={{ maxHeight: 'none', overflow: 'visible' }}>
+                    <div className="managerSubmissionContent">
+                      <p className="managerSubmissionContentLabel">제출 내용</p>
+                      <div className="managerSubmissionContentBody" dangerouslySetInnerHTML={{ __html: sanitizeHtml(s.task_submitted_content?.text) || '(내용 없음)' }} />
+                    </div>
+                    {Array.isArray(s.task_submitted_content?.attachments) && s.task_submitted_content.attachments.length > 0 && (
+                      <div className="managerSubmissionAttachments">
+                        <p className="managerSubmissionContentLabel">📎 첨부파일</p>
+                        <ul className="managerSubmissionAttachmentList">
+                          {s.task_submitted_content.attachments.map((a, i) => (
+                            <li key={i} className="managerSubmissionAttachmentItem">
+                              <button type="button" className="managerSubmissionAttachmentLink" onClick={() => handleAttachmentDownload(s.task_submission_id, a)}>{a.filename || a.stored_name}</button>
+                              <span className="managerSubmissionAttachmentSize">{formatBytes(a.size)}</span>
+                            </li>
+                          ))}
                         </ul>
                       </div>
                     )}
-                    {Array.isArray(weekData.assignments) && weekData.assignments.length > 0 && (
-                      <div className="extracted-assignment-wrapper">
-                        <h4 className="extracted-task-title">📝 실무 수행 과제</h4>
-                        <div className="extracted-assignment-grid">
-                          {weekData.assignments.map((a, idx) => (
-                            <div key={idx} className="extracted-assignment-card">
-                              <strong className="extracted-assignment-name">[과제명] {a.title}</strong>
-                              {Array.isArray(a.step_by_step_guide) && a.step_by_step_guide.length > 0 && (
-                                <ul className="extracted-guide-list">
-                                  {a.step_by_step_guide.map((guide, gIdx) => <li key={gIdx} className="extracted-guide-item">{guide}</li>)}
-                                </ul>
-                              )}
-                              {a.description && <p className="extracted-guide-item">{a.description}</p>}
-                              <div className="extracted-submission-format has-actions">
-                                <span>제출 형태: {a.expected_output_format || a.submission || '지정되지 않음'}</span>
-                                <div className="templateActionBtnGroup">
-                                  <button className="template-action-btn admin" onClick={(e) => { e.stopPropagation(); openTemplateModal(weekData.week, idx, a); }}>양식 배포(관리자)</button>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                    {s.task_manager_feedback && (
+                      <div className="managerSubmissionExistingFeedback">
+                        <p className="managerSubmissionContentLabel">현재 피드백 ({formatDateTime(s.task_feedback_at)})</p>
+                        <div className="managerSubmissionContentBody">{s.task_manager_feedback}</div>
                       </div>
                     )}
-                    {weekData.instructor_guide && (
-                      <div className="extracted-instructor-box">
-                        <h4 className="extracted-instructor-title">💡 교육담당자(사수) 코칭 가이드</h4>
-                        {Array.isArray(weekData.instructor_guide.check_points) && weekData.instructor_guide.check_points.length > 0 && (
-                          <div className="extracted-section-margin">
-                            <strong className="extracted-guide-label">[평가 체크포인트]</strong>
-                            <ul className="extracted-guide-list-no-margin">
-                              {weekData.instructor_guide.check_points.map((cp, idx) => <li key={idx} className="extracted-guide-item-small">{cp}</li>)}
-                            </ul>
-                          </div>
-                        )}
-                        {Array.isArray(weekData.instructor_guide.coaching_questions) && weekData.instructor_guide.coaching_questions.length > 0 && (
-                          <div>
-                            <strong className="extracted-guide-label">[1:1 미팅 권장 질문]</strong>
-                            <ul className="extracted-coaching-list">
-                              {weekData.instructor_guide.coaching_questions.map((cq, idx) => <li key={idx} className="extracted-coaching-item">🗣️ {cq}</li>)}
-                            </ul>
-                          </div>
-                        )}
+                    <div className="managerFeedbackForm" style={{ position: 'static', margin: 0, padding: 0, boxShadow: 'none', borderTop: 'none' }}>
+                      <p className="managerSubmissionContentLabel">{s.task_manager_feedback ? '피드백 수정' : '피드백 작성'}</p>
+                      <textarea
+                        className="managerFeedbackTextarea"
+                        placeholder="학습자에게 전달할 피드백을 입력하세요"
+                        value={feedbackDraft[s.task_submission_id] ?? ''}
+                        onChange={(e) => setFeedbackDraft(prev => ({ ...prev, [s.task_submission_id]: e.target.value }))}
+                      />
+                      <div className="managerFeedbackBtns">
+                        <button className="managerFeedbackBtn secondary" onClick={() => handleFeedbackSave(s.task_submission_id, 'resubmit_requested')} disabled={feedbackSavingId === s.task_submission_id}>재제출 요청</button>
+                        <button className="managerFeedbackBtn primary" onClick={() => handleFeedbackSave(s.task_submission_id, 'feedback_given')} disabled={feedbackSavingId === s.task_submission_id}>
+                          {feedbackSavingId === s.task_submission_id ? '저장 중...' : '피드백 저장'}
+                        </button>
                       </div>
-                    )}
-                    <div className="extracted-footer-wrapper">
-                      <div>
-                        {Array.isArray(weekData.recommended_articles) && weekData.recommended_articles.length > 0 && (
-                          <>
-                            <h4 className="extracted-ref-title">📖 참고 자료</h4>
-                            {weekData.recommended_articles.map((article, idx) => {
-                              const hasValidUrl = article.url && article.url.trim() !== "";
-                              return (
-                                <div key={idx} className="extracted-ref-item">
-                                  {hasValidUrl
-                                    ? <a href={article.url} target="_blank" rel="noopener noreferrer" className="extracted-ref-link">🔗 {article.title}</a>
-                                    : <span className="extracted-ref-doc">📁 {article.title} <span className="extracted-ref-small">(사내 문서 참고)</span></span>}
-                                  {(article.reason_for_reading || article.why_relevant) && (
-                                    <p className="extracted-ref-reason">✓ {article.reason_for_reading || article.why_relevant}</p>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </>
-                        )}
-                      </div>
-                      {weekData.estimated_hours && <div className="extracted-time-badge">⏱ 예상 소요: {weekData.estimated_hours}시간</div>}
                     </div>
                   </div>
-                </div>
-              );
-            })()}
+                );
+              })()}
+            </div>
 
-            {viewMode === 'learner' && (() => {
-              const s = submissions.find(sub => sub.task_submission_id === selectedSubmissionId);
-              if (!s) return (
-                <div className="curriculumRightEmpty">
-                  <p>왼쪽에서 과제를 선택하면 상세 내용이 표시됩니다.</p>
-                </div>
-              );
-              const statusLabel = {
-                submitted: '피드백 대기',
-                feedback_given: '피드백 완료',
-                resubmit_requested: '재제출 요청',
-              }[s.task_status] || '제출됨';
-              return (
-                <div className="managerSubmissionItemBody" style={{ maxHeight: 'none', overflow: 'visible' }}>
-                  <div className="managerSubmissionContent">
-                    <p className="managerSubmissionContentLabel">제출 내용</p>
-                    <div className="managerSubmissionContentBody" dangerouslySetInnerHTML={{ __html: sanitizeHtml(s.task_submitted_content?.text) || '(내용 없음)' }} />
-                  </div>
-                  {Array.isArray(s.task_submitted_content?.attachments) && s.task_submitted_content.attachments.length > 0 && (
-                    <div className="managerSubmissionAttachments">
-                      <p className="managerSubmissionContentLabel">📎 첨부파일</p>
-                      <ul className="managerSubmissionAttachmentList">
-                        {s.task_submitted_content.attachments.map((a, i) => (
-                          <li key={i} className="managerSubmissionAttachmentItem">
-                            <button type="button" className="managerSubmissionAttachmentLink" onClick={() => handleAttachmentDownload(s.task_submission_id, a)}>{a.filename || a.stored_name}</button>
-                            <span className="managerSubmissionAttachmentSize">{formatBytes(a.size)}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {s.task_manager_feedback && (
-                    <div className="managerSubmissionExistingFeedback">
-                      <p className="managerSubmissionContentLabel">현재 피드백 ({formatDateTime(s.task_feedback_at)})</p>
-                      <div className="managerSubmissionContentBody">{s.task_manager_feedback}</div>
-                    </div>
-                  )}
-                  <div className="managerFeedbackForm" style={{ position: 'static', margin: 0, padding: 0, boxShadow: 'none', borderTop: 'none' }}>
-                    <p className="managerSubmissionContentLabel">{s.task_manager_feedback ? '피드백 수정' : '피드백 작성'}</p>
-                    <textarea
-                      className="managerFeedbackTextarea"
-                      placeholder="학습자에게 전달할 피드백을 입력하세요"
-                      value={feedbackDraft[s.task_submission_id] ?? ''}
-                      onChange={(e) => setFeedbackDraft(prev => ({ ...prev, [s.task_submission_id]: e.target.value }))}
-                    />
-                    <div className="managerFeedbackBtns">
-                      <button className="managerFeedbackBtn secondary" onClick={() => handleFeedbackSave(s.task_submission_id, 'resubmit_requested')} disabled={feedbackSavingId === s.task_submission_id}>재제출 요청</button>
-                      <button className="managerFeedbackBtn primary" onClick={() => handleFeedbackSave(s.task_submission_id, 'feedback_given')} disabled={feedbackSavingId === s.task_submission_id}>
-                        {feedbackSavingId === s.task_submission_id ? '저장 중...' : '피드백 저장'}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
           </div>
-
         </div>
-      </div>
       )}
 
       {/* 모달: 커리큘럼 생성 */}
@@ -826,7 +834,7 @@ function CurriculumView({ onOpenArticle }) {
           <div className="confirmOverlay" onClick={() => setTemplateModal({ ...templateModal, open: false })} />
           <div className={`confirmModal templateModal ${templateModal.fullscreen ? 'fullscreen' : ''}`} style={{ display: 'flex', flexDirection: 'column', maxHeight: '90vh', overflow: 'hidden' }}>
             <div className="modalTopBar" style={{ flexShrink: 0 }}>
-              <h3 className="confirmTitle">과제 양식(템플릿) 배포</h3>
+              <h3 className="sectionTitle">과제 양식(템플릿) 배포</h3>
               <div className="modalHeaderActions">
                 <button type="button" className="template-action-btn admin ai-regenerate-btn" onClick={handleRegenerateTemplate} disabled={templateModal.generating}>
                   {templateModal.generating ? 'AI 작성 중...' : '✨ AI 템플릿 재작성'}
@@ -837,8 +845,8 @@ function CurriculumView({ onOpenArticle }) {
               </div>
             </div>
 
-            <p className="assignSectionHint" style={{ flexShrink: 0, paddingBottom: '16px' }}>
-              학습자에게 전달될 '{templateModal.title}'의 작성 양식 가이드를 작성해주세요. 표나 양식을 지정해주면 학습자가 쉽게 채워넣을 수 있습니다.
+            <p className="assignSectionHint" style={{ whiteSpace: 'pre-wrap' }}>
+              {`학습자에게 전달될 '${templateModal.title}'의 작성 양식 가이드를 작성해주세요.\n표나 양식을 지정해주면 학습자가 쉽게 채워넣을 수 있습니다.`}
             </p>
 
             <div className="templateEditorWrapper" style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', border: '1px solid #ccc', borderRadius: '4px', overflow: 'hidden' }}>

@@ -30,9 +30,11 @@ function Dashboard({ user, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+
   // --- 검색 및 모달 관련 상태 ---
   const [searchQuery, setSearchQuery] = useState(''); // AI 생성을 위해 보관할 검색어
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubModalOpen, setIsSubModalOpen] = useState(false);
   const [modalStatus, setModalStatus] = useState('searching');
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [originalSections, setOriginalSections] = useState([]);
@@ -40,9 +42,6 @@ function Dashboard({ user, onLogout }) {
   // EmailingView가 상세 화면에 들어가 있는지 알리기 위한 ref (popstate 처리 분기용)
   const emailingDetailRef = useRef(false);
   const curriculumDetailRef = useRef(false);
-  const canUseCurriculum = ['j', 'm', 'a'].includes(user?.user_role);
-  const canCreateCurriculum = ['m', 'a'].includes(user?.user_role);
-  const [inviteCopied, setInviteCopied] = useState(false);
 
   const fetchArticles = () => {
     setLoading(true);
@@ -90,17 +89,10 @@ function Dashboard({ user, onLogout }) {
           sessionStorage.removeItem('dash:view');
           sessionStorage.removeItem('dash:articleId');
         });
-    } else if ((savedView === 'curriculum' && canUseCurriculum) || savedView === 'emailing') {
+    } else if (savedView === 'curriculum' || savedView === 'emailing') {
       setView(savedView);
     }
-  }, [canUseCurriculum]);
-
-  useEffect(() => {
-    if (view === 'curriculum' && !canUseCurriculum) {
-      setView('articles');
-      sessionStorage.setItem('dash:view', 'articles');
-    }
-  }, [canUseCurriculum, view]);
+  }, []);
 
   // view / 선택 아티클 변경 시 sessionStorage 에 영속화
   useEffect(() => {
@@ -170,31 +162,6 @@ function Dashboard({ user, onLogout }) {
     setSearchQuery('');
     setSections(originalSections);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleViewChange = (nextView) => {
-    if (nextView === 'curriculum' && !canUseCurriculum) {
-      nextView = 'articles';
-    }
-    setView(nextView);
-    setSelectedArticle(null);
-  };
-
-  const handleCreateCurriculum = () => {
-    if (!canCreateCurriculum) return;
-    setView('curriculum');
-    setSelectedArticle(null);
-  };
-
-  const handleCopyInviteCode = async () => {
-    if (!user?.user_invite_code || !navigator.clipboard) return;
-    try {
-      await navigator.clipboard.writeText(user.user_invite_code);
-      setInviteCopied(true);
-      window.setTimeout(() => setInviteCopied(false), 1600);
-    } catch (err) {
-      setInviteCopied(false);
-    }
   };
 
   const replaceArticleInSections = (article) => {
@@ -296,6 +263,7 @@ function Dashboard({ user, onLogout }) {
           >
             전체
           </button>
+
           {originalSections.map((s) => (
             <button
               key={s.category}
@@ -362,13 +330,18 @@ function Dashboard({ user, onLogout }) {
   return (
     <div className="dashContainer">
       <Header
-        canUseCurriculum={canUseCurriculum}
-        onViewChange={handleViewChange}
+        onViewChange={(v) => {
+          setView(v);
+          setSelectedArticle(null);
+        }}
         onLogout={onLogout}
         onScrollToTop={scrollToTop}
         onSearch={handleSearch}
         onReset={resetDashboard}
-      />
+        isModalOpen={isModalOpen || isSubModalOpen}
+
+        />
+        {isModalOpen && <isModalOpenModal onClose={() => setIsModalOpen(false)} />}
 
       {user?.user_role === 'm' && user?.user_invite_code && (
         <div className="managerInviteNotice">
@@ -376,22 +349,15 @@ function Dashboard({ user, onLogout }) {
           <code className="managerInviteNotice__code">{user.user_invite_code}</code>
           <button
             type="button"
-            className={`managerInviteNotice__copy ${inviteCopied ? 'is-copied' : ''}`}
-            onClick={handleCopyInviteCode}
+            className="managerInviteNotice__copy"
+            onClick={() => navigator.clipboard?.writeText(user.user_invite_code)}
           >
             복사
           </button>
-          {inviteCopied && <span className="managerInviteNotice__copied">복사 완료</span>}
         </div>
       )}
 
-      {view === 'articles' && (
-        <HeroBanner
-          showCreateCta={canCreateCurriculum}
-          onCreateCurriculum={handleCreateCurriculum}
-          onOpenArticle={openArticleDetail}
-        />
-      )}
+      {view === 'articles' && <HeroBanner onCreateCurriculum={() => setView('curriculum')} onOpenArticle={openArticleDetail} />}
 
 
       <main className="dashMain">
@@ -403,11 +369,10 @@ function Dashboard({ user, onLogout }) {
           />
         )}
 
-        {/* 🔥 변경: onOpenArticle props를 추가하여 함수를 넘겨줍니다 */}
-        {view === 'curriculum' && canUseCurriculum && (
+        {view === 'curriculum' && (
           user?.user_role === 'j'
             ? <LearnerCurriculumView curriculumDetailRef={curriculumDetailRef} />
-            : <CurriculumView onOpenArticle={openArticleDetail} />
+            : <CurriculumView onOpenArticle={openArticleDetail} onModalToggle={setIsSubModalOpen}/>
         )}
 
         {view === 'emailing' && <EmailingView onOpenArticle={openArticleDetail} emailingDetailRef={emailingDetailRef} />}
