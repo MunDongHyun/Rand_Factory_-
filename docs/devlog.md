@@ -2118,3 +2118,66 @@
 - 사용처 4개 파일 (`CurriculumView.jsx`, `LearnerCurriculumView.jsx`, `sanitize.js`, `Curriculum.css`) 코드는 이미 origin/dev에 반영되어 있으므로 이번 커밋은 의존성 동기화만
 
 ---
+
+## 2026-05-19 - Claude (회사 자동완성: CSV 점검 + JSON 변환 + Signup dropdown 연결)
+
+### 배경
+- 회원가입 폼에서 회사명 입력 시 "삼성/samsung" 등의 표기 불일치 방지를 위해 자동완성 도입
+- 외부 입수 CSV(15,256개 기업, 기업명/리뷰개수/산업군/2차 산업군) 활용
+- 발표 일정 고려해 정적 JSON 번들 방식(A안) 채택. DB 변경 없음.
+
+### CSV 점검 결과
+- 인코딩: UTF-8 with BOM
+- 행수: 15,256 (헤더 제외)
+- 컬럼: `기업명`, `리뷰개수`, `산업군`, `2차 산업군`
+- 길이: 최대 39자, 평균 8.4자 (`user_company VARCHAR(100)` 충분)
+- 중복(이름 완전 일치): 50건 (0.3%, 산업군 다른 동음이의 회사 포함)
+- `(주)` 접두 7,107건 / 접미 6,079건 / `주식회사` 또는 `(주)` 포함 13,244건 (전체 87%)
+- 공백 이상 / 빈 값: 0건
+- 특수문자 이상: 2건 (`​포루스기획`, `한·아프리카재단`)
+
+### 신규 파일
+- `scripts/convert_companies.py` — CSV → JSON 변환 스크립트
+  - 정규화: `(주)` 접두/접미, `주식회사` 접두/접미, ZWSP(`​`), 공백 제거 + 소문자 → `search` 필드
+  - 중복 처리: `(name, industry)` 조합 기준 첫 번째만 유지
+  - 정렬: `reviews` 내림차순 (인기 회사 상위)
+- `client/public/companies.json` — 변환 결과
+  - 15,223 entries (중복 33건 제거)
+  - 파일 크기 약 1,985KB (gzip 후 ~400KB 추정)
+  - 구조: `{ name, search, industry, sub, reviews }`
+
+### 프론트 변경
+- `client/src/components/Signup.jsx`
+  - 마운트 시 `/companies.json` fetch (1회)
+  - 회사 input focus + 매칭 결과 있을 때만 dropdown 표시
+  - JS 정규화 함수 — Python 변환 스크립트와 동일 로직
+  - `startsWith` 매칭으로 최대 20개 표시
+  - 옵션 선택 시 원본 회사명(예: `(주)하나투어`)을 input에 채움
+  - 매칭 안 되어도 자유 텍스트로 그대로 입력 가능
+  - fetch 실패 시 silent fallback (자동완성만 비활성, 폼 동작은 유지)
+- `client/src/styles/Signup.css`
+  - `.signup-company-field` (relative wrapper)
+  - `.signup-company-dropdown` (absolute, max-height 240px, scroll, shadow)
+  - `.signup-company-option` + hover, 회사명 + 산업군 메타 표시
+
+### 운영 관점
+- `data/companies_raw.csv` 원본은 gitignored (`data/`) — 사용자 로컬에만 보관
+- `data/_check.py` 1회성 점검 스크립트도 gitignored
+- `client/public/companies.json`은 git 추적 → 팀원이 풀 받으면 자동 적용 (별도 명령 불필요)
+- CSV 갱신 시: 원본 가진 사람이 `python scripts/convert_companies.py` 1회 실행 → 새 JSON을 커밋
+
+### 검증
+- `python scripts/convert_companies.py` 실행 정상 (15,256 → 15,223, dup 33 skip)
+- `npm run build` 통과 (571 modules, 4.52s)
+- 입력 동작 시뮬레이션 (코드 리뷰 차원):
+  - "삼" → 삼성전자(주) 등 상위
+  - "(주)하" / "하나" 모두 (주)하나투어 매칭 (정규화)
+  - 쿠팡 → 쿠팡(주) 매칭
+
+### 보류 / 다음 사이클
+- 자동완성 UI 키보드 ↑↓ 네비게이션, 강조 표시는 V2
+- 백엔드 가입 라우터 정비(`/signup`에 `invite_code` 파라미터 처리) — 다음 사이클
+- 회사 초대 코드 생성/검증 백엔드 유틸 (`secrets` + Crockford Base32) — 다음 사이클
+- 라우터 권한 매트릭스 점검 (`c` 역할 영향) — 다음 사이클
+
+---

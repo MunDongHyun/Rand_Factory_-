@@ -147,6 +147,57 @@
   cursor: pointer;
 }
 
+.signup-company-field {
+  position: relative;
+}
+
+.signup-company-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  z-index: 20;
+}
+
+.signup-company-option {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--ink);
+  transition: background 0.12s ease;
+}
+
+.signup-company-option:hover {
+  background: var(--bg-alt);
+}
+
+.signup-company-option__name {
+  font-weight: 500;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.signup-company-option__meta {
+  font-size: 11px;
+  color: var(--ink-muted);
+  flex-shrink: 0;
+}
+
 .signup-error {
   color: #c33;
   font-size: 13px;

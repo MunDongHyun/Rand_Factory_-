@@ -1,5 +1,17 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import '../styles/Signup.css';
+
+const COMPANIES_URL = '/companies.json';
+const MAX_SUGGESTIONS = 20;
+
+const normalizeForSearch = (s) => {
+  if (!s) return '';
+  let r = s.replace(/​/g, '').trim();
+  r = r.replace(/^\(주\)\s*/, '').replace(/\s*\(주\)$/, '');
+  r = r.replace(/^주식회사\s*/, '').replace(/\s*주식회사$/, '');
+  r = r.replace(/\s+/g, '');
+  return r.toLowerCase();
+};
 
 const Signup = ({ onBack, onComplete }) => {
   const [name, setName] = useState('');
@@ -11,6 +23,40 @@ const Signup = ({ onBack, onComplete }) => {
   const [inviteCode, setInviteCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const [companies, setCompanies] = useState([]);
+  const [companyFocused, setCompanyFocused] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(COMPANIES_URL)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => {
+        if (!cancelled && Array.isArray(data)) setCompanies(data);
+      })
+      .catch(() => {
+        // 회사 목록 로드 실패해도 자유 텍스트 입력은 계속 가능
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const companyMatches = useMemo(() => {
+    const q = normalizeForSearch(company);
+    if (!q || !companies.length) return [];
+    const results = [];
+    for (const c of companies) {
+      if (c.search && c.search.startsWith(q)) {
+        results.push(c);
+        if (results.length >= MAX_SUGGESTIONS) break;
+      }
+    }
+    return results;
+  }, [company, companies]);
+
+  const showCompanyDropdown =
+    companyFocused && !noCompany && !loading && companyMatches.length > 0;
 
   const validate = () => {
     if (!name.trim()) return '이름을 입력해주세요.';
@@ -132,16 +178,39 @@ const Signup = ({ onBack, onComplete }) => {
 
           <section className="signup-section">
             <div className="signup-section__label">회사 (선택)</div>
-            <div className="signup-field">
+            <div className="signup-field signup-company-field">
               <input
                 className="f-input"
                 type="text"
                 placeholder="회사 이름"
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
+                onFocus={() => setCompanyFocused(true)}
+                onBlur={() => setCompanyFocused(false)}
                 autoComplete="organization"
                 disabled={loading || noCompany}
               />
+              {showCompanyDropdown && (
+                <ul className="signup-company-dropdown" role="listbox">
+                  {companyMatches.map((c) => (
+                    <li
+                      key={`${c.name}__${c.industry}`}
+                      className="signup-company-option"
+                      role="option"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setCompany(c.name);
+                        setCompanyFocused(false);
+                      }}
+                    >
+                      <span className="signup-company-option__name">{c.name}</span>
+                      {c.industry && (
+                        <span className="signup-company-option__meta">{c.industry}</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
             <label className="signup-checkbox">
               <input
