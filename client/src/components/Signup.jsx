@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import api from '../lib/api';
 import '../styles/Signup.css';
 
@@ -27,6 +27,8 @@ const Signup = ({ onBack, onComplete }) => {
 
   const [companies, setCompanies] = useState([]);
   const [companyFocused, setCompanyFocused] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const dropdownRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,6 +60,54 @@ const Signup = ({ onBack, onComplete }) => {
 
   const showCompanyDropdown =
     companyFocused && !noCompany && !loading && companyMatches.length > 0;
+
+  // 매칭 결과 바뀌면 강조 인덱스 초기화
+  useEffect(() => {
+    setHighlightedIndex(companyMatches.length > 0 ? 0 : -1);
+  }, [companyMatches]);
+
+  // 강조된 옵션이 dropdown 보이는 영역 안에 있도록 스크롤
+  useEffect(() => {
+    if (highlightedIndex < 0 || !dropdownRef.current) return;
+    const option = dropdownRef.current.children[highlightedIndex];
+    if (option && typeof option.scrollIntoView === 'function') {
+      option.scrollIntoView({ block: 'nearest' });
+    }
+  }, [highlightedIndex]);
+
+  const selectCompany = (c) => {
+    setCompany(c.name);
+    setCompanyFocused(false);
+    setHighlightedIndex(-1);
+  };
+
+  const handleCompanyKeyDown = (e) => {
+    if (!showCompanyDropdown) {
+      if (e.key === 'ArrowDown' && companyMatches.length > 0) {
+        // dropdown이 닫혀 있어도 ArrowDown으로 열기
+        e.preventDefault();
+        setCompanyFocused(true);
+      }
+      return;
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightedIndex((idx) => (idx + 1) % companyMatches.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightedIndex((idx) =>
+        idx <= 0 ? companyMatches.length - 1 : idx - 1
+      );
+    } else if (e.key === 'Enter') {
+      if (highlightedIndex >= 0 && highlightedIndex < companyMatches.length) {
+        e.preventDefault(); // form submit 방지
+        selectCompany(companyMatches[highlightedIndex]);
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setCompanyFocused(false);
+    }
+  };
 
   const validate = () => {
     if (!name.trim()) return '이름을 입력해주세요.';
@@ -191,20 +241,35 @@ const Signup = ({ onBack, onComplete }) => {
                 onChange={(e) => setCompany(e.target.value)}
                 onFocus={() => setCompanyFocused(true)}
                 onBlur={() => setCompanyFocused(false)}
+                onKeyDown={handleCompanyKeyDown}
                 autoComplete="organization"
                 disabled={loading || noCompany}
+                aria-autocomplete="list"
+                aria-expanded={showCompanyDropdown}
+                aria-activedescendant={
+                  highlightedIndex >= 0 ? `signup-company-opt-${highlightedIndex}` : undefined
+                }
               />
               {showCompanyDropdown && (
-                <ul className="signup-company-dropdown" role="listbox">
-                  {companyMatches.map((c) => (
+                <ul
+                  className="signup-company-dropdown"
+                  role="listbox"
+                  ref={dropdownRef}
+                >
+                  {companyMatches.map((c, idx) => (
                     <li
                       key={`${c.name}__${c.industry}`}
-                      className="signup-company-option"
+                      id={`signup-company-opt-${idx}`}
+                      className={
+                        'signup-company-option' +
+                        (idx === highlightedIndex ? ' is-highlighted' : '')
+                      }
                       role="option"
+                      aria-selected={idx === highlightedIndex}
+                      onMouseEnter={() => setHighlightedIndex(idx)}
                       onMouseDown={(e) => {
                         e.preventDefault();
-                        setCompany(c.name);
-                        setCompanyFocused(false);
+                        selectCompany(c);
                       }}
                     >
                       <span className="signup-company-option__name">{c.name}</span>

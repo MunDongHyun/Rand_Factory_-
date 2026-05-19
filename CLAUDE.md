@@ -132,7 +132,7 @@ npm run dev
 
 ### 폐기된 정책 (참고)
 
-- `POST /api/users/signup/bulk` (회사+매니저+학습자 일괄 등록)은 사용 안 함. 엔드포인트는 남아 있으나 UI에서 호출하지 않음. 다음 정리 사이클에서 제거 또는 admin 전용 격리 예정.
+- `POST /api/users/signup/bulk` (회사+매니저+학습자 일괄 등록) — 제거됨. 단일 `/signup`에 `invite_code` 기반 학습자 등록 흐름으로 대체.
 
 ## 주의사항
 

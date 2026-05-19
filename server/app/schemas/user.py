@@ -28,24 +28,10 @@ class UserResponse(BaseModel):
     user_name: str
     user_company: str | None = None
     user_role: str
+    user_invite_code: str | None = None  # 매니저만 값 있음
     user_created_at: datetime | None = None
     user_updated_at: datetime | None = None
     user_deleted_at: datetime | None = None
-
-
-class BulkSignupEmployee(BaseModel):
-    email: EmailStr
-    password: str
-    name: str
-
-
-class BulkSignupRequest(BaseModel):
-    company: str
-    employees: list[BulkSignupEmployee]
-
-
-class BulkSignupResponse(BaseModel):
-    users: list[UserResponse]
 
 
 class TokenResponse(BaseModel):
