@@ -2,7 +2,7 @@ import { useState } from 'react';
 import '../styles/Dashboard.css';
 import searchIcon from '../public/search_icon.png';
 
-function Header({ onViewChange, onLogout, onScrollToTop, onScrollToArticle, onSearch, onReset }) {
+function Header({ canUseCurriculum = true, onViewChange, onLogout, onScrollToTop, onScrollToArticle, onSearch, onReset }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [inputValue, setInputValue] = useState(''); 
 
@@ -78,7 +78,7 @@ function Header({ onViewChange, onLogout, onScrollToTop, onScrollToArticle, onSe
             setTimeout(() => onScrollToTop(), 100); 
           }}>아티클 페이지</li>
           
-          <li onClick={() => { 
+          <li className={canUseCurriculum ? '' : 'drawerMenuHidden'} onClick={() => { 
             onViewChange('curriculum'); 
             setMenuOpen(false); 
           }}>커리큘럼 관리</li>

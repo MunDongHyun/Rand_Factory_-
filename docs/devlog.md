@@ -23,6 +23,25 @@
 
 ---
 
+## 2026-05-19 - Codex (역할별 프론트 진입 정리)
+
+### 변경
+- Dashboard에서 역할 플래그 정리
+  - `canUseCurriculum`: `j/m/a`
+  - `canCreateCurriculum`: `m/a`
+- 일반회원(`c`)은 커리큘럼 메뉴와 히어로 플로팅 CTA를 숨김.
+- 저장된 세션 view가 `curriculum`이어도 현재 역할이 접근 불가하면 `articles`로 되돌림.
+- 커리큘럼 화면 렌더링도 `canUseCurriculum` 조건을 한 번 더 통과하게 정리.
+- 매니저 초대코드 복사 버튼에 성공 피드백 추가
+  - 복사 후 버튼 배경 변경
+  - `복사 완료` 텍스트 표시
+
+### 검증
+- `npm run build` 통과 (기존 대형 청크 경고만 유지)
+- `python -m compileall -q app` 통과
+
+---
+
 ## 2026-05-19 - Codex (가입/초대코드 API 시나리오 검증)
 
 ### 검증 방식

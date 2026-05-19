@@ -24,7 +24,7 @@ const SLIDES = [
 
 const INTERVAL = 6000;
 
-export default function HeroBanner({ onCreateCurriculum, onOpenArticle }) {
+export default function HeroBanner({ showCreateCta = true, onCreateCurriculum, onOpenArticle }) {
     const [current, setCurrent] = useState(0);
     const [animating, setAnimating] = useState(false);
     const [direction, setDirection] = useState("next");
@@ -109,7 +109,7 @@ export default function HeroBanner({ onCreateCurriculum, onOpenArticle }) {
             </div>
 
             {/* 플로팅 CTA */}
-            <div className="floatingCta">
+            <div className={`floatingCta ${showCreateCta ? '' : 'floatingCtaHidden'}`}>
                 <button className="floatingCtaBtn" onClick={onCreateCurriculum}>
                     <span className="floatingCtaIcon">✦</span>
                     커리큘럼 생성하기
