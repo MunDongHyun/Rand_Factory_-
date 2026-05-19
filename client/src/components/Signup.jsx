@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import api from '../lib/api';
 import '../styles/Signup.css';
 
 const COMPANIES_URL = '/companies.json';
@@ -86,11 +87,14 @@ const Signup = ({ onBack, onComplete }) => {
       invite_code: inviteCode.trim() || null,
     };
 
-    // TODO: 백엔드 단일 가입 + 초대 코드 엔드포인트 확정 후 실제 호출 연결
-    // (예) await api.post('/users/signup', payload);
-    console.log('[signup stub] payload:', payload);
-    window.alert('회원가입 화면 동작 확인용입니다. 백엔드 연동은 다음 작업에서 붙입니다.');
-    setLoading(false);
+    try {
+      await api.post('/users/signup', payload);
+      onComplete();
+    } catch (err) {
+      setError(err.response?.data?.detail || '가입 처리에 실패했습니다. 다시 시도해주세요.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

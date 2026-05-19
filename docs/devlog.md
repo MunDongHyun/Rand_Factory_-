@@ -2181,3 +2181,75 @@
 - 라우터 권한 매트릭스 점검 (`c` 역할 영향) — 다음 사이클
 
 ---
+
+## 2026-05-19 - Claude (백엔드 가입 라우터 정비 + 초대 코드 유틸 + 라우터 권한 매트릭스)
+
+### 배경
+- 회원가입 정상화 후속: 백엔드 `/signup` 단일 라우터를 새 정책(c/j/m/a 4단계)에 맞게 재작성
+- 초대 코드 생성/정규화/검증 유틸 신설
+- 사전 점검에서 `c` 역할 추가로 권한 정책 위반 가능성 있는 라우터 6개 발견 → 같이 차단
+
+### 라우터 권한 점검 결과 (사이클 A)
+- **그룹 1 (c 허용, OK)**: article 전체 GET, author 전체 GET + POST `/email` (저자 이메일링 — 일반회원 핵심 기능)
+- **그룹 2 (c 차단 필요)**:
+  - `rag.POST /query` — 일반회원 RAG 사용 차단
+  - `curriculum.GET ""`, `GET /{id}`, `PATCH /{id}` — `_scope_curriculum_query`에 c 명시 차단 추가
+  - `task_submission.GET /my` — j만 허용으로 명시 차단
+- **그룹 3 (점검 부산물 — 인증 자체 누락)**:
+  - `curriculum.POST /download/txt`, `POST /download/pdf` — **인증 의존성 누락 발견**. m/a 권한 추가
+- **그룹 4 (이미 명시 차단됨, OK)**: chatbot 전부, curriculum POST/generate/stats, task_submission POST/PATCH feedback/by-curriculum, user 통계/관리 라우터
+
+### 정책 결정 (사용자 확인 완료)
+- `user.GET /{id}`: m/a만 허용 (j도 차단). 본인 조회는 `/me` 사용
+- curriculum `/download/*`: 인증 + m/a 권한 추가
+
+### 신규 / 변경
+- `server/app/services/invite_code_service.py` 신설
+  - `generate_invite_code()` — Crockford Base32 12자 + 하이픈 3-3-3 그룹 (14자)
+  - `normalize_code(value)` — 대소문자/하이픈/공백/ZWSP 흡수해 표준 14자 형식 반환 (잘못된 형식이면 빈 문자열)
+  - `is_valid_format(value)` — 표준 14자 형식 검사
+  - `generate_unique_invite_code(db, max_attempts=8)` — DB UNIQUE 충돌 시 재시도
+  - `find_manager_by_code(db, code)` — 코드로 매니저(`m`, 활성) 행 매칭
+  - 알파벳: `0-9` + `A-Z` 중 `I, L, O, U` 제외 (32자)
+- `server/app/models/user.py`
+  - `user_role` Enum에 `c` 추가 (`c, m, j, a`), `default='c'` + `server_default='c'`
+  - `user_invite_code: Mapped[str | None] = mapped_column(String(14), nullable=True, unique=True)` 추가
+- `server/app/schemas/user.py`
+  - `UserRole` Literal에 `c` 추가
+  - `UserCreate.invite_code: str | None = None` 필드 추가
+- `server/app/routers/user.py`
+  - `POST /signup` 재작성
+    - `invite_code` 있음 → `find_manager_by_code` 검증 → 매니저 회사 상속 + `j`
+    - 없음 → 사용자 입력 회사 그대로 + `c`
+    - 이메일은 `.strip().lower()`로 정규화 후 저장 (대소문자 비대칭 해소)
+    - 이름 `.strip()`
+  - `GET /{user_id}` m/a 전용 (정책 결정에 따라 j 차단)
+- `server/app/routers/rag.py`
+  - `POST /query` — `user_role`이 `j/m/a`가 아니면 404 (c 차단)
+- `server/app/routers/curriculum.py`
+  - `_scope_curriculum_query`에 c/기타 역할 빈 쿼리(`filter(False)`) 분기 추가
+  - `POST /download/txt`, `POST /download/pdf` — 인증 의존성 추가 + m/a 권한 체크
+- `server/app/routers/task_submission.py`
+  - `GET /my` — `j`만 허용 (c/m/a 모두 404)
+- `client/src/components/Signup.jsx`
+  - stub → 실제 `POST /api/users/signup` 호출로 교체
+  - 성공 시 `onComplete()`, 실패 시 백엔드 `detail` 메시지 표시
+
+### 검증
+- `python -m compileall -q app` 통과
+- `npm run build` 통과 (571 modules, 4.53s)
+- `invite_code_service` 단위 동작 (CLI):
+  - 생성 5건 모두 14자 + `is_valid_format=True`
+  - 입력 변형(소문자/공백/하이픈 변형, ZWSP 포함, 길이 오류, I 포함) 정규화 결과 기대대로
+
+### 보류 / 다음 사이클 후보
+- 매니저 승급 + 초대 코드 발급 라우터 (예: `POST /api/users/me/invite-code/issue` 또는 admin 페이지에서 시뮬레이션)
+- `user_invite_code_reissued_at` 컬럼 추가 + 1회 재발급 로직
+- `POST /api/users/signup/bulk` 엔드포인트 폐기 (현재 미사용 상태로 잔존)
+- `task_submission.GET /{id}` 등 `_can_access_submission`에서 c가 False라 안전하지만 명시 차단 미적용 — 의도 명확화 위해 후속 정리 후보
+
+### 주의
+- 기존 `j` 가입 시점에 회사명 빈 문자열로 저장되던 데이터는 그대로. 새 정책으로 가입하는 `j`는 매니저 회사명 상속됨
+- `user_invite_code` 컬럼은 DB에 ALTER 완료 상태였고 이번 사이클에서 ORM 모델만 동기화
+
+---

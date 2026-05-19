@@ -20,21 +20,38 @@ from app.schemas.user import (
     UserStatsResponse,
     UserUpdate,
 )
+from app.services import invite_code_service
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
 
 @router.post("/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def signup(body: UserCreate, db: Session = Depends(get_db)):
-    if db.query(User).filter(User.user_email == body.email).first():
+    """단일 가입.
+
+    - ``invite_code`` 있으면 → 학습자(``j``), 회사는 매니저 회사 상속
+    - ``invite_code`` 없으면 → 일반 회원(``c``), 사용자가 입력한 회사명 그대로
+    """
+    email = body.email.strip().lower()
+    if db.query(User).filter(User.user_email == email).first():
         raise HTTPException(status_code=400, detail="이미 사용 중인 이메일입니다")
 
+    if body.invite_code and body.invite_code.strip():
+        manager = invite_code_service.find_manager_by_code(db, body.invite_code)
+        if manager is None:
+            raise HTTPException(status_code=400, detail="초대 코드가 올바르지 않습니다")
+        user_role = "j"
+        user_company = manager.user_company or ""
+    else:
+        user_role = "c"
+        user_company = (body.company or "").strip()
+
     user = User(
-        user_email=body.email,
+        user_email=email,
         user_pw=hash_password(body.password),
-        user_name=body.name,
-        user_company=body.company or "",
-        user_role="j",
+        user_name=body.name.strip(),
+        user_company=user_company,
+        user_role=user_role,
     )
     db.add(user)
     db.commit()
@@ -282,7 +299,15 @@ def get_user_activity_summary(
 
 
 @router.get("/{user_id}", response_model=UserResponse)
-def get_user(user_id: int, db: Session = Depends(get_db), _current_user: User = Depends(get_current_user)):
+def get_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """매니저/관리자 전용: 회원 1명 조회. 본인은 ``/me`` 사용."""
+    if current_user.user_role not in {"m", "a"}:
+        raise HTTPException(status_code=404, detail="찾을 수 없습니다")
+
     user = db.query(User).filter(User.user_id == user_id, User.user_deleted_at.is_(None)).first()
     if not user:
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다")

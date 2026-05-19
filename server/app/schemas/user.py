@@ -4,7 +4,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, EmailStr
 
 
-UserRole = Literal["j", "m", "a"]
+UserRole = Literal["c", "j", "m", "a"]
 
 
 class UserCreate(BaseModel):
@@ -12,6 +12,7 @@ class UserCreate(BaseModel):
     password: str
     name: str
     company: str | None = None
+    invite_code: str | None = None  # 있으면 학습자(j)로 가입, 없으면 일반회원(c)
 
 
 class UserLogin(BaseModel):

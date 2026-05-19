@@ -61,13 +61,17 @@ def _scope_curriculum_query(query: Query, user: User) -> Query:
     - a (admin): 전체
     - m (manager): 본인이 만든 것
     - j (learner): 본인이 cur_assigned_learner_ids에 포함된 것
+    - c (consumer): 접근 불가 → 빈 쿼리
     """
     query = query.filter(Curriculum.cur_deleted_at.is_(None))
     if user.user_role == "a":
         return query
     if user.user_role == "m":
         return query.filter(Curriculum.cur_creator_id == user.user_id)
-    return query.filter(func.json_contains(Curriculum.cur_assigned_learner_ids, str(user.user_id)))
+    if user.user_role == "j":
+        return query.filter(func.json_contains(Curriculum.cur_assigned_learner_ids, str(user.user_id)))
+    # c (일반 회원) 등은 커리큘럼 접근 불가
+    return query.filter(False)
 
 
 @router.post("", response_model=CurriculumResponse, status_code=status.HTTP_201_CREATED)
@@ -228,7 +232,12 @@ def update_curriculum(
 
 
 @router.post("/download/txt")
-async def download_curriculum_txt(curriculum_data: list = Body(...)):
+async def download_curriculum_txt(
+    curriculum_data: list = Body(...),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.user_role not in {"m", "a"}:
+        raise HTTPException(status_code=404, detail="찾을 수 없습니다")
     if isinstance(curriculum_data, str):
         curriculum_data = json.loads(curriculum_data)
 
@@ -289,7 +298,12 @@ server_dir = os.path.dirname(app_dir)
 FONT_PATH = os.path.join(server_dir, "resources", "fonts", "NanumGothic.ttf")
 
 @router.post("/download/pdf")
-async def download_curriculum_pdf(curriculum_data: list = Body(...)):
+async def download_curriculum_pdf(
+    curriculum_data: list = Body(...),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.user_role not in {"m", "a"}:
+        raise HTTPException(status_code=404, detail="찾을 수 없습니다")
     if isinstance(curriculum_data, str):
         curriculum_data = json.loads(curriculum_data)
 
