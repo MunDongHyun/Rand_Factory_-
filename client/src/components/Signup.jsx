@@ -1,48 +1,75 @@
-import React, { useState } from 'react';
-import api from '../lib/api';
+import React, { useEffect, useMemo, useState } from 'react';
+import '../styles/Signup.css';
 
-const makeEmptyEmployee = () => ({
-  id: Date.now() + Math.random(),
-  name: '',
-  email: '',
-  password: '',
-});
+const COMPANIES_URL = '/companies.json';
+const MAX_SUGGESTIONS = 20;
+
+const normalizeForSearch = (s) => {
+  if (!s) return '';
+  let r = s.replace(/​/g, '').trim();
+  r = r.replace(/^\(주\)\s*/, '').replace(/\s*\(주\)$/, '');
+  r = r.replace(/^주식회사\s*/, '').replace(/\s*주식회사$/, '');
+  r = r.replace(/\s+/g, '');
+  return r.toLowerCase();
+};
 
 const Signup = ({ onBack, onComplete }) => {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
   const [company, setCompany] = useState('');
-  const [employees, setEmployees] = useState([makeEmptyEmployee()]);
+  const [noCompany, setNoCompany] = useState(false);
+  const [inviteCode, setInviteCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const addCard = () => {
-    setEmployees([...employees, makeEmptyEmployee()]);
-  };
+  const [companies, setCompanies] = useState([]);
+  const [companyFocused, setCompanyFocused] = useState(false);
 
-  const removeCard = (id) => {
-    if (employees.length > 1) {
-      setEmployees(employees.filter((emp) => emp.id !== id));
+  useEffect(() => {
+    let cancelled = false;
+    fetch(COMPANIES_URL)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => {
+        if (!cancelled && Array.isArray(data)) setCompanies(data);
+      })
+      .catch(() => {
+        // 회사 목록 로드 실패해도 자유 텍스트 입력은 계속 가능
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const companyMatches = useMemo(() => {
+    const q = normalizeForSearch(company);
+    if (!q || !companies.length) return [];
+    const results = [];
+    for (const c of companies) {
+      if (c.search && c.search.startsWith(q)) {
+        results.push(c);
+        if (results.length >= MAX_SUGGESTIONS) break;
+      }
     }
-  };
+    return results;
+  }, [company, companies]);
 
-  const updateField = (id, field, value) => {
-    setEmployees(employees.map((emp) => (emp.id === id ? { ...emp, [field]: value } : emp)));
-  };
+  const showCompanyDropdown =
+    companyFocused && !noCompany && !loading && companyMatches.length > 0;
 
   const validate = () => {
-    if (!company.trim()) return '회사명을 입력해주세요.';
-    for (let i = 0; i < employees.length; i++) {
-      const emp = employees[i];
-      const label = i === 0 ? '매니저' : `직원 #${i + 1}`;
-      if (!emp.name.trim()) return `${label}의 이름을 입력해주세요.`;
-      if (!emp.email.trim()) return `${label}의 이메일을 입력해주세요.`;
-      if (!emp.password) return `${label}의 비밀번호를 입력해주세요.`;
-    }
-    const emails = employees.map((e) => e.email.trim().toLowerCase());
-    if (new Set(emails).size !== emails.length) return '직원들 간에 중복된 이메일이 있습니다.';
+    if (!name.trim()) return '이름을 입력해주세요.';
+    if (!email.trim()) return '이메일을 입력해주세요.';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return '이메일 형식이 올바르지 않습니다.';
+    if (!password) return '비밀번호를 입력해주세요.';
+    if (password.length < 8) return '비밀번호는 8자 이상이어야 합니다.';
+    if (password !== passwordConfirm) return '비밀번호가 일치하지 않습니다.';
     return '';
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     const msg = validate();
     if (msg) {
       setError(msg);
@@ -50,28 +77,31 @@ const Signup = ({ onBack, onComplete }) => {
     }
     setError('');
     setLoading(true);
-    try {
-      await api.post('/users/signup/bulk', {
-        company: company.trim(),
-        employees: employees.map((e) => ({
-          name: e.name.trim(),
-          email: e.email.trim(),
-          password: e.password,
-        })),
-      });
-      onComplete();
-    } catch (err) {
-      setError(err.response?.data?.detail || '등록 중 문제가 발생했습니다. 다시 시도해주세요.');
-    } finally {
-      setLoading(false);
-    }
+
+    const payload = {
+      name: name.trim(),
+      email: email.trim(),
+      password,
+      company: noCompany ? null : company.trim() || null,
+      invite_code: inviteCode.trim() || null,
+    };
+
+    // TODO: 백엔드 단일 가입 + 초대 코드 엔드포인트 확정 후 실제 호출 연결
+    // (예) await api.post('/users/signup', payload);
+    console.log('[signup stub] payload:', payload);
+    window.alert('회원가입 화면 동작 확인용입니다. 백엔드 연동은 다음 작업에서 붙입니다.');
+    setLoading(false);
   };
 
   return (
     <div className="screen" id="screen-signup">
       <nav className="nav-signup">
         <span className="nav-signup__brand">LAND FACTORY</span>
-        <button className="nav-signup__back" onClick={() => onBack('intro')}>
+        <button
+          type="button"
+          className="nav-signup__back"
+          onClick={() => onBack('intro')}
+        >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M9 11L5 7L9 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
           </svg>
@@ -80,94 +110,151 @@ const Signup = ({ onBack, onComplete }) => {
       </nav>
 
       <div className="signup-wrapper">
-        <div className="signup-header">
+        <header className="signup-header">
           <div className="signup-header__eyebrow">Signup</div>
-          <h1 className="signup-header__title">회원 등록</h1>
-        </div>
+          <h1 className="signup-header__title">회원가입</h1>
+        </header>
 
-        <div className="company-section">
-          <div className="section-label">Company</div>
-          <input
-            className="f-input"
-            type="text"
-            placeholder="회사 이름을 입력해주세요"
-            value={company}
-            onChange={(e) => setCompany(e.target.value)}
-          />
-        </div>
+        <form className="signup-form" onSubmit={handleSubmit} noValidate>
+          <section className="signup-section">
+            <div className="signup-section__label">계정 정보</div>
 
-        <div className="employees-label">Employees</div>
-        <div className="employee-list">
-          {employees.map((emp, index) => (
-            <div key={emp.id} className="employee-card">
-              <div className="card-header">
-                <span className="card-num">
-                  EMPLOYEE #{String(index + 1).padStart(2, '0')} {index === 0 ? '· 매니저' : '· 학습자'}
-                </span>
-                <button
-                  className="card-delete"
-                  onClick={() => removeCard(emp.id)}
-                  disabled={employees.length === 1}
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="card-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div className="field-group">
-                  <div className="field-label">이름</div>
-                  <input
-                    className="f-input"
-                    type="text"
-                    placeholder="성함 입력"
-                    value={emp.name}
-                    onChange={(e) => updateField(emp.id, 'name', e.target.value)}
-                  />
-                </div>
-
-                <div className="field-group">
-                  <div className="field-label">이메일</div>
-                  <input
-                    className="f-input"
-                    type="email"
-                    placeholder="example@company.com"
-                    value={emp.email}
-                    onChange={(e) => updateField(emp.id, 'email', e.target.value)}
-                  />
-                </div>
-
-                <div className="field-group">
-                  <div className="field-label">비밀번호</div>
-                  <input
-                    className="f-input"
-                    type="password"
-                    placeholder="••••••••"
-                    value={emp.password}
-                    onChange={(e) => updateField(emp.id, 'password', e.target.value)}
-                  />
-                </div>
-              </div>
+            <div className="signup-field">
+              <label className="signup-field__label" htmlFor="signup-name">이름</label>
+              <input
+                id="signup-name"
+                className="f-input"
+                type="text"
+                placeholder="성함 입력"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                autoComplete="name"
+                disabled={loading}
+              />
             </div>
-          ))}
-        </div>
 
-        <button className="add-btn" onClick={addCard}>
-          <span className="add-icon">+</span>새로운 직원 추가하기
-        </button>
+            <div className="signup-field">
+              <label className="signup-field__label" htmlFor="signup-email">이메일</label>
+              <input
+                id="signup-email"
+                className="f-input"
+                type="email"
+                placeholder="example@company.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                disabled={loading}
+              />
+            </div>
 
-        {error && (
-          <p style={{ color: '#c33', fontSize: '14px', margin: '12px 0' }}>{error}</p>
-        )}
+            <div className="signup-field">
+              <label className="signup-field__label" htmlFor="signup-password">비밀번호 (8자 이상)</label>
+              <input
+                id="signup-password"
+                className="f-input"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
+                disabled={loading}
+              />
+            </div>
 
-        <div className="submit-bar">
-          <p className="submit-hint">
-            모든 정보를 확인한 후<br />
-            <strong>등록 완료하기</strong>를 눌러주세요.
-          </p>
-          <button className="btn-submit" onClick={handleSubmit} disabled={loading}>
-            {loading ? '등록 중...' : '등록 완료하기 →'}
-          </button>
-        </div>
+            <div className="signup-field">
+              <label className="signup-field__label" htmlFor="signup-password-confirm">비밀번호 확인</label>
+              <input
+                id="signup-password-confirm"
+                className="f-input"
+                type="password"
+                placeholder="••••••••"
+                value={passwordConfirm}
+                onChange={(e) => setPasswordConfirm(e.target.value)}
+                autoComplete="new-password"
+                disabled={loading}
+              />
+            </div>
+          </section>
+
+          <section className="signup-section">
+            <div className="signup-section__label">회사 (선택)</div>
+            <div className="signup-field signup-company-field">
+              <input
+                className="f-input"
+                type="text"
+                placeholder="회사 이름"
+                value={company}
+                onChange={(e) => setCompany(e.target.value)}
+                onFocus={() => setCompanyFocused(true)}
+                onBlur={() => setCompanyFocused(false)}
+                autoComplete="organization"
+                disabled={loading || noCompany}
+              />
+              {showCompanyDropdown && (
+                <ul className="signup-company-dropdown" role="listbox">
+                  {companyMatches.map((c) => (
+                    <li
+                      key={`${c.name}__${c.industry}`}
+                      className="signup-company-option"
+                      role="option"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setCompany(c.name);
+                        setCompanyFocused(false);
+                      }}
+                    >
+                      <span className="signup-company-option__name">{c.name}</span>
+                      {c.industry && (
+                        <span className="signup-company-option__meta">{c.industry}</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <label className="signup-checkbox">
+              <input
+                type="checkbox"
+                checked={noCompany}
+                onChange={(e) => {
+                  setNoCompany(e.target.checked);
+                  if (e.target.checked) setCompany('');
+                }}
+                disabled={loading}
+              />
+              회사 없음 / 개인 사용자
+            </label>
+          </section>
+
+          <section className="signup-section">
+            <div className="signup-section__label">초대 코드 (선택)</div>
+            <div className="signup-field">
+              <input
+                className="f-input"
+                type="text"
+                placeholder="매니저에게 받은 초대 코드"
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value)}
+                disabled={loading}
+              />
+            </div>
+            <p className="signup-section__hint">
+              초대 코드를 입력하면 해당 회사의 학습자로 자동 등록됩니다.
+            </p>
+          </section>
+
+          {error && <p className="signup-error">{error}</p>}
+
+          <div className="signup-submit-bar">
+            <p className="signup-submit-bar__hint">
+              모든 정보를 확인한 후<br />
+              <strong>가입하기</strong>를 눌러주세요.
+            </p>
+            <button type="submit" className="btn-submit" disabled={loading}>
+              {loading ? '처리 중...' : '가입하기 →'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

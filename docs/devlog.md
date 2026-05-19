@@ -2035,3 +2035,149 @@
   - `npm run build`
 
 ---
+
+## 2026-05-19 - Claude (회원가입 폼 단일화 + CSS 분리 + 권한 정책 `c` 추가)
+
+### 배경
+- 기존 회원가입 흐름: 비로그인 페이지에서 회사 + 매니저 1명 + 학습자 N명 일괄 등록(`POST /signup/bulk`)
+- 새 정책: DBR 일반 구독자(`c`) / OJT 결제로 승급한 매니저(`m`) / 매니저 초대로 가입한 학습자(`j`) / 관리자(`a`) 4단계 체계로 전환
+- 가입 페이지는 단일 폼(이메일/비번/이름/회사(선택)/초대코드(선택))으로 일원화
+
+### DB 변경 (사용자 직접 ALTER)
+- `users.user_role` ENUM에 `'c'` 추가, `NOT NULL DEFAULT 'c'`
+- `users.user_invite_code VARCHAR(14) NULL UNIQUE` 컬럼 추가 (매니저 회사 초대 코드용)
+
+### 프론트 변경
+- `client/src/components/Signup.jsx` 단일 가입 폼으로 재작성
+  - 기존 `employees[]` 배열 + 카드 add/remove 흐름 전체 제거
+  - 필드: 이름 / 이메일 / 비밀번호 / 비밀번호 확인 / 회사(선택, "회사 없음" 체크박스) / 초대 코드(선택)
+  - `<form onSubmit>` 으로 감싸 Enter 키 제출 지원
+  - 모든 inline style 제거 (CLAUDE.md 컨벤션 준수)
+  - `autoComplete` 속성 추가 (`name`, `email`, `new-password`, `organization`)
+  - 검증: 이름/이메일 빈 값, 이메일 형식, 비번 8자 이상, 비번 일치
+  - `loading` 중 모든 입력 disabled
+  - submit은 stub — `console.log` + alert로 동작 확인만, 백엔드 호출 없음
+    - payload 구조는 향후 백엔드와 맞출 형태로 준비: `{ name, email, password, company, invite_code }`
+
+### 스타일 정리
+- `client/src/styles/Signup.css` 신규 생성
+  - Signup 전용 스타일 분리 (nav-signup, signup-wrapper, signup-form, signup-section, signup-field, signup-checkbox, signup-error, signup-submit-bar 등)
+  - 죽은 코드(progress bar, employee-card, card-grid, add-btn)는 옮기지 않고 폐기
+- `client/src/styles/theme.css` 정리
+  - `SCREEN 2 : SIGNUP` 블록 (구 388~675줄) 통째로 제거 → 382줄로 축소
+
+### 문서 변경
+- `CLAUDE.md` 권한 정책 섹션 업데이트
+  - 역할 표: `c`(일반) 추가 → 4개 역할 체계
+  - 운영 규칙 재작성: 단일 `/signup` 가입 흐름, 매니저 승급 + 초대 코드 발급 정책, 챗봇 정책 명시
+  - 회사 초대 코드 구현 결정 사항 명시
+    - 저장 위치: `users.user_invite_code` 컬럼 (A안)
+    - 코드 형식: Crockford Base32 12자 + 하이픈 3-3-3 그룹 (총 14자), 예: `9F3K-PXQ7-M2NJ`
+    - 생성/검증은 백엔드 전용, `secrets` 모듈 사용
+  - 폐기 정책 섹션 추가: `/signup/bulk` UI 미사용
+
+### 검증
+- `npm run build` 통과 (571 modules, 4.70s)
+- 백엔드 코드 변경 없음 (이번 사이클은 프론트 + 문서만)
+
+### 다음 사이클 예정 작업
+1. CSV(15,257개 회사 데이터) 점검 → 정제 → `client/public/companies.json` 생성 → Signup 자동완성 연결
+2. 백엔드 회원가입 라우터 정비
+   - `/signup` 단일 엔드포인트에 `invite_code` 파라미터 추가
+   - 초대 코드 검증 로직 (코드 → 매니저 → 회사 상속)
+   - `invite_code_service.py` 신설 (생성/검증 유틸)
+3. 회사 초대 코드 발급 라우터 (매니저 승급 시뮬레이션 + 재발급)
+4. 라우터 권한 매트릭스 점검 — 현재 라우터들은 `c` 역할을 모르므로 일반회원 차단 로직 누락 가능성
+
+### 주의 / 보류
+- 회사 dropdown 자동완성은 V2 (현재 자유 텍스트 input 유지)
+- `POST /api/users/signup/bulk` 엔드포인트는 백엔드에 남아 있으나 UI에서 호출 안 함 (제거 또는 admin 격리는 다음 정리 사이클)
+- `user_role` `c` 추가에 따른 기존 라우터 권한 체크 영향 점검 미완료
+- 매니저 등업/결제 시뮬레이션 흐름(admin이 DB 직접 변경) 별도 시나리오 정리 필요
+- 회사 초대 코드 재발급 1회 제한 추적용 `user_invite_code_reissued_at` 컬럼은 아직 DB에 추가 안 됨 (재발급 기능 구현 사이클에서 같이 ALTER)
+
+---
+
+## 2026-05-19 - Claude (tiptap 의존성 누락 보강)
+
+### 배경
+- `ce8fea3` 커밋(`커리큘럼 페이지에서 과제제출(학습자)버튼 일단 분리...`)에서 `@tiptap/*` import가 도입됐으나 `client/package.json`에는 추가되지 않음
+- 결과적으로 다른 팀원이 풀 받은 후 `npm install`만으로는 빌드 실패하는 상태 (dev 브랜치 빌드 깨짐)
+- 로컬에는 본인이 별도 `npm install`로 설치돼 있어 빌드 가능했지만 origin에 반영되지 않음
+
+### 변경
+- `client/package.json` / `client/package-lock.json` 동기화
+- 로컬에 실제 설치된 버전(`^3.23.4`) 기준으로 dependency 추가
+  - `@tiptap/core`, `@tiptap/react`, `@tiptap/pm`, `@tiptap/starter-kit`
+  - `@tiptap/extension-color`, `extension-highlight`, `extension-image`, `extension-link`
+  - `@tiptap/extension-table`, `extension-table-cell`, `extension-table-header`, `extension-table-row`
+  - `@tiptap/extension-text-align`, `extension-text-style`, `extension-underline`
+
+### 주의
+- jodit-react(^5.3.21)는 일단 그대로 둠 — 완전 교체 작업 확인 후 정리 필요
+- 사용처 4개 파일 (`CurriculumView.jsx`, `LearnerCurriculumView.jsx`, `sanitize.js`, `Curriculum.css`) 코드는 이미 origin/dev에 반영되어 있으므로 이번 커밋은 의존성 동기화만
+
+---
+
+## 2026-05-19 - Claude (회사 자동완성: CSV 점검 + JSON 변환 + Signup dropdown 연결)
+
+### 배경
+- 회원가입 폼에서 회사명 입력 시 "삼성/samsung" 등의 표기 불일치 방지를 위해 자동완성 도입
+- 외부 입수 CSV(15,256개 기업, 기업명/리뷰개수/산업군/2차 산업군) 활용
+- 발표 일정 고려해 정적 JSON 번들 방식(A안) 채택. DB 변경 없음.
+
+### CSV 점검 결과
+- 인코딩: UTF-8 with BOM
+- 행수: 15,256 (헤더 제외)
+- 컬럼: `기업명`, `리뷰개수`, `산업군`, `2차 산업군`
+- 길이: 최대 39자, 평균 8.4자 (`user_company VARCHAR(100)` 충분)
+- 중복(이름 완전 일치): 50건 (0.3%, 산업군 다른 동음이의 회사 포함)
+- `(주)` 접두 7,107건 / 접미 6,079건 / `주식회사` 또는 `(주)` 포함 13,244건 (전체 87%)
+- 공백 이상 / 빈 값: 0건
+- 특수문자 이상: 2건 (`​포루스기획`, `한·아프리카재단`)
+
+### 신규 파일
+- `scripts/convert_companies.py` — CSV → JSON 변환 스크립트
+  - 정규화: `(주)` 접두/접미, `주식회사` 접두/접미, ZWSP(`​`), 공백 제거 + 소문자 → `search` 필드
+  - 중복 처리: `(name, industry)` 조합 기준 첫 번째만 유지
+  - 정렬: `reviews` 내림차순 (인기 회사 상위)
+- `client/public/companies.json` — 변환 결과
+  - 15,223 entries (중복 33건 제거)
+  - 파일 크기 약 1,985KB (gzip 후 ~400KB 추정)
+  - 구조: `{ name, search, industry, sub, reviews }`
+
+### 프론트 변경
+- `client/src/components/Signup.jsx`
+  - 마운트 시 `/companies.json` fetch (1회)
+  - 회사 input focus + 매칭 결과 있을 때만 dropdown 표시
+  - JS 정규화 함수 — Python 변환 스크립트와 동일 로직
+  - `startsWith` 매칭으로 최대 20개 표시
+  - 옵션 선택 시 원본 회사명(예: `(주)하나투어`)을 input에 채움
+  - 매칭 안 되어도 자유 텍스트로 그대로 입력 가능
+  - fetch 실패 시 silent fallback (자동완성만 비활성, 폼 동작은 유지)
+- `client/src/styles/Signup.css`
+  - `.signup-company-field` (relative wrapper)
+  - `.signup-company-dropdown` (absolute, max-height 240px, scroll, shadow)
+  - `.signup-company-option` + hover, 회사명 + 산업군 메타 표시
+
+### 운영 관점
+- `data/companies_raw.csv` 원본은 gitignored (`data/`) — 사용자 로컬에만 보관
+- `data/_check.py` 1회성 점검 스크립트도 gitignored
+- `client/public/companies.json`은 git 추적 → 팀원이 풀 받으면 자동 적용 (별도 명령 불필요)
+- CSV 갱신 시: 원본 가진 사람이 `python scripts/convert_companies.py` 1회 실행 → 새 JSON을 커밋
+
+### 검증
+- `python scripts/convert_companies.py` 실행 정상 (15,256 → 15,223, dup 33 skip)
+- `npm run build` 통과 (571 modules, 4.52s)
+- 입력 동작 시뮬레이션 (코드 리뷰 차원):
+  - "삼" → 삼성전자(주) 등 상위
+  - "(주)하" / "하나" 모두 (주)하나투어 매칭 (정규화)
+  - 쿠팡 → 쿠팡(주) 매칭
+
+### 보류 / 다음 사이클
+- 자동완성 UI 키보드 ↑↓ 네비게이션, 강조 표시는 V2
+- 백엔드 가입 라우터 정비(`/signup`에 `invite_code` 파라미터 처리) — 다음 사이클
+- 회사 초대 코드 생성/검증 백엔드 유틸 (`secrets` + Crockford Base32) — 다음 사이클
+- 라우터 권한 매트릭스 점검 (`c` 역할 영향) — 다음 사이클
+
+---
