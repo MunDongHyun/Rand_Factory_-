@@ -2,6 +2,27 @@
 
 ---
 
+## 2026-05-19 - Codex (권한 노출 점검 후 안정화)
+
+### 변경
+- 실제 DB 스키마 확인: `users.user_role` enum에 `c/m/j/a` 반영, `users.user_invite_code varchar(14) UNIQUE` 반영 확인.
+- `GET /api/users/{user_id}` 매니저 조회 범위 축소
+  - admin(`a`)은 기존처럼 전체 활성 회원 조회 가능.
+  - manager(`m`)는 같은 회사 학습자(`j`)만 조회 가능.
+  - 다른 회사/다른 매니저/관리자 row는 404로 숨김 처리하여 `user_invite_code` 노출 차단.
+- `PATCH /api/curricula/{cur_id}` admin 수정 권한 보강
+  - manager는 기존처럼 본인이 만든 커리큘럼만 수정.
+  - admin은 전체 활성 커리큘럼 수정 가능.
+  - consumer/learner는 404.
+- 잘못된 위치에 남아 있던 루트 `package.json`, `package-lock.json` 제거.
+  - 프론트 의존성 기준은 `client/package.json` / `client/package-lock.json`로 단일화.
+
+### 검증
+- `python -m compileall -q app` 통과
+- `npm run build` 통과 (기존 대형 청크 경고만 유지)
+
+---
+
 ## 2026-05-18 - Claude (DOMPurify sanitize 도입 — 저장형 XSS 방어)
 
 ### 배경
