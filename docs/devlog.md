@@ -2035,3 +2035,65 @@
   - `npm run build`
 
 ---
+
+## 2026-05-19 - Claude (회원가입 폼 단일화 + CSS 분리 + 권한 정책 `c` 추가)
+
+### 배경
+- 기존 회원가입 흐름: 비로그인 페이지에서 회사 + 매니저 1명 + 학습자 N명 일괄 등록(`POST /signup/bulk`)
+- 새 정책: DBR 일반 구독자(`c`) / OJT 결제로 승급한 매니저(`m`) / 매니저 초대로 가입한 학습자(`j`) / 관리자(`a`) 4단계 체계로 전환
+- 가입 페이지는 단일 폼(이메일/비번/이름/회사(선택)/초대코드(선택))으로 일원화
+
+### DB 변경 (사용자 직접 ALTER)
+- `users.user_role` ENUM에 `'c'` 추가, `NOT NULL DEFAULT 'c'`
+- `users.user_invite_code VARCHAR(14) NULL UNIQUE` 컬럼 추가 (매니저 회사 초대 코드용)
+
+### 프론트 변경
+- `client/src/components/Signup.jsx` 단일 가입 폼으로 재작성
+  - 기존 `employees[]` 배열 + 카드 add/remove 흐름 전체 제거
+  - 필드: 이름 / 이메일 / 비밀번호 / 비밀번호 확인 / 회사(선택, "회사 없음" 체크박스) / 초대 코드(선택)
+  - `<form onSubmit>` 으로 감싸 Enter 키 제출 지원
+  - 모든 inline style 제거 (CLAUDE.md 컨벤션 준수)
+  - `autoComplete` 속성 추가 (`name`, `email`, `new-password`, `organization`)
+  - 검증: 이름/이메일 빈 값, 이메일 형식, 비번 8자 이상, 비번 일치
+  - `loading` 중 모든 입력 disabled
+  - submit은 stub — `console.log` + alert로 동작 확인만, 백엔드 호출 없음
+    - payload 구조는 향후 백엔드와 맞출 형태로 준비: `{ name, email, password, company, invite_code }`
+
+### 스타일 정리
+- `client/src/styles/Signup.css` 신규 생성
+  - Signup 전용 스타일 분리 (nav-signup, signup-wrapper, signup-form, signup-section, signup-field, signup-checkbox, signup-error, signup-submit-bar 등)
+  - 죽은 코드(progress bar, employee-card, card-grid, add-btn)는 옮기지 않고 폐기
+- `client/src/styles/theme.css` 정리
+  - `SCREEN 2 : SIGNUP` 블록 (구 388~675줄) 통째로 제거 → 382줄로 축소
+
+### 문서 변경
+- `CLAUDE.md` 권한 정책 섹션 업데이트
+  - 역할 표: `c`(일반) 추가 → 4개 역할 체계
+  - 운영 규칙 재작성: 단일 `/signup` 가입 흐름, 매니저 승급 + 초대 코드 발급 정책, 챗봇 정책 명시
+  - 회사 초대 코드 구현 결정 사항 명시
+    - 저장 위치: `users.user_invite_code` 컬럼 (A안)
+    - 코드 형식: Crockford Base32 12자 + 하이픈 3-3-3 그룹 (총 14자), 예: `9F3K-PXQ7-M2NJ`
+    - 생성/검증은 백엔드 전용, `secrets` 모듈 사용
+  - 폐기 정책 섹션 추가: `/signup/bulk` UI 미사용
+
+### 검증
+- `npm run build` 통과 (571 modules, 4.70s)
+- 백엔드 코드 변경 없음 (이번 사이클은 프론트 + 문서만)
+
+### 다음 사이클 예정 작업
+1. CSV(15,257개 회사 데이터) 점검 → 정제 → `client/public/companies.json` 생성 → Signup 자동완성 연결
+2. 백엔드 회원가입 라우터 정비
+   - `/signup` 단일 엔드포인트에 `invite_code` 파라미터 추가
+   - 초대 코드 검증 로직 (코드 → 매니저 → 회사 상속)
+   - `invite_code_service.py` 신설 (생성/검증 유틸)
+3. 회사 초대 코드 발급 라우터 (매니저 승급 시뮬레이션 + 재발급)
+4. 라우터 권한 매트릭스 점검 — 현재 라우터들은 `c` 역할을 모르므로 일반회원 차단 로직 누락 가능성
+
+### 주의 / 보류
+- 회사 dropdown 자동완성은 V2 (현재 자유 텍스트 input 유지)
+- `POST /api/users/signup/bulk` 엔드포인트는 백엔드에 남아 있으나 UI에서 호출 안 함 (제거 또는 admin 격리는 다음 정리 사이클)
+- `user_role` `c` 추가에 따른 기존 라우터 권한 체크 영향 점검 미완료
+- 매니저 등업/결제 시뮬레이션 흐름(admin이 DB 직접 변경) 별도 시나리오 정리 필요
+- 회사 초대 코드 재발급 1회 제한 추적용 `user_invite_code_reissued_at` 컬럼은 아직 DB에 추가 안 됨 (재발급 기능 구현 사이클에서 같이 ALTER)
+
+---
