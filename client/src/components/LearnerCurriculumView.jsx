@@ -1,22 +1,115 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import JoditEditor from 'jodit-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import api from '../lib/api';
 import { sanitizeHtml } from '../lib/sanitize';
 import { downloadAttachment, formatBytes } from '../lib/attachments';
 import '../styles/Curriculum.css';
 
-const JODIT_CONFIG_BASE = {
-  language: 'ko',
-  iframe: true,
-  toolbarSticky: false,
-  buttons: ['bold', 'italic', 'ul', 'ol', 'table', 'link', 'undo', 'redo'],
-  removeButtons: ['source', 'fullsize', 'image', 'video', 'file', 'about'],
-  popup: {
-    selection: [], // 텍스트 선택 시 뜨는 popup 비활성화 — 움찔임 완화
-  },
-  placeholder: '사수가 배포한 양식에 맞추어 과제를 작성하세요...',
+// --- Tiptap Named Imports ---
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import { Table } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { TableHeader } from '@tiptap/extension-table-header';
+import { Image } from '@tiptap/extension-image';
+import { TextAlign } from '@tiptap/extension-text-align';
+import { Underline } from '@tiptap/extension-underline';
+import { TextStyle } from '@tiptap/extension-text-style';
+import { Color } from '@tiptap/extension-color';
+import { Highlight } from '@tiptap/extension-highlight';
+import { Link } from '@tiptap/extension-link';
+
+// --- Tiptap 컴포넌트 (학습자 전용 툴바 적용) ---
+const TiptapMenuBar = ({ editor, role }) => {
+  if (!editor) return null;
+  const isManager = role !== 'learner';
+
+  const addImage = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => editor.chain().focus().setImage({ src: e.target.result }).run();
+        reader.readAsDataURL(file);
+      }
+    };
+    input.click();
+  };
+
+  const setLink = () => {
+    const previousUrl = editor.getAttributes('link').href;
+    const url = window.prompt('URL을 입력하세요', previousUrl);
+    if (url === null) return;
+    if (url === '') { editor.chain().focus().extendMarkRange('link').unsetLink().run(); return; }
+    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+  };
+
+  return (
+    <div className="tiptap-toolbar" style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', padding: '8px', borderBottom: '1px solid #ddd' }}>
+      <button type="button" onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} className={editor.isActive('heading', { level: 1 }) ? 'is-active' : ''}>H1</button>
+      <button type="button" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={editor.isActive('heading', { level: 2 }) ? 'is-active' : ''}>H2</button>
+      <button type="button" onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} className={editor.isActive('heading', { level: 3 }) ? 'is-active' : ''}>H3</button>
+      <span className="confirmDivider" style={{ margin: '0 4px', height: '16px', display: 'inline-block', verticalAlign: 'middle' }}></span>
+      
+      <button type="button" onClick={() => editor.chain().focus().toggleBold().run()} className={editor.isActive('bold') ? 'is-active' : ''}><b>B</b></button>
+      <button type="button" onClick={() => editor.chain().focus().toggleUnderline().run()} className={editor.isActive('underline') ? 'is-active' : ''}><u>U</u></button>
+      <input type="color" onInput={event => editor.chain().focus().setColor(event.target.value).run()} value={editor.getAttributes('textStyle').color || '#000000'} title="글자 색상" style={{ width: '24px', height: '24px', padding: 0, cursor: 'pointer' }} />
+      <button type="button" onClick={() => editor.chain().focus().toggleHighlight().run()} className={editor.isActive('highlight') ? 'is-active' : ''}>형광펜</button>
+      <span className="confirmDivider" style={{ margin: '0 4px', height: '16px', display: 'inline-block', verticalAlign: 'middle' }}></span>
+      
+      <button type="button" onClick={() => editor.chain().focus().toggleBulletList().run()} className={editor.isActive('bulletList') ? 'is-active' : ''}>• 리스트</button>
+      <button type="button" onClick={() => editor.chain().focus().toggleOrderedList().run()} className={editor.isActive('orderedList') ? 'is-active' : ''}>1. 리스트</button>
+      <button type="button" onClick={setLink} className={editor.isActive('link') ? 'is-active' : ''}>🔗 링크</button>
+      <button type="button" onClick={addImage}>🖼️ 이미지</button>
+
+      {/* 관리자일 때만 표 구조 변경 버튼 표시 (학습자는 표 내용만 수정 가능) */}
+      {isManager && (
+        <>
+          <span className="confirmDivider" style={{ margin: '0 4px', height: '16px', display: 'inline-block', verticalAlign: 'middle' }}></span>
+          <div style={{ display: 'flex', gap: '2px', background: '#ffebee', padding: '2px 4px', borderRadius: '4px' }}>
+            <button type="button" onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>표 삽입</button>
+            <button type="button" onClick={() => editor.chain().focus().addColumnBefore().run()}>+열 앞</button>
+            <button type="button" onClick={() => editor.chain().focus().addColumnAfter().run()}>+열 뒤</button>
+            <button type="button" onClick={() => editor.chain().focus().deleteColumn().run()} style={{ color: 'red' }}>-열 삭제</button>
+            <button type="button" onClick={() => editor.chain().focus().addRowBefore().run()}>+행 위</button>
+            <button type="button" onClick={() => editor.chain().focus().addRowAfter().run()}>+행 아래</button>
+            <button type="button" onClick={() => editor.chain().focus().deleteRow().run()} style={{ color: 'red' }}>-행 삭제</button>
+            <button type="button" onClick={() => editor.chain().focus().deleteTable().run()} style={{ color: 'red', fontWeight: 'bold' }}>표 전체 삭제</button>
+          </div>
+        </>
+      )}
+    </div>
+  );
 };
 
+const TiptapEditor = ({ value, onChange, role = 'learner' }) => {
+  const editor = useEditor({
+    extensions: [
+      StarterKit, Underline, TextStyle, Color, Highlight, Image.configure({ inline: true, allowBase64: true }), Link.configure({ openOnClick: false }), TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      Table.configure({ resizable: true }), TableRow, TableHeader, TableCell,
+    ],
+    content: value,
+    onUpdate: ({ editor }) => onChange(editor.getHTML()),
+  });
+
+  useEffect(() => {
+    if (editor && value !== editor.getHTML()) { editor.commands.setContent(value, false); }
+  }, [value, editor]);
+
+  return (
+    <div className="tiptap-editor-container" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <TiptapMenuBar editor={editor} role={role} />
+      <div className="tiptap-content-area" style={{ flex: 1, overflowY: 'auto', padding: '16px', backgroundColor: '#fff' }}>
+        <EditorContent editor={editor} />
+      </div>
+    </div>
+  );
+};
+
+// --- 유틸 함수 ---
 const normalizeWeekPlan = (plan) => {
   if (Array.isArray(plan)) return plan;
   if (plan && typeof plan === 'object') return [plan];
@@ -29,50 +122,6 @@ const escapeHtml = (value) => String(value || '')
   .replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;')
   .replace(/'/g, '&#39;');
-
-const syncFormControlValues = (editor) => {
-  const sourceRoot = editor?.editor;
-  if (!sourceRoot) return editor?.value || '';
-
-  const clone = sourceRoot.cloneNode(true);
-  const sourceControls = sourceRoot.querySelectorAll('input, textarea, select');
-  const clonedControls = clone.querySelectorAll('input, textarea, select');
-
-  sourceControls.forEach((source, index) => {
-    const target = clonedControls[index];
-    if (!target) return;
-
-    const tag = source.tagName.toLowerCase();
-    if (tag === 'textarea') {
-      target.textContent = source.value;
-      target.setAttribute('value', source.value);
-      return;
-    }
-
-    if (tag === 'select') {
-      Array.from(target.options).forEach((option, optionIndex) => {
-        if (source.options[optionIndex]?.selected) {
-          option.setAttribute('selected', 'selected');
-        } else {
-          option.removeAttribute('selected');
-        }
-      });
-      return;
-    }
-
-    const type = (source.getAttribute('type') || 'text').toLowerCase();
-    if (type === 'checkbox' || type === 'radio') {
-      if (source.checked) {
-        target.setAttribute('checked', 'checked');
-      } else {
-        target.removeAttribute('checked');
-      }
-    }
-    target.setAttribute('value', source.value);
-  });
-
-  return clone.innerHTML;
-};
 
 const formatDateTime = (value) => {
   if (!value) return '';
@@ -87,6 +136,7 @@ const STATUS_LABEL = {
   resubmit_requested: '재제출 요청됨',
 };
 
+// --- 메인 컴포넌트 ---
 function LearnerCurriculumView({ curriculumDetailRef }) {
   const [curriculums, setCurriculums] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -97,22 +147,11 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
   const [selectedId, setSelectedId] = useState(null);
   const [expandedWeek, setExpandedWeek] = useState(null);
 
-  const [modalState, setModalState] = useState(null); // { curId, week, fullscreen }
+  const [modalState, setModalState] = useState(null);
   const [submitContent, setSubmitContent] = useState('');
-  const [submitFiles, setSubmitFiles] = useState([]); // File[]  메모리 상의 첨부 후보
+  const [submitFiles, setSubmitFiles] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
-  const submitEditorRef = useRef(null);
-  const handleSubmitEditorRef = useCallback((editor) => {
-    submitEditorRef.current = editor;
-  }, []);
-
-  // fullscreen 토글 시 config 객체 reference가 매번 새로 만들어지면 jodit이 reload되면서
-  // 작성 중 내용이 onBlur 전에 사라질 수 있어 useMemo로 안정화 (height만 fullscreen 의존)
-  const joditConfig = useMemo(
-    () => ({ ...JODIT_CONFIG_BASE, height: modalState?.fullscreen ? 600 : 350 }),
-    [modalState?.fullscreen],
-  );
 
   const loadSubmissions = () => {
     return api.get('/task-submissions/my')
@@ -131,35 +170,24 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
   }, []);
 
   useEffect(() => {
-    if (curriculumDetailRef) {
-      curriculumDetailRef.current = Boolean(selectedId);
-    }
-
+    if (curriculumDetailRef) curriculumDetailRef.current = Boolean(selectedId);
     const onPop = () => {
       if (!selectedId) return;
       setSelectedId(null);
       setExpandedWeek(null);
-      if (curriculumDetailRef) {
-        curriculumDetailRef.current = false;
-      }
+      if (curriculumDetailRef) curriculumDetailRef.current = false;
     };
-
     window.addEventListener('popstate', onPop);
     return () => {
       window.removeEventListener('popstate', onPop);
-      if (curriculumDetailRef) {
-        curriculumDetailRef.current = false;
-      }
+      if (curriculumDetailRef) curriculumDetailRef.current = false;
     };
   }, [selectedId, curriculumDetailRef]);
 
   const selected = curriculums.find((c) => c.cur_id === selectedId) || null;
 
-  // 특정 (커리큘럼, 주차)의 가장 최근 제출만 반환
   const getLatestSubmission = (curId, week) => {
-    const matches = submissions.filter(
-      (s) => s.task_curriculum_id === curId && s.task_week_number === week
-    );
+    const matches = submissions.filter((s) => s.task_curriculum_id === curId && s.task_week_number === week);
     if (matches.length === 0) return null;
     return matches.reduce((latest, s) => {
       if (!latest) return s;
@@ -170,11 +198,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
   };
 
   const submittedWeekCount = (curId) => {
-    const set = new Set(
-      submissions
-        .filter((s) => s.task_curriculum_id === curId)
-        .map((s) => s.task_week_number)
-    );
+    const set = new Set(submissions.filter((s) => s.task_curriculum_id === curId).map((s) => s.task_week_number));
     return set.size;
   };
 
@@ -206,15 +230,14 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
         return `${title}${a.template_content}`;
       })
       .join('<hr>');
+      
     setModalState({ curId, week, fullscreen: false });
-    setSubmitContent(initialContent);
+    setSubmitContent(initialContent || '<p>사수가 배포한 양식이 없습니다. 자유롭게 작성해주세요.</p>');
     setSubmitFiles([]);
     setSubmitError(null);
   };
 
-  const toggleSubmitFullscreen = () => {
-    setModalState((prev) => (prev ? { ...prev, fullscreen: !prev.fullscreen } : prev));
-  };
+  const toggleSubmitFullscreen = () => setModalState((prev) => (prev ? { ...prev, fullscreen: !prev.fullscreen } : prev));
 
   const closeSubmitModal = () => {
     if (submitting) return;
@@ -227,7 +250,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
   const handleFileSelect = (event) => {
     const picked = Array.from(event.target.files || []);
     setSubmitFiles((prev) => [...prev, ...picked]);
-    event.target.value = ''; // 같은 파일 다시 선택 가능하게 reset
+    event.target.value = ''; 
   };
 
   const handleFileRemove = (idx) => {
@@ -244,14 +267,17 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
 
   const handleSubmit = async () => {
     if (!modalState) return;
-    const latestContent = syncFormControlValues(submitEditorRef.current) || submitContent;
-    const trimmed = (latestContent || '').replace(/<p><br><\/p>/g, '').trim();
+    // Tiptap은 HTML 문자열 자체를 관리하므로 별도의 DOM 복제/동기화(syncFormControlValues)가 필요 없습니다.
+    const trimmed = (submitContent || '').replace(/<p><br><\/p>/g, '').trim();
+    
     if (!trimmed && submitFiles.length === 0) {
       setSubmitError('작성 내용이나 첨부파일 중 하나는 있어야 합니다.');
       return;
     }
+    
     setSubmitting(true);
     setSubmitError(null);
+    
     try {
       const res = await api.post('/task-submissions', {
         task_curriculum_id: modalState.curId,
@@ -260,29 +286,21 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
       });
       const submissionId = res.data?.task_submission_id;
 
-      // 첨부파일 순차 업로드 (한 파일이라도 실패하면 사용자에게 알림)
       const failures = [];
       for (const file of submitFiles) {
         const formData = new FormData();
         formData.append('file', file);
         try {
-          await api.post(
-            `/task-submissions/${submissionId}/attachments`,
-            formData,
-            { headers: { 'Content-Type': 'multipart/form-data' } },
-          );
+          await api.post(`/task-submissions/${submissionId}/attachments`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
         } catch (err) {
           failures.push(`${file.name}: ${err.response?.data?.detail || '업로드 실패'}`);
         }
       }
+      
       await loadSubmissions();
-      if (failures.length > 0) {
-        alert(`제출은 완료됐지만 일부 첨부 업로드에 실패했습니다:\n${failures.join('\n')}`);
-      }
-      setModalState(null);
-      setSubmitContent('');
-      setSubmitFiles([]);
-      setSubmitError(null);
+      if (failures.length > 0) alert(`제출은 완료됐지만 일부 첨부 업로드에 실패했습니다:\n${failures.join('\n')}`);
+      
+      closeSubmitModal();
     } catch (err) {
       setSubmitError(err.response?.data?.detail || '제출에 실패했습니다.');
     } finally {
@@ -290,61 +308,35 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
     }
   };
 
-  // ===== 목록 =====
+  // ===== 목록 View =====
   if (!selected) {
     return (
       <div className="curriculumPageContainer">
         <h2 className="sectionTitle">내 학습 커리큘럼</h2>
-
         {loading && <p className="learnerInlineHint">커리큘럼을 불러오는 중...</p>}
         {error && <p className="learnerInlineError">{error}</p>}
         {!loading && !error && curriculums.length === 0 && (
-          <p className="learnerInlineMuted">
-            배정된 커리큘럼이 아직 없습니다. 매니저가 커리큘럼을 배정해주면 여기에 표시됩니다.
-          </p>
+          <p className="learnerInlineMuted">배정된 커리큘럼이 아직 없습니다. 매니저가 커리큘럼을 배정해주면 여기에 표시됩니다.</p>
         )}
-
         <div className="learnerCurriculumGrid">
           {curriculums.map((c) => {
             const weeks = normalizeWeekPlan(c.cur_week_plan).length || c.cur_duration_weeks || 0;
             const submitted = submittedWeekCount(c.cur_id);
             const progress = weeks > 0 ? Math.round((submitted / weeks) * 100) : 0;
             return (
-              <div
-                key={c.cur_id}
-                className="learnerCurriculumCard"
-                onClick={() => handleSelect(c.cur_id)}
-              >
+              <div key={c.cur_id} className="learnerCurriculumCard" onClick={() => handleSelect(c.cur_id)}>
                 <div className="learnerCurriculumCardHeader">
-                  <p className="learnerCurriculumCardSubtitle">
-                    {c.cur_target_industry || '-'} · {c.cur_target_job || '-'}
-                  </p>
+                  <p className="learnerCurriculumCardSubtitle">{c.cur_target_industry || '-'} · {c.cur_target_job || '-'}</p>
                   <h3 className="learnerCurriculumCardTitle">{c.cur_title}</h3>
                 </div>
-
                 <div className="learnerCurriculumCardMeta">
                   <span className="learnerCurriculumCardBadge">{weeks}주 과정</span>
-                  {c.cur_status === 'active' && (
-                    <span className="learnerCurriculumCardBadge active">진행 중</span>
-                  )}
-                  <span className="learnerCurriculumCardBadge">
-                    제출 {submitted}/{weeks}
-                  </span>
+                  {c.cur_status === 'active' && <span className="learnerCurriculumCardBadge active">진행 중</span>}
+                  <span className="learnerCurriculumCardBadge">제출 {submitted}/{weeks}</span>
                 </div>
-
-                <div className="learnerProgressBar">
-                  <div className="learnerProgressFill" style={{ width: `${progress}%` }} />
-                </div>
-
-                {c.cur_learning_goal && (
-                  <p className="learnerCurriculumCardGoal">
-                    🎯 {c.cur_learning_goal}
-                  </p>
-                )}
-
-                <div className="learnerCurriculumCardFooter">
-                  주차별 학습 보기 →
-                </div>
+                <div className="learnerProgressBar"><div className="learnerProgressFill" style={{ width: `${progress}%` }} /></div>
+                {c.cur_learning_goal && <p className="learnerCurriculumCardGoal">🎯 {c.cur_learning_goal}</p>}
+                <div className="learnerCurriculumCardFooter">주차별 학습 보기 →</div>
               </div>
             );
           })}
@@ -353,7 +345,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
     );
   }
 
-  // ===== 상세 =====
+  // ===== 상세 View =====
   const weekPlan = normalizeWeekPlan(selected.cur_week_plan);
   const totalWeeks = weekPlan.length || selected.cur_duration_weeks;
   const submittedCount = submittedWeekCount(selected.cur_id);
@@ -364,33 +356,22 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
       <button className="authorBackBtn" onClick={handleBack}>← 커리큘럼 목록으로</button>
 
       <div className="learnerDetailHeader">
-        <p className="learnerDetailSubtitle">
-          {selected.cur_target_industry || '-'} · {selected.cur_target_job || '-'} · {totalWeeks}주 과정
-        </p>
+        <p className="learnerDetailSubtitle">{selected.cur_target_industry || '-'} · {selected.cur_target_job || '-'} · {totalWeeks}주 과정</p>
         <h2 className="learnerDetailTitle">{selected.cur_title}</h2>
-        {selected.cur_learning_goal && (
-          <p className="learnerDetailGoal">🎯 {selected.cur_learning_goal}</p>
-        )}
+        {selected.cur_learning_goal && <p className="learnerDetailGoal">🎯 {selected.cur_learning_goal}</p>}
         <div className="learnerDetailProgress">
-          <div className="learnerProgressBar">
-            <div className="learnerProgressFill" style={{ width: `${progress}%` }} />
-          </div>
+          <div className="learnerProgressBar"><div className="learnerProgressFill" style={{ width: `${progress}%` }} /></div>
           <span className="learnerDetailProgressText">{submittedCount} / {totalWeeks} 주차 제출 ({progress}%)</span>
         </div>
       </div>
 
-      {/* 주차별 스텝퍼 */}
       <div className="learnerWeekStepper">
         {weekPlan.map((step) => {
           const sub = getLatestSubmission(selected.cur_id, step.week);
           const isActive = expandedWeek === step.week;
           const stateClass = sub ? `submitted ${sub.task_status || ''}` : '';
           return (
-            <button
-              key={step.week}
-              className={`learnerWeekStep ${isActive ? 'active' : ''} ${stateClass}`}
-              onClick={() => toggleWeek(step.week)}
-            >
+            <button key={step.week} className={`learnerWeekStep ${isActive ? 'active' : ''} ${stateClass}`} onClick={() => toggleWeek(step.week)}>
               <span className="learnerWeekStepNum">{step.week}</span>
               <span className="learnerWeekStepLabel">주차</span>
               {sub && <span className="learnerWeekStepDot" />}
@@ -399,33 +380,23 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
         })}
       </div>
 
-      {/* 주차별 아코디언 */}
       <div className="learnerWeekList">
-        {weekPlan.length === 0 && (
-          <p className="learnerInlineMuted">주차별 계획이 아직 없습니다.</p>
-        )}
-
+        {weekPlan.length === 0 && <p className="learnerInlineMuted">주차별 계획이 아직 없습니다.</p>}
         {weekPlan.map((step) => {
           const isExpanded = expandedWeek === step.week;
           const tasks = step.tasks || step.task;
           const sub = getLatestSubmission(selected.cur_id, step.week);
           const canResubmit = !sub || sub.task_status === 'resubmit_requested';
+          
           return (
             <div key={step.week} className="learnerWeekCard">
-              <div
-                className="learnerWeekCardHeader"
-                onClick={() => toggleWeek(step.week)}
-              >
+              <div className="learnerWeekCardHeader" onClick={() => toggleWeek(step.week)}>
                 <div>
                   <span className="learnerWeekCardWeek">{step.week}주차</span>
                   <span className="learnerWeekCardTheme">{step.theme || '주제 미지정'}</span>
                 </div>
                 <div className="learnerWeekCardHeaderRight">
-                  {sub && (
-                    <span className={`learnerWeekStatusBadge ${sub.task_status || ''}`}>
-                      {STATUS_LABEL[sub.task_status] || '제출됨'}
-                    </span>
-                  )}
+                  {sub && <span className={`learnerWeekStatusBadge ${sub.task_status || ''}`}>{STATUS_LABEL[sub.task_status] || '제출됨'}</span>}
                   <span className="learnerWeekCardToggle">{isExpanded ? '▲' : '▼'}</span>
                 </div>
               </div>
@@ -438,94 +409,57 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
                       <p className="learnerWeekSectionText">{step.learning_objective}</p>
                     </section>
                   )}
-
                   {tasks && (
                     <section className="learnerWeekSection">
                       <h4 className="learnerWeekSectionTitle">📚 실습 과제</h4>
                       {Array.isArray(tasks) ? (
-                        <ul className="learnerWeekSectionList">
-                          {tasks.map((t, i) => <li key={i}>{t}</li>)}
-                        </ul>
+                        <ul className="learnerWeekSectionList">{tasks.map((t, i) => <li key={i}>{t}</li>)}</ul>
                       ) : (
                         <p className="learnerWeekSectionText">{tasks}</p>
                       )}
                     </section>
                   )}
-
                   {Array.isArray(step.recommended_articles) && step.recommended_articles.length > 0 && (
                     <section className="learnerWeekSection">
                       <h4 className="learnerWeekSectionTitle">📖 추천 자료</h4>
                       {step.recommended_articles.map((article, i) => {
-                        const targetUrl = article.url && article.url.trim() !== ''
-                          ? article.url
-                          : `https://www.google.com/search?q=${encodeURIComponent(article.title || '')}`;
+                        const targetUrl = article.url && article.url.trim() !== '' ? article.url : `https://www.google.com/search?q=${encodeURIComponent(article.title || '')}`;
                         return (
                           <div key={i} className="learnerWeekArticle">
-                            <a
-                              href={targetUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="learnerWeekArticleLink"
-                            >
-                              {article.url && article.url.trim() !== '' ? '🔗 ' : '🔍 '}
-                              {article.title}
+                            <a href={targetUrl} target="_blank" rel="noopener noreferrer" className="learnerWeekArticleLink">
+                              {article.url && article.url.trim() !== '' ? '🔗 ' : '🔍 '}{article.title}
                             </a>
-                            {article.why_relevant && (
-                              <p className="learnerWeekArticleReason">- {article.why_relevant}</p>
-                            )}
+                            {article.why_relevant && <p className="learnerWeekArticleReason">- {article.why_relevant}</p>}
                           </div>
                         );
                       })}
                     </section>
                   )}
-
-                  {Array.isArray(step.success_criteria) && step.success_criteria.length > 0 && (
-                    <section className="learnerWeekSection">
-                      <h4 className="learnerWeekSectionTitle">✅ 체크리스트</h4>
-                      <ul className="learnerWeekSectionList">
-                        {step.success_criteria.map((c, i) => <li key={i}>{c}</li>)}
-                      </ul>
-                    </section>
-                  )}
-
-                  {/* 본인 제출 내역 */}
+                  
                   {sub && (
                     <section className="learnerWeekSubmission">
                       <h4 className="learnerWeekSectionTitle">📝 내 제출</h4>
-                      <p className="learnerWeekSubmissionMeta">
-                        제출일: {formatDateTime(sub.task_submitted_at)}
-                      </p>
-                      <div
-                        className="learnerWeekSubmissionBody"
-                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(sub.task_submitted_content?.text) || '(내용 없음)' }}
-                      />
-
+                      <p className="learnerWeekSubmissionMeta">제출일: {formatDateTime(sub.task_submitted_at)}</p>
+                      <div className="learnerWeekSubmissionBody" dangerouslySetInnerHTML={{ __html: sanitizeHtml(sub.task_submitted_content?.text) || '(내용 없음)' }} />
+                      
                       {Array.isArray(sub.task_submitted_content?.attachments) && sub.task_submitted_content.attachments.length > 0 && (
                         <div className="learnerWeekSubmissionAttachments">
                           <h5 className="learnerWeekFeedbackTitle">📎 첨부파일</h5>
                           <ul className="learnerSubmitAttachmentList">
                             {sub.task_submitted_content.attachments.map((a, i) => (
                               <li key={i} className="learnerSubmitAttachmentItem">
-                                <button
-                                  type="button"
-                                  className="learnerSubmitAttachmentLink"
-                                  onClick={() => handleAttachmentDownload(sub.task_submission_id, a)}
-                                >
-                                  {a.filename || a.stored_name}
-                                </button>
+                                <button type="button" className="learnerSubmitAttachmentLink" onClick={() => handleAttachmentDownload(sub.task_submission_id, a)}>{a.filename || a.stored_name}</button>
                                 <span className="learnerSubmitAttachmentSize">{formatBytes(a.size)}</span>
                               </li>
                             ))}
                           </ul>
                         </div>
                       )}
-
+                      
                       {sub.task_manager_feedback ? (
                         <div className="learnerWeekFeedback">
                           <h5 className="learnerWeekFeedbackTitle">🗨 매니저 피드백</h5>
-                          <p className="learnerWeekFeedbackMeta">
-                            {formatDateTime(sub.task_feedback_at)}
-                          </p>
+                          <p className="learnerWeekFeedbackMeta">{formatDateTime(sub.task_feedback_at)}</p>
                           <p className="learnerWeekFeedbackBody">{sub.task_manager_feedback}</p>
                         </div>
                       ) : (
@@ -535,16 +469,15 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
                   )}
 
                   <div className="learnerWeekFooter">
-                    {step.estimated_hours && (
-                      <span className="learnerWeekBadge">⏱ 예상 {step.estimated_hours}시간</span>
-                    )}
+                    {step.estimated_hours && <span className="learnerWeekBadge">⏱ 예상 {step.estimated_hours}시간</span>}
+                    {/* 과제 작성 모달을 여는 버튼 */}
                     <button
                       className="learnerWeekSubmitBtn"
                       onClick={() => openSubmitModal(selected.cur_id, step.week)}
                       disabled={!canResubmit}
                       title={canResubmit ? '과제 제출' : '이미 제출 완료 (재제출 요청 시 다시 활성화됩니다)'}
                     >
-                      {sub ? (canResubmit ? '재제출하기' : '제출 완료') : '과제 제출하기'}
+                      {sub ? (canResubmit ? '재제출하기' : '제출 완료') : '과제 작성하기'}
                     </button>
                   </div>
                 </div>
@@ -554,94 +487,70 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
         })}
       </div>
 
-      {/* 제출 모달 */}
-      {modalState && (() => {
-        return (
-          <>
-            <div className="emailModalOverlay" onClick={closeSubmitModal} />
-            <div className={`emailModal learnerSubmitModal ${modalState.fullscreen ? 'fullscreen' : ''}`}>
-              <div className="emailModalHeader">
-                <div className="learnerSubmitModalTitle">
-                  {modalState.week}주차 과제 제출
-                </div>
-                <div className="learnerSubmitModalHeaderActions">
-                  <button
-                    type="button"
-                    className="learnerSubmitFullscreenBtn"
-                    onClick={toggleSubmitFullscreen}
-                    disabled={submitting}
-                  >
-                    {modalState.fullscreen ? '✕ 축소' : '⛶ 전체보기'}
-                  </button>
-                  <button className="emailModalClose" onClick={closeSubmitModal} disabled={submitting}>✕</button>
-                </div>
-              </div>
-              <div className="emailModalDivider" />
-
-              <div className="emailModalBody learnerSubmitModalBody">
-                {/* 본문 작성 (JoditEditor) */}
-                <section className="learnerSubmitEditorSection">
-                  <h4 className="learnerSubmitSectionTitle">📝 과제 작성</h4>
-                  <p className="learnerSubmitSectionHint">사수가 배포한 양식이 에디터에 자동 적용되어 있습니다.</p>
-                  <div className="learnerSubmitEditorWrapper">
-                    <JoditEditor
-                      value={submitContent}
-                      config={joditConfig}
-                      editorRef={handleSubmitEditorRef}
-                      onChange={(newContent) => setSubmitContent(newContent)}
-                      onBlur={(newContent) => setSubmitContent(newContent)}
-                    />
-                  </div>
-                </section>
-
-                {/* 첨부파일 */}
-                <section className="learnerSubmitAttachmentSection">
-                  <h4 className="learnerSubmitSectionTitle">📎 첨부파일</h4>
-                  <label className="learnerSubmitAttachmentPicker">
-                    <input
-                      type="file"
-                      multiple
-                      onChange={handleFileSelect}
-                      disabled={submitting}
-                    />
-                    <span>+ 파일 추가</span>
-                  </label>
-                  {submitFiles.length > 0 && (
-                    <ul className="learnerSubmitFileList">
-                      {submitFiles.map((f, i) => (
-                        <li key={i} className="learnerSubmitFileItem">
-                          <span className="learnerSubmitFileName">{f.name}</span>
-                          <span className="learnerSubmitFileSize">{formatBytes(f.size)}</span>
-                          <button
-                            type="button"
-                            className="learnerSubmitFileRemove"
-                            onClick={() => handleFileRemove(i)}
-                            disabled={submitting}
-                          >삭제</button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </section>
-              </div>
-
-              {submitError && (
-                <p className="emailingError learnerSubmitError">{submitError}</p>
-              )}
-
-              <div className="emailModalFooter">
-                <button
-                  className="emailSendBtn"
-                  onClick={handleSubmit}
-                  disabled={submitting}
-                >
-                  {submitting ? '제출 중...' : '제출하기'}
+      {/* Tiptap 에디터가 탑재된 과제 제출 모달 */}
+      {modalState && (
+        <>
+          <div className="emailModalOverlay" onClick={closeSubmitModal} />
+          {/* Flex 레이아웃을 통해 버튼이 에디터에 밀리지 않도록 구성 */}
+          <div className={`emailModal learnerSubmitModal ${modalState.fullscreen ? 'fullscreen' : ''}`} style={{ display: 'flex', flexDirection: 'column', maxHeight: '90vh', overflow: 'hidden' }}>
+            <div className="emailModalHeader" style={{ flexShrink: 0 }}>
+              <div className="learnerSubmitModalTitle">{modalState.week}주차 과제 작성</div>
+              <div className="learnerSubmitModalHeaderActions">
+                <button type="button" className="learnerSubmitFullscreenBtn" onClick={toggleSubmitFullscreen} disabled={submitting}>
+                  {modalState.fullscreen ? '✕ 축소' : '⛶ 전체보기'}
                 </button>
+                <button className="emailModalClose" onClick={closeSubmitModal} disabled={submitting}>✕</button>
               </div>
             </div>
-          </>
-        );
-      })()}
+            
+            <div className="emailModalDivider" style={{ flexShrink: 0 }} />
+
+            <div className="emailModalBody learnerSubmitModalBody" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+              <section className="learnerSubmitEditorSection" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '300px' }}>
+                <h4 className="learnerSubmitSectionTitle">📝 과제 작성</h4>
+                <p className="learnerSubmitSectionHint" style={{ marginBottom: '8px', fontSize: '13px', color: '#666' }}>
+                  사수가 배포한 양식의 표 빈칸을 채워주세요. (표의 구조는 변경할 수 없습니다)
+                </p>
+                <div className="learnerSubmitEditorWrapper" style={{ flex: 1, border: '1px solid #ccc', borderRadius: '4px', overflow: 'hidden' }}>
+                  {/* ✨ 새로 만든 Tiptap 에디터를 역할(role="learner")과 함께 렌더링 */}
+                  <TiptapEditor 
+                    role="learner" 
+                    value={submitContent} 
+                    onChange={setSubmitContent} 
+                  />
+                </div>
+              </section>
+
+              <section className="learnerSubmitAttachmentSection" style={{ flexShrink: 0, marginTop: '16px' }}>
+                <h4 className="learnerSubmitSectionTitle">📎 첨부파일</h4>
+                <label className="learnerSubmitAttachmentPicker">
+                  <input type="file" multiple onChange={handleFileSelect} disabled={submitting} />
+                  <span>+ 파일 추가</span>
+                </label>
+                {submitFiles.length > 0 && (
+                  <ul className="learnerSubmitFileList">
+                    {submitFiles.map((f, i) => (
+                      <li key={i} className="learnerSubmitFileItem">
+                        <span className="learnerSubmitFileName">{f.name}</span>
+                        <span className="learnerSubmitFileSize">{formatBytes(f.size)}</span>
+                        <button type="button" className="learnerSubmitFileRemove" onClick={() => handleFileRemove(i)} disabled={submitting}>삭제</button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            </div>
+
+            {submitError && <p className="emailingError learnerSubmitError" style={{ flexShrink: 0 }}>{submitError}</p>}
+
+            <div className="emailModalFooter" style={{ flexShrink: 0, paddingTop: '16px', borderTop: '1px solid #eee' }}>
+              <button className="emailSendBtn" onClick={handleSubmit} disabled={submitting}>
+                {submitting ? '제출 중...' : '최종 제출하기'}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -12,23 +12,75 @@ import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
+import { Image } from '@tiptap/extension-image';
+import { TextAlign } from '@tiptap/extension-text-align';
+import { Underline } from '@tiptap/extension-underline';
+import { TextStyle } from '@tiptap/extension-text-style';
+import { Color } from '@tiptap/extension-color';
+import { Highlight } from '@tiptap/extension-highlight';
+import { Link } from '@tiptap/extension-link';
 
-// --- Tiptap Editor 내부 서브 컴포넌트 ---
+// --- 관리자용 Tiptap Editor 서브 컴포넌트 ---
 const TiptapMenuBar = ({ editor }) => {
   if (!editor) return null;
+
+  const addImage = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => editor.chain().focus().setImage({ src: e.target.result }).run();
+        reader.readAsDataURL(file);
+      }
+    };
+    input.click();
+  };
+
+  const setLink = () => {
+    const previousUrl = editor.getAttributes('link').href;
+    const url = window.prompt('URL을 입력하세요', previousUrl);
+    if (url === null) return;
+    if (url === '') { editor.chain().focus().extendMarkRange('link').unsetLink().run(); return; }
+    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+  };
+
   return (
-    <div className="tiptap-toolbar">
-      <button type="button" onClick={() => editor.chain().focus().toggleBold().run()} className={editor.isActive('bold') ? 'is-active' : ''}><b>B</b></button>
-      <button type="button" onClick={() => editor.chain().focus().toggleItalic().run()} className={editor.isActive('italic') ? 'is-active' : ''}><i>I</i></button>
-      <button type="button" onClick={() => editor.chain().focus().toggleStrike().run()} className={editor.isActive('strike') ? 'is-active' : ''}><s>S</s></button>
+    <div className="tiptap-toolbar" style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', padding: '8px', borderBottom: '1px solid #ddd' }}>
+      <button type="button" onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} className={editor.isActive('heading', { level: 1 }) ? 'is-active' : ''}>H1</button>
+      <button type="button" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={editor.isActive('heading', { level: 2 }) ? 'is-active' : ''}>H2</button>
+      <button type="button" onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} className={editor.isActive('heading', { level: 3 }) ? 'is-active' : ''}>H3</button>
       <span className="confirmDivider" style={{ margin: '0 4px', height: '16px', display: 'inline-block', verticalAlign: 'middle' }}></span>
+      
+      <button type="button" onClick={() => editor.chain().focus().toggleBold().run()} className={editor.isActive('bold') ? 'is-active' : ''}><b>B</b></button>
+      <button type="button" onClick={() => editor.chain().focus().toggleUnderline().run()} className={editor.isActive('underline') ? 'is-active' : ''}><u>U</u></button>
+      <input type="color" onInput={event => editor.chain().focus().setColor(event.target.value).run()} value={editor.getAttributes('textStyle').color || '#000000'} title="글자 색상" style={{ width: '24px', height: '24px', padding: 0, cursor: 'pointer' }} />
+      <button type="button" onClick={() => editor.chain().focus().toggleHighlight().run()} className={editor.isActive('highlight') ? 'is-active' : ''}>형광펜</button>
+      <span className="confirmDivider" style={{ margin: '0 4px', height: '16px', display: 'inline-block', verticalAlign: 'middle' }}></span>
+      
+      <button type="button" onClick={() => editor.chain().focus().setTextAlign('left').run()} className={editor.isActive({ textAlign: 'left' }) ? 'is-active' : ''}>왼쪽</button>
+      <button type="button" onClick={() => editor.chain().focus().setTextAlign('center').run()} className={editor.isActive({ textAlign: 'center' }) ? 'is-active' : ''}>가운데</button>
+      <span className="confirmDivider" style={{ margin: '0 4px', height: '16px', display: 'inline-block', verticalAlign: 'middle' }}></span>
+
       <button type="button" onClick={() => editor.chain().focus().toggleBulletList().run()} className={editor.isActive('bulletList') ? 'is-active' : ''}>• 리스트</button>
       <button type="button" onClick={() => editor.chain().focus().toggleOrderedList().run()} className={editor.isActive('orderedList') ? 'is-active' : ''}>1. 리스트</button>
+      <button type="button" onClick={setLink} className={editor.isActive('link') ? 'is-active' : ''}>🔗 링크</button>
+      <button type="button" onClick={addImage}>🖼️ 이미지</button>
       <span className="confirmDivider" style={{ margin: '0 4px', height: '16px', display: 'inline-block', verticalAlign: 'middle' }}></span>
-      <button type="button" onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>표 삽입</button>
-      <button type="button" onClick={() => editor.chain().focus().deleteTable().run()}>표 삭제</button>
-      <button type="button" onClick={() => editor.chain().focus().addColumnBefore().run()}>열 추가</button>
-      <button type="button" onClick={() => editor.chain().focus().addRowBefore().run()}>행 추가</button>
+
+      {/* 관리자용 표 구조 변경 툴 */}
+      <div style={{ display: 'flex', gap: '2px', background: '#ffebee', padding: '2px 4px', borderRadius: '4px' }}>
+        <button type="button" onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>표 삽입</button>
+        <button type="button" onClick={() => editor.chain().focus().addColumnBefore().run()}>+열 앞</button>
+        <button type="button" onClick={() => editor.chain().focus().addColumnAfter().run()}>+열 뒤</button>
+        <button type="button" onClick={() => editor.chain().focus().deleteColumn().run()} style={{ color: 'red' }}>-열 삭제</button>
+        <button type="button" onClick={() => editor.chain().focus().addRowBefore().run()}>+행 위</button>
+        <button type="button" onClick={() => editor.chain().focus().addRowAfter().run()}>+행 아래</button>
+        <button type="button" onClick={() => editor.chain().focus().deleteRow().run()} style={{ color: 'red' }}>-행 삭제</button>
+        <button type="button" onClick={() => editor.chain().focus().deleteTable().run()} style={{ color: 'red', fontWeight: 'bold' }}>표 전체 삭제</button>
+      </div>
     </div>
   );
 };
@@ -36,39 +88,29 @@ const TiptapMenuBar = ({ editor }) => {
 const TiptapEditor = ({ value, onChange, heightMode }) => {
   const editor = useEditor({
     extensions: [
-      StarterKit,
-      Table.configure({ resizable: true }),
-      TableRow,
-      TableHeader,
-      TableCell,
+      StarterKit, Underline, TextStyle, Color, Highlight, Image.configure({ inline: true, allowBase64: true }), Link.configure({ openOnClick: false }), TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      Table.configure({ resizable: true }), TableRow, TableHeader, TableCell,
     ],
     content: value,
-    onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
-    },
+    onUpdate: ({ editor }) => onChange(editor.getHTML()),
   });
 
-  // ✨ 핵심 수정: 외부(AI 재작성)에서 value가 들어오면 에디터 내용 동기화 (덮어쓰기)
   useEffect(() => {
-    if (editor && value !== editor.getHTML()) {
-      editor.commands.setContent(value, false);
-    }
+    if (editor && value !== editor.getHTML()) { editor.commands.setContent(value, false); }
   }, [value, editor]);
 
   return (
-    <div className="tiptap-editor-container">
+    <div className="tiptap-editor-container" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <TiptapMenuBar editor={editor} />
-      <div className={`tiptap-content-area ${heightMode}`}>
+      <div className={`tiptap-content-area ${heightMode}`} style={{ flex: 1, overflowY: 'auto', padding: '16px', backgroundColor: '#fff' }}>
         <EditorContent editor={editor} />
       </div>
     </div>
   );
 };
 
-const initialForm = {
-  cur_title: '', cur_duration_weeks: 4, cur_target_job: '', cur_target_industry: '', cur_learning_goal: '', required_content: '',
-};
-const formatTasks = (tasks) => { if (Array.isArray(tasks)) return tasks.join(', '); if (typeof tasks === 'string') return tasks; return ''; };
+// --- 유틸 및 초기값 ---
+const initialForm = { cur_title: '', cur_duration_weeks: 4, cur_target_job: '', cur_target_industry: '', cur_learning_goal: '', required_content: '' };
 const normalizeWeekPlan = (plan) => { if (Array.isArray(plan)) return plan; if (plan && typeof plan === 'object') return [plan]; return []; };
 const buildGeneratePayload = (form) => ({
   cur_title: form.cur_title.trim(), cur_duration_weeks: Number(form.cur_duration_weeks), cur_target_job: form.cur_target_job.trim() || null,
@@ -104,8 +146,8 @@ function CurriculumView({ onOpenArticle }) {
   const [feedbackSavingId, setFeedbackSavingId] = useState(null);
   const [expandedSubmissionId, setExpandedSubmissionId] = useState(null);
 
+  // 학습자 과제 제출(submissionModal)은 삭제됨. 관리자용 양식 배포 모달(templateModal)만 유지.
   const [templateModal, setTemplateModal] = useState({ open: false, week: null, assignmentIdx: null, title: '', content: '', fullscreen: false, generating: false }); 
-  const [submissionModal, setSubmissionModal] = useState({ open: false, week: null, assignmentIdx: null, title: '', templateContent: '', content: '', status: 'draft' });
 
   const loadCurriculums = () => {
     setLoading(true); setError(null);
@@ -258,7 +300,6 @@ function CurriculumView({ onOpenArticle }) {
     }
   };
 
-  // ✨ AI 재생성 버튼 로직
   const handleRegenerateTemplate = async () => {
     if (!selectedCurriculum) return;
     const weekPlan = normalizeWeekPlan(selectedCurriculum.cur_week_plan);
@@ -275,7 +316,6 @@ function CurriculumView({ onOpenArticle }) {
         step_by_step_guide: assignment.step_by_step_guide || [],
         expected_output_format: assignment.expected_output_format || assignment.submission || '지정되지 않음'
       });
-      // 성공 시 새로운 컨텐츠로 덮어쓰고, 생성 모드 종료
       setTemplateModal(prev => ({ ...prev, content: res.data.template_content, generating: false }));
     } catch (err) {
       alert('AI 템플릿 재생성에 실패했습니다.');
@@ -283,24 +323,10 @@ function CurriculumView({ onOpenArticle }) {
     }
   };
 
-  const openSubmissionModal = (week, idx, assignment) => {
-    setSubmissionModal({
-      open: true, week, assignmentIdx: idx, title: assignment.title,
-      templateContent: assignment.template_content || '',
-      content: assignment.template_content || '<p>사수가 작성한 템플릿 내용 및 가이드가 이곳에 표시됩니다.</p>', 
-      status: 'draft'
-    });
-  };
-
-  const saveSubmission = async (isSubmit) => {
-    if (isSubmit) alert('과제가 최종 제출되었습니다.'); else alert('작성 중인 내용이 임시 저장되었습니다.');
-    setSubmissionModal({ ...submissionModal, open: false });
-  };
-
   const openTemplateModal = (week, idx, assignment) => {
     setTemplateModal({
       open: true, week, assignmentIdx: idx, title: assignment.title,
-      content: assignment.template_content || `<h3>[${assignment.title}]</h3><p>관련 과제 양식을 자유롭게 작성해주세요.</p><p>1. 핵심 지표:</p><p>2. 분석 결과:</p><p>3. 향후 전략:</p>`,
+      content: assignment.template_content || `<h3>[${assignment.title}]</h3><p>관련 과제 양식을 자유롭게 작성해주세요.</p>`,
       generating: false, fullscreen: false
     });
   };
@@ -346,8 +372,8 @@ function CurriculumView({ onOpenArticle }) {
                       <div className="extracted-submission-format has-actions">
                         <span>제출 형태: {a.expected_output_format || a.submission || '지정되지 않음'}</span>
                         <div className="templateActionBtnGroup">
+                          {/* 학습자용 버튼 삭제됨. 템플릿 배포(관리자용) 버튼만 남음. */}
                           <button className="template-action-btn admin" onClick={(e) => { e.stopPropagation(); openTemplateModal(step.week, idx, a); }}>양식 배포(관리자)</button>
-                          <button className="template-action-btn user" onClick={(e) => { e.stopPropagation(); openSubmissionModal(step.week, idx, a); }}>과제 작성(학습자)</button>
                         </div>
                       </div>
                     </div>
@@ -420,28 +446,20 @@ function CurriculumView({ onOpenArticle }) {
             <div className="curriculumSidebarDivider" />
             <ul className="curriculumSidebarList">
               {curriculums.map((c) => (
-                <li
-                  key={c.cur_id}
-                  className={`curriculumSidebarItem ${selectedId === c.cur_id ? 'active' : ''}`}
-                  onClick={() => { setSelectedId(c.cur_id); setDetailExpandedWeek(null); }}
-                >
+                <li key={c.cur_id} className={`curriculumSidebarItem ${selectedId === c.cur_id ? 'active' : ''}`} onClick={() => { setSelectedId(c.cur_id); setDetailExpandedWeek(null); }}>
                   {c.cur_title}
                 </li>
               ))}
             </ul>
             <button className="curriculumSidebarAddBtn" onClick={() => setModalOpen(true)}>+ 새 커리큘럼</button>
           </aside>
+          
           <div className="curriculumDetail">
             <div className="extracted-detail-header">
               <div className="curriculumTitleGroup">
                 <div className="curriculumTitleRow">
                   <h3 className="curriculumDetailTitle">{selectedCurriculum.cur_title}</h3>
-                  <img
-                    src={curri_nulll}
-                    alt="다운로드"
-                    className="downloadIcon"
-                    onClick={() => setDownloadModalOpen(true)}
-                  />
+                  <img src={curri_nulll} alt="다운로드" className="downloadIcon" onClick={() => setDownloadModalOpen(true)} />
                 </div>
                 <p className="curriculumDetailDesc">{selectedCurriculum.cur_learning_goal || ''}</p>
               </div>
@@ -453,17 +471,14 @@ function CurriculumView({ onOpenArticle }) {
                   const l = learners.find((x) => x.user_id === id);
                   return <span key={id} className="assignedLearnerChip">{l ? l.user_name : `#${id}`}</span>;
                 })}
-              <button
-                className="assignedLearnersEditBtn"
-                onClick={() => { setAssignSelected(selectedCurriculum.cur_assigned_learner_ids || []); setAssignModalOpen(true); }}
-              >
-                변경
-              </button>
+              <button className="assignedLearnersEditBtn" onClick={() => { setAssignSelected(selectedCurriculum.cur_assigned_learner_ids || []); setAssignModalOpen(true); }}>변경</button>
             </div>
+            
             <div className="curriculumSteps">
               {normalizeWeekPlan(selectedCurriculum.cur_week_plan).map((step) => renderAccordionItem(step, detailExpandedWeek, (week) => setDetailExpandedWeek(prev => prev === week ? null : week)))}
             </div>
           </div>
+          
           <div className="managerSubmissionSection">
             <div className="managerSubmissionHeader">
               <h3 className="managerSubmissionTitle">제출된 과제</h3>
@@ -501,13 +516,7 @@ function CurriculumView({ onOpenArticle }) {
                             <ul className="managerSubmissionAttachmentList">
                               {s.task_submitted_content.attachments.map((a, i) => (
                                 <li key={i} className="managerSubmissionAttachmentItem">
-                                  <button
-                                    type="button"
-                                    className="managerSubmissionAttachmentLink"
-                                    onClick={() => handleAttachmentDownload(s.task_submission_id, a)}
-                                  >
-                                    {a.filename || a.stored_name}
-                                  </button>
+                                  <button type="button" className="managerSubmissionAttachmentLink" onClick={() => handleAttachmentDownload(s.task_submission_id, a)}>{a.filename || a.stored_name}</button>
                                   <span className="managerSubmissionAttachmentSize">{formatBytes(a.size)}</span>
                                 </li>
                               ))}
@@ -538,6 +547,7 @@ function CurriculumView({ onOpenArticle }) {
         </div>
       )}
 
+      {/* 모달: 커리큘럼 생성 */}
       {modalOpen && (
         <>
           <div className="chatModalOverlay" onClick={closeModal} />
@@ -570,6 +580,7 @@ function CurriculumView({ onOpenArticle }) {
         </>
       )}
 
+      {/* 모달: 학습자 배정 변경 */}
       {assignModalOpen && selectedCurriculum && (
         <>
           <div className="confirmOverlay" onClick={() => !assignSaving && setAssignModalOpen(false)} />
@@ -590,6 +601,7 @@ function CurriculumView({ onOpenArticle }) {
         </>
       )}
 
+      {/* 모달: 커리큘럼 저장 확인 */}
       {confirmOpen && preview && (
         <>
           <div className="confirmOverlay" onClick={() => !saving && setConfirmOpen(false)} />
@@ -617,98 +629,50 @@ function CurriculumView({ onOpenArticle }) {
         </>
       )}
 
+      {/* 모달: 템플릿 양식 배포 (관리자용) */}
       {templateModal.open && (
         <>
           <div className="confirmOverlay" onClick={() => setTemplateModal({ ...templateModal, open: false })} />
-          <div className={`confirmModal templateModal ${templateModal.fullscreen ? 'fullscreen' : ''}`}>
-            <div className="modalTopBar">
+          <div className={`confirmModal templateModal ${templateModal.fullscreen ? 'fullscreen' : ''}`} style={{ display: 'flex', flexDirection: 'column', maxHeight: '90vh', overflow: 'hidden' }}>
+            <div className="modalTopBar" style={{ flexShrink: 0 }}>
               <h3 className="confirmTitle">과제 양식(템플릿) 배포</h3>
               <div className="modalHeaderActions">
-                <button
-                  type="button"
-                  className="template-action-btn admin ai-regenerate-btn"
-                  onClick={handleRegenerateTemplate}
-                  disabled={templateModal.generating}
-                >
+                <button type="button" className="template-action-btn admin ai-regenerate-btn" onClick={handleRegenerateTemplate} disabled={templateModal.generating}>
                   {templateModal.generating ? 'AI 작성 중...' : '✨ AI 템플릿 재작성'}
                 </button>
-                <button
-                  type="button"
-                  className="fullscreenBtn"
-                  onClick={() => setTemplateModal(prev => ({ ...prev, fullscreen: !prev.fullscreen }))}
-                >
+                <button type="button" className="fullscreenBtn" onClick={() => setTemplateModal(prev => ({ ...prev, fullscreen: !prev.fullscreen }))}>
                   {templateModal.fullscreen ? '✕ 축소' : '⛶ 전체보기'}
                 </button>
               </div>
             </div>
 
-            <p className="assignSectionHint">
+            <p className="assignSectionHint" style={{ flexShrink: 0, paddingBottom: '16px' }}>
               학습자에게 전달될 '{templateModal.title}'의 작성 양식 가이드를 작성해주세요. 표나 양식을 지정해주면 학습자가 쉽게 채워넣을 수 있습니다.
             </p>
-            {/* ✨ 핵심 수정: 로딩 오버레이 추가 (Curriculum.css 연동) */}
-            <div className="templateEditorWrapper" style={{ position: 'relative' }}>
+            
+            <div className="templateEditorWrapper" style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', border: '1px solid #ccc', borderRadius: '4px', overflow: 'hidden' }}>
               {templateModal.generating && (
                 <div className="tiptap-loading-overlay">
                   <div className="tiptap-spinner"></div>
                   <span className="tiptap-loading-text">AI가 템플릿을 재작성하고 있습니다...</span>
                 </div>
               )}
+              {/* 관리자 모드의 Tiptap 에디터 */}
               <TiptapEditor 
                 value={templateModal.content} 
                 onChange={(newContent) => setTemplateModal({ ...templateModal, content: newContent })} 
-                heightMode={templateModal.fullscreen ? 'fullscreen-height' : 'normal-height'} 
               />
             </div>
             
-            <div className="confirmBtns">
-              <button
-                type="button"
-                className="confirmBtnBack"
-                onClick={() => setTemplateModal({ ...templateModal, open: false })}
-                disabled={templateModal.saving}
-              >취소</button>
-              <button
-                type="button"
-                className="confirmBtnCreate"
-                onClick={saveTemplate}
-                disabled={templateModal.saving}
-              >{templateModal.saving ? '배포 중...' : '템플릿 배포'}</button>
+            <div className="confirmBtns" style={{ flexShrink: 0, paddingTop: '16px' }}>
+              <button type="button" className="confirmBtnBack" onClick={() => setTemplateModal({ ...templateModal, open: false })} disabled={templateModal.saving}>취소</button>
+              <button type="button" className="confirmBtnCreate" onClick={saveTemplate} disabled={templateModal.saving}>{templateModal.saving ? '배포 중...' : '템플릿 배포'}</button>
             </div>
           </div>
         </>
       )}
 
-      {submissionModal.open && (
-        <>
-          <div className="confirmOverlay" onClick={() => setSubmissionModal({ ...submissionModal, open: false })} />
-          <div className="confirmModal submissionModal">
-            <h3 className="confirmTitle">📝 과제 수행: {submissionModal.title}</h3>
-            
-            <div className="document-workspace integrated">
-              <div className="document-edit-section full-width">
-                <div className="document-toolbar">
-                  <span>과제 작성 에디터 (임시저장 가능)</span>
-                  <span className="status-label">{submissionModal.status === 'draft' ? '📝 작성 중' : '✅ 제출 완료'}</span>
-                </div>
-                <div className="joditEditorWrapper">
-                  <TiptapEditor 
-                    value={submissionModal.content} 
-                    onChange={(newContent) => setSubmissionModal({ ...submissionModal, content: newContent })} 
-                    heightMode="manager-normal-height"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="confirmBtns">
-              <button type="button" className="confirmBtnBack" onClick={() => setSubmissionModal({ ...submissionModal, open: false })}>닫기</button>
-              <button type="button" className="confirmBtnCreate btnSuccess" onClick={() => saveSubmission(false)}>임시 저장</button>
-              <button type="button" className="confirmBtnCreate" onClick={() => saveSubmission(true)}>최종 제출하기</button>
-            </div>
-          </div>
-        </>
-      )}
-
+      {/* 모달: 다운로드 선택 */}
       {downloadModalOpen && (
         <>
           <div className="downloadOverlay" onClick={() => setDownloadModalOpen(false)} />
