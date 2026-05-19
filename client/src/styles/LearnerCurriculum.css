@@ -1,7 +1,10 @@
-
-
 /* ── 상태 메시지 ─────────────────────────────────────── */
-.learnerInlineHint  { color: var(--cur-text-muted); font-size: 13px; padding: 10px 0; }
+.learnerInlineHint {
+  color: var(--cur-text-muted);
+  font-size: 13px;
+  padding: 10px 0;
+}
+
 .learnerInlineError {
   color: var(--cur-red);
   background: var(--cur-red-bg);
@@ -9,6 +12,7 @@
   padding: 9px 14px;
   border-radius: var(--cur-radius-sm);
 }
+
 .learnerInlineMuted {
   color: var(--cur-text-muted);
   font-size: 13px;
@@ -41,7 +45,9 @@
 .learnerCurriculumCard::before {
   content: '';
   position: absolute;
-  top: 0; left: 0; right: 0;
+  top: 0;
+  left: 0;
+  right: 0;
   height: 3px;
   background: var(--cur-primary);
   opacity: 0;
@@ -50,11 +56,13 @@
 
 .learnerCurriculumCard:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(58,74,92,.11), 0 2px 6px rgba(58,74,92,.07);
+  box-shadow: 0 6px 20px rgba(58, 74, 92, .11), 0 2px 6px rgba(58, 74, 92, .07);
   border-color: var(--cur-primary);
 }
 
-.learnerCurriculumCard:hover::before { opacity: 1; }
+.learnerCurriculumCard:hover::before {
+  opacity: 1;
+}
 
 .learnerCurriculumCardHeader {
   display: flex;
@@ -99,7 +107,7 @@
 .learnerCurriculumCardBadge.active {
   color: var(--cur-green);
   background: var(--cur-green-bg);
-  border-color: rgba(107,158,126,.25);
+  border-color: rgba(107, 158, 126, .25);
 }
 
 .learnerCurriculumCardGoal {
@@ -128,7 +136,7 @@
   height: 100%;
   background: var(--cur-primary);
   border-radius: 10px;
-  transition: width .5s cubic-bezier(.4,0,.2,1);
+  transition: width .5s cubic-bezier(.4, 0, .2, 1);
 }
 
 /* ── 뒤로 버튼 ───────────────────────────────────────── */
@@ -173,7 +181,9 @@
 .learnerDetailHeader::after {
   content: '';
   position: absolute;
-  top: 0; left: 0; right: 0;
+  top: 0;
+  left: 0;
+  right: 0;
   height: 3px;
   background: linear-gradient(90deg, var(--cur-primary) 60%, var(--cur-accent) 100%);
 }
@@ -247,7 +257,7 @@
 .learnerWeekStep.active {
   border-color: var(--cur-primary-dark);
   background: var(--cur-primary-bg);
-  box-shadow: 0 0 0 3px rgba(148,184,200,.2);
+  box-shadow: 0 0 0 3px rgba(148, 184, 200, .2);
 }
 
 .learnerWeekStep.submitted {
@@ -276,8 +286,10 @@
 
 .learnerWeekStepDot {
   position: absolute;
-  top: 5px; right: 5px;
-  width: 5px; height: 5px;
+  top: 5px;
+  right: 5px;
+  width: 5px;
+  height: 5px;
   background: var(--cur-green);
   border-radius: 50%;
 }
@@ -312,7 +324,9 @@
   transition: background var(--cur-transition);
 }
 
-.learnerWeekCardHeader:hover { background: var(--cur-surface-2); }
+.learnerWeekCardHeader:hover {
+  background: var(--cur-surface-2);
+}
 
 .learnerWeekCardWeek {
   font-size: 11px;
@@ -353,19 +367,19 @@
 .learnerWeekStatusBadge.submitted {
   color: var(--cur-primary-dark);
   background: var(--cur-primary-bg);
-  border-color: rgba(148,184,200,.4);
+  border-color: rgba(148, 184, 200, .4);
 }
 
 .learnerWeekStatusBadge.feedback_given {
   color: var(--cur-green);
   background: var(--cur-green-bg);
-  border-color: rgba(107,158,126,.3);
+  border-color: rgba(107, 158, 126, .3);
 }
 
 .learnerWeekStatusBadge.resubmit_requested {
   color: var(--cur-orange);
   background: var(--cur-orange-bg);
-  border-color: rgba(192,128,64,.3);
+  border-color: rgba(192, 128, 64, .3);
 }
 
 /* ── 주차 카드 본문 ─────────────────────────────────── */
@@ -376,11 +390,20 @@
 }
 
 @keyframes wkFadeIn {
-  from { opacity: 0; transform: translateY(-5px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.learnerWeekSection { margin-top: 16px; }
+.learnerWeekSection {
+  margin-top: 16px;
+}
 
 .learnerWeekSectionTitle {
   font-size: 11px;
@@ -412,7 +435,9 @@
   line-height: 1.55;
 }
 
-.learnerWeekArticle { margin-bottom: 8px; }
+.learnerWeekArticle {
+  margin-bottom: 8px;
+}
 
 .learnerWeekArticleLink {
   font-size: 13px;
@@ -459,11 +484,14 @@
   border-radius: var(--cur-radius-sm);
 }
 
-.learnerWeekSubmissionAttachments { margin-top: 12px; }
+.learnerWeekSubmissionAttachments {
+  margin-top: 12px;
+}
 
 .learnerSubmitAttachmentList {
   list-style: none;
-  padding: 0; margin: 5px 0 0;
+  padding: 0;
+  margin: 5px 0 0;
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -574,13 +602,13 @@
   padding: 8px 20px;
   cursor: pointer;
   transition: background var(--cur-transition), transform var(--cur-transition), box-shadow var(--cur-transition);
-  box-shadow: 0 2px 8px rgba(106,154,174,.3);
+  box-shadow: 0 2px 8px rgba(106, 154, 174, .3);
 }
 
 .learnerWeekSubmitBtn:hover:not(:disabled) {
   background: var(--cur-accent);
   transform: translateY(-1px);
-  box-shadow: 0 3px 12px rgba(92,61,48,.25);
+  box-shadow: 0 3px 12px rgba(92, 61, 48, .25);
 }
 
 .learnerWeekSubmitBtn:disabled {
@@ -594,24 +622,31 @@
 .emailModalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(58,74,92,.4);
+  background: rgba(58, 74, 92, .4);
   backdrop-filter: blur(2px);
   z-index: 999;
   animation: overlayIn .16s ease;
 }
 
 @keyframes overlayIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 /* ── 제출 모달 ───────────────────────────────────────── */
 .emailModal.learnerSubmitModal {
   position: fixed;
-  top: 50%; left: 50%;
+  top: 50%;
+  left: 50%;
   transform: translate(-50%, -50%);
   z-index: 1000;
-  width: min(680px, 92vw);
+  width: min(1050px, 95vw);
+
   max-height: 84vh;
   background: var(--cur-surface);
   border-radius: var(--cur-radius-xl);
@@ -619,17 +654,24 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: modalIn .2s cubic-bezier(.34,1.45,.64,1);
+  animation: modalIn .2s cubic-bezier(.34, 1.45, .64, 1);
 }
 
 @keyframes modalIn {
-  from { opacity: 0; transform: translate(-50%, -47%) scale(.97); }
-  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  from {
+    opacity: 0;
+    transform: translate(-50%, -47%) scale(.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
 }
 
 .emailModal.learnerSubmitModal.fullscreen {
-  width: 95vw;
-  max-height: 90vh;
+  width: 96vw;
+  max-height: 92vh;
 }
 
 .emailModalHeader {
@@ -723,19 +765,15 @@
   margin: 0;
 }
 
-.learnerSubmitEditorWrapper {
-  border: 1px solid var(--cur-border);
-  border-radius: var(--cur-radius-md);
-  overflow: hidden;
-}
-
 .learnerSubmitAttachmentPicker {
   display: inline-flex;
   align-items: center;
   cursor: pointer;
 }
 
-.learnerSubmitAttachmentPicker input[type="file"] { display: none; }
+.learnerSubmitAttachmentPicker input[type="file"] {
+  display: none;
+}
 
 .learnerSubmitAttachmentPicker span {
   font-size: 12px;
@@ -755,7 +793,8 @@
 
 .learnerSubmitFileList {
   list-style: none;
-  padding: 0; margin: 0;
+  padding: 0;
+  margin: 0;
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -799,7 +838,9 @@
   transition: opacity var(--cur-transition);
 }
 
-.learnerSubmitFileRemove:hover:not(:disabled) { opacity: .7; }
+.learnerSubmitFileRemove:hover:not(:disabled) {
+  opacity: .7;
+}
 
 .emailingError.learnerSubmitError {
   margin: 0 20px;
@@ -828,13 +869,13 @@
   padding: 9px 26px;
   cursor: pointer;
   transition: background var(--cur-transition), transform var(--cur-transition), box-shadow var(--cur-transition);
-  box-shadow: 0 2px 8px rgba(106,154,174,.3);
+  box-shadow: 0 2px 8px rgba(106, 154, 174, .3);
 }
 
 .emailSendBtn:hover:not(:disabled) {
   background: var(--cur-accent);
   transform: translateY(-1px);
-  box-shadow: 0 3px 14px rgba(92,61,48,.25);
+  box-shadow: 0 3px 14px rgba(92, 61, 48, .25);
 }
 
 .emailSendBtn:disabled {
@@ -842,4 +883,157 @@
   color: var(--cur-text-muted);
   box-shadow: none;
   cursor: not-allowed;
+}
+
+/* =========================================
+   제출 내용 보기 및 닫기 버튼
+========================================= */
+.btn-view-submission {
+  padding: 8px 16px;
+  background-color: #f1f3f5;
+  color: #333;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-bottom: 12px;
+}
+
+.btn-view-submission:hover {
+  background-color: #e9ecef;
+}
+
+.btn-modal-cancel {
+  padding: 10px 20px;
+  background-color: #e9ecef;
+  color: #495057;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-modal-cancel:hover {
+  background-color: #dde2e6;
+}
+
+/* =========================================
+   ✨ 새롭게 적용된 에디터 템플릿(Tiptap 느낌) 및 표 디자인
+========================================= */
+
+/* 에디터 껍데기(Tiptap 문서처럼 보이게 보정) */
+.learner-custom-form {
+  padding: 24px 30px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  min-height: 400px;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #333;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+  outline: none;
+}
+
+.learner-custom-form p {
+  margin: 0.5em 0;
+}
+
+/* Tiptap의 표(Table) CSS와 완전히 동일하게 구현 */
+.learner-custom-form table,
+.learner-rendered-content table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 16px 0;
+  overflow: hidden;
+}
+
+.learner-custom-form td,
+.learner-custom-form th,
+.learner-rendered-content td,
+.learner-rendered-content th {
+  min-width: 1em;
+  border: 1px solid #ced4da;
+  padding: 8px 10px;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+  word-break: break-word;
+}
+
+.learner-custom-form th,
+.learner-rendered-content th {
+  background-color: #f1f3f5;
+  font-weight: bold;
+  text-align: left;
+}
+
+/* =========================================
+   📌 동적으로 삽입되는 입력 영역 (에디터 내 에디터)
+========================================= */
+
+/* 표(td) 안의 빈칸이거나 단락(p)의 빈칸일 때 적용되는 클래스 */
+.learner-editable-cell,
+.learner-editable-p,
+.learner-editable-fallback {
+  outline: none;
+  cursor: text;
+  background-color: rgba(226, 232, 240, 0.4);
+  /* 연한 회색/파란색으로 빈칸 표시 */
+  transition: background-color 0.2s, box-shadow 0.2s;
+  min-height: 1.5em;
+  /* 클릭 가능한 최소 높이 보장 */
+}
+
+/* 단락(p)이나 div일 경우 테두리 보정 */
+.learner-editable-p,
+.learner-editable-fallback {
+  border-radius: 6px;
+  padding: 6px 12px;
+  margin: 8px 0;
+  border: 1px solid transparent;
+}
+
+/* 마우스를 올렸을 때 클릭 가능하다는 시각적 피드백 */
+.learner-editable-cell:hover,
+.learner-editable-p:hover,
+.learner-editable-fallback:hover {
+  background-color: rgba(226, 232, 240, 0.7);
+}
+
+/* 텍스트를 입력하려고 클릭(포커스)했을 때 명확하게 에디터처럼 활성화 */
+.learner-editable-cell:focus,
+.learner-editable-p:focus,
+.learner-editable-fallback:focus {
+  background-color: #ffffff;
+}
+
+/* 단락 형태의 빈칸을 포커스했을 때는 파란색 테두리 효과 */
+.learner-editable-p:focus,
+.learner-editable-fallback:focus {
+  border: 1px solid #3182ce;
+  box-shadow: inset 0 0 0 1px #3182ce;
+}
+
+.learner-editable-cell,
+.learner-editable-p,
+.learner-editable-fallback {
+  outline: none;
+  cursor: text;
+  transition: background-color 0.2s, border-color 0.2s;
+  min-height: 1.5em;
+  display: block;
+  /* 줄바꿈 자연스럽게 */
+}
+
+/* 플레이스홀더 텍스트 스타일 (span태그용) */
+.placeholder-text {
+  pointer-events: none;
+  /* 클릭하면 span이 아니라 td가 클릭되도록 */
+  user-select: none;
 }
