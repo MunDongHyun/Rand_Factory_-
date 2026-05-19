@@ -3,7 +3,7 @@ import JoditEditor from 'jodit-react';
 import api from '../lib/api';
 import { sanitizeHtml } from '../lib/sanitize';
 import { downloadAttachment, formatBytes } from '../lib/attachments';
-import '../styles/Curriculum.css';
+import '../styles/LearnerCurriculum.css';
 
 const JODIT_CONFIG_BASE = {
   language: 'ko',
