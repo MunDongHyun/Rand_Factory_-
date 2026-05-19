@@ -1,5 +1,3 @@
-
-
 /* =============================================
    페이지 컨테이너
    ============================================= */
@@ -10,7 +8,6 @@
   font-family: 'pretendard', sans-serif;
   box-sizing: border-box;
 }
-
 
 .curriculumStatusMsg {
   font-size: 14px;
@@ -113,7 +110,6 @@
   gap: 4px;
 }
 
-
 .curriculumSidebarItem {
   width: 250px;
   padding: 14px 16px;
@@ -134,7 +130,6 @@
 .curriculumSidebarItem.active {
   background: rgba(217, 217, 217, 0.28);
 }
-
 
 .curriculumSidebarAddBtn {
   margin-top: auto;
@@ -157,7 +152,6 @@
   background: rgba(255, 255, 255, 0.1);
 }
 
-
 .curriculumDetail {
   flex: 1;
   background: var(--card);
@@ -179,7 +173,6 @@
   gap: 0;
 }
 
-
 .curriculumDetailTitle {
   font-family: 'pretendard', sans-serif;
   font-weight: 600;
@@ -189,7 +182,6 @@
   margin: 0;
 }
 
-
 .curriculumDetailDesc {
   font-family: 'pretendard', sans-serif;
   font-weight: 400;
@@ -198,7 +190,6 @@
   color: #9C9C9C;
   margin: 0;
 }
-
 
 .assignedLearnersRow {
   display: flex;
@@ -228,8 +219,6 @@
 .assignedLearnersEditBtn:hover {
   background: #2e3c4c;
 }
-
-
 
 .assignedLearnerChip {
   display: flex;
@@ -267,7 +256,6 @@
   border-radius: 2px;
   overflow: hidden;
 }
-
 
 .extracted-accordion-header {
   display: flex;
@@ -316,7 +304,6 @@
   flex-shrink: 0;
 }
 
-/* 아코디언 바디 */
 .extracted-accordion-body {
   padding: 16px 20px;
   background: #FAFAFA;
@@ -330,7 +317,6 @@
   margin-bottom: 4px;
 }
 
-/* 학습 목표 */
 .extracted-objective-title {
   font-family: 'pretendard', sans-serif;
   font-weight: 700;
@@ -347,7 +333,6 @@
   margin: 0;
 }
 
-/* 멘토링 과제 */
 .extracted-task-title {
   font-family: 'pretendard', sans-serif;
   font-weight: 700;
@@ -368,7 +353,6 @@
   margin-bottom: 3px;
 }
 
-/* 실무 수행 과제 카드 */
 .extracted-assignment-wrapper {
   display: flex;
   flex-direction: column;
@@ -425,7 +409,6 @@
   gap: 8px;
 }
 
-/* 양식 배포 / 과제 작성 버튼 그룹 */
 .templateActionBtnGroup {
   display: flex;
   gap: 6px;
@@ -461,7 +444,6 @@
   background: #2e3c4c;
 }
 
-/* 교육담당자 코칭 가이드 */
 .extracted-instructor-box {
   background: #EAF0F5;
   border-radius: 4px;
@@ -510,7 +492,6 @@
   margin-bottom: 3px;
 }
 
-/* 참고 자료 & 예상 소요 */
 .extracted-footer-wrapper {
   display: flex;
   flex-direction: row;
@@ -641,7 +622,7 @@
 }
 
 /* =============================================
-   제출된 과제 섹션 (curriculumDetail 내부)
+   제출된 과제 섹션
    ============================================= */
 .managerSubmissionSection {
   width: 325px;
@@ -688,7 +669,6 @@
   gap: 8px;
 }
 
-/* ---------- 제출 아이템 ---------- */
 .managerSubmissionItem {
   border: 1px solid #3A4A5C;
   border-radius: 2px;
@@ -731,7 +711,6 @@
   color: #fff;
 }
 
-
 .managerSubmissionTime {
   font-family: 'pretendard', sans-serif;
   font-weight: 300;
@@ -748,7 +727,6 @@
   justify-content: flex-start;
   flex-shrink: 0;
 }
-
 
 .managerSubmissionStatus {
   display: flex;
@@ -780,7 +758,6 @@
   color: #3A4A5C;
 }
 
-/* ---------- 제출 아이템 바디 ---------- */
 .managerSubmissionItemBody {
   padding: 14px 16px;
   background: #fff;
@@ -819,7 +796,6 @@
   line-height: 1.55;
 }
 
-/* ---------- 피드백 폼 ---------- */
 .managerFeedbackForm {
   display: flex;
   flex-direction: column;
@@ -1028,7 +1004,6 @@
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-
 .curriculumField input:focus,
 .curriculumField textarea:focus {
   border-color: var(--primary);
@@ -1100,8 +1075,6 @@
   max-width: 95vw;
 }
 
-
-/* 템플릿 모달 기본 크기 */
 .confirmModal.templateModal {
   width: 860px;
   max-height: 92vh;
@@ -1110,7 +1083,6 @@
   overflow-y: visible;
 }
 
-/* 전체보기 상태 */
 .confirmModal.templateModal.fullscreen {
   inset: 0;
   transform: none;
@@ -1131,8 +1103,6 @@
   flex: 1;                   
 }
 
-
-/* 모달 상단 바 */
 .modalTopBar {
   display: flex;
   align-items: center;
@@ -1140,7 +1110,6 @@
   margin-bottom: 8px;
 }
 
-/* 전체보기 버튼 */
 .fullscreenBtn {
   padding: 6px 14px;
   background: var(--bg);
@@ -1158,7 +1127,6 @@
   background: var(--line);
   color: var(--ink);
 }
-
 
 .confirmHeader {
   display: flex;
@@ -1291,7 +1259,7 @@
 }
 
 /* =============================================
-   학습자 배정 영역 (모달 내부)
+   학습자 배정 영역
    ============================================= */
 .assignSection {
   display: flex;
@@ -1362,9 +1330,6 @@
   margin-left: auto;
 }
 
-/* =============================================
-   템플릿 배포 모달 에디터
-   ============================================= */
 .templateEditorWrapper {
   border: 1px solid rgba(58, 74, 92, 0.2);
   border-radius: 4px;
@@ -1373,13 +1338,17 @@
 }
 
 /* =============================================
-   과제 수행 모달 (2컬럼 레이아웃)
+   과제 수행 모달 및 학습자 모달 레이아웃 연동
    ============================================= */
 .document-workspace {
   display: flex;
   flex-direction: row;
   gap: 16px;
   min-height: 420px;
+}
+
+.document-workspace.integrated {
+  display: block;
 }
 
 .document-guide-section {
@@ -1415,6 +1384,12 @@
   gap: 8px;
 }
 
+.document-edit-section.full-width {
+  width: 100%;
+  border-left: none;
+  padding-left: 0;
+}
+
 .document-toolbar {
   display: flex;
   align-items: center;
@@ -1440,18 +1415,165 @@
   flex: 1;
 }
 
-.templateEditorWrapper .jodit-popup,
-.templateEditorWrapper .jodit-popup__content,
-.joditEditorWrapper .jodit-popup,
-.joditEditorWrapper .jodit-popup__content {
-  z-index: 10000 !important;
+/* =============================================
+   학습자 전용 부모 레이아웃 오버라이드 
+   ============================================= */
+.learnerSubmitModal.integrated-layout {
+  max-width: 900px;
 }
 
-/* ===========================
-   학습자 컨텍스트 HTML 렌더링 영역
-   theme.css의 universal reset(`* { padding: 0 }`)이 ul/ol 마커를 죽이지 않도록
-   에디터로 작성된 HTML이 표시될 영역에 list/table 기본 스타일을 되살림
-   =========================== */
+.learnerSubmitEditorSection.full-width {
+  width: 100%;
+}
+
+/* =============================================
+   ✨ Tiptap 전용 에디터 프레임워크 스타일 커스텀
+   ============================================= */
+.tiptap-editor-container {
+  border: 1px solid #BEC6CF;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+}
+
+.tiptap-toolbar {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #BEC6CF;
+  background: #F8FAFC;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.tiptap-toolbar button {
+  padding: 4px 10px;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-family: 'pretendard', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  color: #3A4A5C;
+  transition: all 0.12s ease;
+}
+
+.tiptap-toolbar button:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.tiptap-toolbar button.is-active {
+  background: #3A4A5C;
+  color: #fff;
+  border-color: #3A4A5C;
+}
+
+.tiptap-content-area {
+  padding: 16px;
+  overflow-y: auto;
+  background: #fff;
+  flex: 1;
+}
+
+/* 주차별 가변 에디터 높이 클래스 처리 */
+.tiptap-content-area.normal-height {
+  min-height: 350px;
+  max-height: 450px;
+}
+
+.tiptap-content-area.fullscreen-height {
+  min-height: 550px;
+}
+
+.tiptap-content-area.manager-normal-height {
+  min-height: 400px;
+}
+
+/* AI 재작성 특화 버튼 양식 */
+.ai-regenerate-btn {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+.ai-regenerate-btn:hover:not(:disabled) {
+  background: #bae6fd;
+  color: #0369a1;
+}
+
+/* =============================================
+   🎯 Tiptap 에디터 본문 내부 (.ProseMirror) 표/리스트 복원
+   ============================================= */
+.ProseMirror {
+  outline: none;
+  min-height: 100%;
+  font-family: 'pretendard', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #3A4A5C;
+}
+
+.ProseMirror p {
+  margin: 6px 0;
+}
+
+.ProseMirror h1, .ProseMirror h2, .ProseMirror h3, .ProseMirror h4 {
+  color: #3A4A5C;
+  margin: 16px 0 8px 0;
+  font-weight: 700;
+}
+
+.ProseMirror ul, .ProseMirror ol {
+  padding-left: 24px;
+  margin: 8px 0;
+  list-style: revert !important;
+}
+
+.ProseMirror li {
+  margin-bottom: 4px;
+}
+
+/* 🔥 Tiptap 표(Table) 스타일 전면 시각화 정의 */
+.ProseMirror table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100% !important;
+  margin: 14px 0;
+  overflow: hidden;
+}
+
+.ProseMirror td, .ProseMirror th {
+  min-width: 1em;
+  border: 1px solid #BEC6CF;
+  padding: 10px 14px;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.ProseMirror th {
+  font-weight: bold;
+  text-align: left;
+  background-color: #F8FAFC;
+  color: #3A4A5C;
+}
+
+.ProseMirror .selectedCell:after {
+  z-index: 2;
+  position: absolute;
+  content: "";
+  left: 0; right: 0; top: 0; bottom: 0;
+  background: rgba(148, 184, 200, 0.14);
+  pointer-events: none;
+}
+
+/* =============================================
+   기존 컨텍스트 리셋 호환 영역
+   ============================================= */
 .learnerSubmitTemplateContent ul,
 .learnerSubmitTemplateContent ol,
 .learnerWeekSubmissionBody ul,
@@ -1489,7 +1611,7 @@
 }
 
 /* ===========================
-   학습자 제출 모달 (양식 가이드 + 에디터 + 첨부)
+   학습자 제출 모달 
    =========================== */
 .learnerSubmitModal {
   width: 720px;
@@ -1540,14 +1662,8 @@
   flex: 1;
 }
 
-/* jodit popup이 모달의 overflow scroll에 갇히지 않도록 wrapper 기준 격리 */
 .learnerSubmitEditorWrapper {
   position: relative;
-}
-
-.learnerSubmitEditorWrapper .jodit-popup,
-.learnerSubmitEditorWrapper .jodit-popup__content {
-  z-index: 10000 !important;
 }
 
 .learnerSubmitSectionTitle {
@@ -1657,9 +1773,6 @@
   opacity: 0.5;
 }
 
-/* ===========================
-   본인 제출 내역 / 매니저 화면의 첨부파일 목록
-   =========================== */
 .learnerSubmitAttachmentList,
 .managerSubmissionAttachmentList {
   list-style: none;
@@ -1697,4 +1810,505 @@
 
 .managerSubmissionAttachments {
   margin-top: 12px;
+}
+.tiptap-loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.85);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  backdrop-filter: blur(2px);
+}
+
+.tiptap-spinner {
+  width: 38px;
+  height: 38px;
+  border: 3.5px solid #EAF0F5;
+  border-top: 3.5px solid #3A4A5C;
+  border-radius: 50%;
+  animation: tiptap-spin 0.9s linear infinite;
+}
+
+@keyframes tiptap-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.tiptap-loading-text {
+  font-family: 'pretendard', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #3A4A5C;
+}
+
+/* =============================================
+   ✨ 학습자 폼 템플릿(Input/Textarea) 전용 스타일
+   ============================================= */
+.template-form-container {
+  border: 1px solid #BEC6CF;
+  border-radius: 4px;
+  background: #fff;
+  padding: 16px;
+  min-height: 250px;
+}
+
+.template-input-text {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  border: 1px solid #CBD5E1;
+  border-radius: 4px;
+  font-family: 'pretendard', sans-serif;
+  font-size: 13px;
+  color: #3A4A5C;
+  background: #F8FAFC;
+  outline: none;
+  transition: border-color 0.2s, background-color 0.2s;
+  margin: 4px 0;
+}
+
+.template-input-text:focus {
+  border-color: #3A4A5C;
+  background: #fff;
+}
+
+.template-input-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid #CBD5E1;
+  border-radius: 4px;
+  font-family: 'pretendard', sans-serif;
+  font-size: 13px;
+  color: #3A4A5C;
+  background: #F8FAFC;
+  outline: none;
+  min-height: 90px;
+  resize: vertical;
+  transition: border-color 0.2s, background-color 0.2s;
+  margin: 4px 0;
+}
+
+.template-input-textarea:focus {
+  border-color: #3A4A5C;
+  background: #fff;
+}
+
+/* =============================================
+   ✨ 누락된 학습자 페이지 레이아웃 (Learner View)
+   ============================================= */
+.learnerInlineHint { font-size: 14px; color: #9C9C9C; }
+.learnerInlineError { font-size: 14px; color: #e05252; }
+.learnerInlineMuted { font-size: 14px; color: #9C9C9C; margin-top: 10px;}
+
+.learnerCurriculumGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+  margin-top: 24px;
+}
+
+.learnerCurriculumCard {
+  background: #fff;
+  border: 1px solid #BEC6CF;
+  border-radius: 8px;
+  padding: 24px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+}
+
+.learnerCurriculumCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(58, 74, 92, 0.08);
+}
+
+.learnerCurriculumCardHeader {
+  margin-bottom: 12px;
+}
+
+.learnerCurriculumCardSubtitle {
+  font-size: 12px;
+  color: #94B8C8;
+  margin: 0 0 4px 0;
+  font-weight: 500;
+}
+
+.learnerCurriculumCardTitle {
+  font-size: 18px;
+  color: #3A4A5C;
+  margin: 0;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.learnerCurriculumCardMeta {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.learnerCurriculumCardBadge {
+  background: #F2F2EF;
+  color: #3A4A5C;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.learnerCurriculumCardBadge.active {
+  background: #EAF0F5;
+  color: #3A4A5C;
+  border: 1px solid #94B8C8;
+}
+
+.learnerProgressBar {
+  background: #F2F2EF;
+  border-radius: 4px;
+  height: 6px;
+  width: 100%;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.learnerProgressFill {
+  background: #3A4A5C;
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.learnerCurriculumCardGoal {
+  font-size: 13px;
+  color: #3A4A5C;
+  margin: 0 0 16px 0;
+  flex: 1;
+}
+
+.learnerCurriculumCardFooter {
+  font-size: 13px;
+  color: #94B8C8;
+  font-weight: 600;
+  text-align: right;
+  margin-top: auto;
+}
+
+/* =============================================
+   ✨ 학습자 상세 뷰 (Learner Detail View)
+   ============================================= */
+.authorBackBtn {
+  background: none;
+  border: none;
+  color: #94B8C8;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 24px;
+  font-family: 'pretendard', sans-serif;
+}
+
+.authorBackBtn:hover {
+  color: #3A4A5C;
+}
+
+.learnerDetailHeader {
+  background: #fff;
+  border: 1px solid #BEC6CF;
+  border-radius: 8px;
+  padding: 32px;
+  margin-bottom: 24px;
+}
+
+.learnerDetailSubtitle {
+  font-size: 13px;
+  color: #94B8C8;
+  margin: 0 0 8px 0;
+  font-weight: 600;
+}
+
+.learnerDetailTitle {
+  font-size: 24px;
+  color: #3A4A5C;
+  margin: 0 0 16px 0;
+  font-weight: 700;
+}
+
+.learnerDetailGoal {
+  font-size: 15px;
+  color: #3A4A5C;
+  margin: 0 0 24px 0;
+}
+
+.learnerDetailProgress {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.learnerDetailProgress .learnerProgressBar {
+  flex: 1;
+  margin: 0;
+  max-width: 400px;
+}
+
+.learnerDetailProgressText {
+  font-size: 13px;
+  color: #3A4A5C;
+  font-weight: 500;
+}
+
+/* 주차별 스테퍼 */
+.learnerWeekStepper {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  margin-bottom: 24px;
+}
+
+.learnerWeekStep {
+  background: #fff;
+  border: 1px solid #BEC6CF;
+  border-radius: 8px;
+  padding: 12px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  min-width: 80px;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.learnerWeekStep.active {
+  border-color: #3A4A5C;
+  background: #EAF0F5;
+}
+
+.learnerWeekStepNum {
+  font-size: 18px;
+  font-weight: 700;
+  color: #3A4A5C;
+}
+
+.learnerWeekStepLabel {
+  font-size: 12px;
+  color: #9C9C9C;
+}
+
+.learnerWeekStepDot {
+  width: 6px;
+  height: 6px;
+  background: #4A7C59;
+  border-radius: 50%;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+/* 주차별 카드 리스트 */
+.learnerWeekList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.learnerWeekCard {
+  background: #fff;
+  border: 1px solid #BEC6CF;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.learnerWeekCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: #F8FAFC;
+  cursor: pointer;
+  user-select: none;
+}
+
+.learnerWeekCardWeek {
+  font-size: 15px;
+  font-weight: 700;
+  color: #3A4A5C;
+  margin-right: 12px;
+}
+
+.learnerWeekCardTheme {
+  font-size: 15px;
+  color: #3A4A5C;
+}
+
+.learnerWeekCardHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.learnerWeekStatusBadge {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+  background: #EAF0F5;
+  color: #3A4A5C;
+}
+
+.learnerWeekStatusBadge.resubmit_requested { background: #fee2e2; color: #b91c1c; }
+.learnerWeekStatusBadge.feedback_given { background: #dcfce7; color: #15803d; }
+
+.learnerWeekCardToggle {
+  font-size: 12px;
+  color: #94B8C8;
+}
+
+.learnerWeekCardBody {
+  padding: 24px;
+  border-top: 1px solid #BEC6CF;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.learnerWeekSectionTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #3A4A5C;
+  margin: 0 0 10px 0;
+}
+
+.learnerWeekSectionText, .learnerWeekSectionList {
+  font-size: 14px;
+  color: #3A4A5C;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.learnerWeekSectionList { padding-left: 20px; }
+.learnerWeekSectionList li { margin-bottom: 6px; }
+
+.learnerWeekArticle {
+  margin-bottom: 12px;
+}
+
+.learnerWeekArticleLink {
+  font-size: 14px;
+  color: #3A4A5C;
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.learnerWeekArticleReason {
+  font-size: 12px;
+  color: #9C9C9C;
+  margin: 4px 0 0 0;
+}
+
+/* 제출 영역 */
+.learnerWeekSubmission {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.learnerWeekSubmissionMeta {
+  font-size: 12px;
+  color: #94A3B8;
+  margin: 0 0 12px 0;
+}
+
+.learnerWeekSubmissionBody {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #334155;
+  margin-bottom: 16px;
+}
+
+.learnerWeekSubmissionAttachments {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed #CBD5E1;
+}
+
+.learnerWeekFeedback {
+  margin-top: 16px;
+  background: #EAF0F5;
+  padding: 16px;
+  border-radius: 6px;
+}
+
+.learnerWeekFeedbackTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #3A4A5C;
+  margin: 0 0 6px 0;
+}
+
+.learnerWeekFeedbackMeta {
+  font-size: 11px;
+  color: #94B8C8;
+  margin: 0 0 8px 0;
+}
+
+.learnerWeekFeedbackBody {
+  font-size: 13px;
+  color: #3A4A5C;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.learnerWeekFeedbackPending {
+  font-size: 13px;
+  color: #94A3B8;
+  margin-top: 16px;
+}
+
+/* Footer / Submit Button */
+.learnerWeekFooter {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.learnerWeekBadge {
+  font-size: 12px;
+  color: #94B8C8;
+  background: #F8FAFC;
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
+.learnerWeekSubmitBtn {
+  background: #3A4A5C;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 24px;
+  font-family: 'pretendard', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.learnerWeekSubmitBtn:hover:not(:disabled) {
+  background: #2e3c4c;
+}
+
+.learnerWeekSubmitBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

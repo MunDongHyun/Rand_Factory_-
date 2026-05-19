@@ -18,6 +18,8 @@ from app.schemas.curriculum import (
     CurriculumResponse,
     CurriculumStatsResponse,
     CurriculumUpdate,
+    TemplateGenerateRequest,
+    TemplateGenerateResponse,
 )
 from app.services import curriculum_service
 
@@ -326,3 +328,24 @@ async def download_curriculum_pdf(curriculum_data: list = Body(...)):
         media_type="application/pdf", 
         headers={"Content-Disposition": f"attachment; filename=curriculum.pdf"}
     )
+    
+    
+@router.post("/generate-template", response_model=TemplateGenerateResponse)
+def generate_template_api(
+    body: TemplateGenerateRequest,
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.user_role not in {"m", "a"}:
+        raise HTTPException(status_code=403, detail="Only manager/admin can generate templates")
+
+    try:
+        html_content = curriculum_service.generate_assignment_template(
+            theme=body.theme or "",
+            learning_objective=body.learning_objective or "",
+            assignment_title=body.assignment_title,
+            step_by_step_guide=body.step_by_step_guide,
+            expected_output_format=body.expected_output_format or "지정되지 않음",
+        )
+        return TemplateGenerateResponse(template_content=html_content)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"템플릿 AI 생성 실패: {exc}")
