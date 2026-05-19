@@ -23,6 +23,25 @@
 
 ---
 
+## 2026-05-19 - Codex (가입/초대코드 API 시나리오 검증)
+
+### 검증 방식
+- FastAPI `TestClient` + 실제 로컬 DB 연결로 발표용 가입/권한 흐름을 호출.
+- 테스트 데이터 prefix: `codex_api_check_20260519`
+- 검증 후 테스트 계정/커리큘럼 데이터 삭제 완료.
+
+### 결과
+- admin 로그인 성공.
+- 일반 가입 시 `c` 역할 생성 확인.
+- admin `PATCH /api/users/{id}`로 `c -> m` 승급 시 `user_invite_code` 자동 발급 확인.
+- 초대코드 가입 시 `j` 역할 생성 및 매니저 회사명 상속 확인.
+- manager가 다른 manager를 `GET /api/users/{id}`로 조회하면 404 확인 (`user_invite_code` 노출 차단).
+- manager가 같은 회사 learner를 조회하면 200 확인.
+- manager 커리큘럼 생성 성공.
+- admin이 manager 생성 커리큘럼을 `PATCH /api/curricula/{id}`로 수정 가능 확인.
+
+---
+
 ## 2026-05-18 - Claude (DOMPurify sanitize 도입 — 저장형 XSS 방어)
 
 ### 배경
