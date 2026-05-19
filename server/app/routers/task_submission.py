@@ -5,6 +5,8 @@ import uuid
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
+import filetype
+
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import FileResponse
 from sqlalchemy import func
@@ -28,15 +30,47 @@ router = APIRouter(prefix="/api/task-submissions", tags=["task-submissions"])
 # 첨부파일 저장 루트 (server/uploads/task_attachments/{submission_id}/{stored_name})
 ATTACHMENT_ROOT = Path(__file__).resolve().parents[2] / "uploads" / "task_attachments"
 ATTACHMENT_MAX_BYTES = 20 * 1024 * 1024  # 한 파일당 20MB
-_SAFE_NAME_PATTERN = re.compile(r"[^A-Za-z0-9._-]")
+
+# magic bytes 기반으로 명백한 실행 파일/스크립트 차단 (사용자 declared MIME만 신뢰하지 않음)
+_BLOCKED_MIME_PREFIXES = (
+    "application/x-msdownload",      # Windows .exe / .dll
+    "application/x-dosexec",
+    "application/x-executable",       # ELF / Mach-O
+    "application/x-msi",
+    "application/x-sh",
+    "application/x-bat",
+)
+
+
+def _detect_safe_mime(contents: bytes, declared: str | None, fallback_name: str) -> str:
+    """업로드된 바이트의 magic byte로 실제 MIME 추정.
+    명백한 실행 파일이면 415 예외. 그 외엔 detected/declared/mimetypes 순으로 사용.
+    """
+    detected_kind = filetype.guess(contents[:262])
+    detected_mime = detected_kind.mime if detected_kind else None
+    if detected_mime and any(detected_mime.startswith(p) for p in _BLOCKED_MIME_PREFIXES):
+        raise HTTPException(status_code=415, detail="실행 파일은 첨부할 수 없습니다")
+    return (
+        detected_mime
+        or declared
+        or mimetypes.guess_type(fallback_name)[0]
+        or "application/octet-stream"
+    )
+# Windows/POSIX 공통 위험 문자 + 제어문자만 차단 (유니코드 letter는 보존 → 한글 파일명 살림)
+_UNSAFE_FILENAME_PATTERN = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
 _HTML_TAG_PATTERN = re.compile(r"<[^>]+>")
 _HTML_WHITESPACE_ENTITY = re.compile(r"&(nbsp|ensp|emsp|thinsp);", re.IGNORECASE)
 
 
 def _sanitize_filename(name: str) -> str:
-    """원본 파일명에서 위험 문자 제거하고 확장자 보존. 경로 traversal 방지."""
-    clean = _SAFE_NAME_PATTERN.sub("_", Path(name).name)
-    return clean or "file"
+    """원본 파일명에서 OS 위험 문자만 제거. 유니코드(한글 등)는 그대로 보존.
+    Path(name).name으로 path traversal 차단.
+    """
+    base = Path(name).name
+    cleaned = _UNSAFE_FILENAME_PATTERN.sub("_", base)
+    # Windows: 파일명이 '.' 또는 공백으로 끝나면 안 됨
+    cleaned = cleaned.strip().strip(".")
+    return cleaned or "file"
 
 
 def _strip_html(value) -> str:
@@ -354,25 +388,46 @@ async def upload_attachment(
         raise HTTPException(status_code=400, detail="빈 파일은 업로드할 수 없습니다")
 
     safe_name = _sanitize_filename(file.filename or "file")
+    # magic byte 기반 MIME 추정 + 실행 파일 차단 (사용자 declared MIME만 믿지 않음)
+    safe_mime = _detect_safe_mime(contents, file.content_type, safe_name)
     stored_name = f"{uuid.uuid4().hex}_{safe_name}"
     target_dir = ATTACHMENT_ROOT / str(submission_id)
-    target_dir.mkdir(parents=True, exist_ok=True)
     target_path = target_dir / stored_name
-    target_path.write_bytes(contents)
 
+    # 원자성: DB row 먼저 등록(flush) → 파일 쓰기 → commit
+    # 파일 쓰기 실패 시 DB rollback으로 orphan 파일/row 모두 방지
     attachment = TaskSubmissionAttachment(
         task_submission_id=submission_id,
         file_original_name=file.filename or safe_name,
         file_storage_key=stored_name,
-        file_mime_type=file.content_type or mimetypes.guess_type(safe_name)[0] or "application/octet-stream",
+        file_mime_type=safe_mime,
         file_size_bytes=len(contents),
         file_sha256=hashlib.sha256(contents).hexdigest(),
     )
     db.add(attachment)
     db.flush()
+
+    try:
+        target_dir.mkdir(parents=True, exist_ok=True)
+        target_path.write_bytes(contents)
+    except OSError:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="첨부파일을 저장하지 못했습니다")
+
     content = submission.task_submitted_content or {}
     submission.task_submission_type = "mixed" if _strip_html(content.get("text")) else "file"
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        # 파일은 이미 디스크에 기록됐으므로 orphan 방지로 정리
+        if target_path.is_file():
+            try:
+                target_path.unlink()
+            except OSError:
+                pass
+        raise HTTPException(status_code=500, detail="첨부파일 등록에 실패했습니다")
+
     db.refresh(submission)
     return _submission_response(submission)
 
@@ -447,12 +502,20 @@ def delete_attachment(
     if not attachment:
         raise HTTPException(status_code=404, detail="첨부파일을 찾을 수 없습니다")
 
-    file_path = ATTACHMENT_ROOT / str(submission_id) / stored_name
-    if file_path.is_file():
-        file_path.unlink()
-
+    # 원자성: DB soft delete + commit 먼저 → 파일 unlink 는 best-effort
+    # 파일 unlink가 실패해도 DB의 file_deleted_at 때문에 다운로드는 막힘.
+    # 남은 orphan 파일은 추후 정리 작업으로 회수
     attachment.file_deleted_at = datetime.now(timezone.utc)
     submission.task_submission_type = _submission_type_from_content(submission)
     db.commit()
     db.refresh(submission)
+
+    file_path = ATTACHMENT_ROOT / str(submission_id) / stored_name
+    if file_path.is_file():
+        try:
+            file_path.unlink()
+        except OSError:
+            # 디스크 권한/잠금 등 — DB는 이미 deleted 상태라 다운로드는 차단됨
+            pass
+
     return _submission_response(submission)

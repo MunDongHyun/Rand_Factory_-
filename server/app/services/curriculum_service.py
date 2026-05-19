@@ -65,7 +65,7 @@ def retrieve_real_urls_for_context(course_name: str, required_content: str) -> s
         return "=== [웹 참고 자료 검색 실패. 내부 자료를 권장하도록 안내하세요.] ==="
 
 def generate_week_plan(cur_title: str, cur_duration_weeks: int, cur_target_job: str, cur_target_industry: str, cur_learning_goal: str, required_content: str):
-    ai_model = os.getenv("AI_MODEL", "gpt-4o-mini")
+    ai_model = os.getenv("AI_MODEL", "gpt-5.4-mini")
     llm = ChatOpenAI(model=ai_model, temperature=0.2, api_key=openai_api_key)
     
     structured_llm = llm.with_structured_output(CurriculumOutput)
@@ -115,24 +115,27 @@ def generate_week_plan(cur_title: str, cur_duration_weeks: int, cur_target_job: 
     return result.model_dump()["curriculum"]
 
 
-# 과제 템플릿 생성하는 모델(1차 : 예시 템플릿없음)
+# 과제 템플릿 생성하는 모델
 def generate_assignment_template(theme: str, learning_objective: str, assignment_title: str, step_by_step_guide: list[str], expected_output_format: str) -> str:
-    ai_model = os.getenv("AI_MODEL", "gpt-4o-mini")
+    ai_model = os.getenv("AI_MODEL", "gpt-5.4-mini")
     llm = ChatOpenAI(model=ai_model, temperature=0.3, api_key=openai_api_key)
     
     structured_llm = llm.with_structured_output(TemplateOutput)
 
-    # 👉 시스템 프롬프트에서 JoditEditor 단어 교체
+    # ✨ 수정사항: Tiptap 에디터를 쓰지 않고, 순수 HTML 입력 폼을 렌더링하도록 요구사항 변경
     system_prompt = """
     당신은 실무 기반 교육 과제 템플릿(양식)을 제작하는 전문가입니다.
-    사용자가 제공한 과제 정보를 바탕으로, 학습자가 직접 작성하기 쉬운 직관적인 HTML 형식의 과제 템플릿을 생성하세요.
+    사용자가 제공한 과제 정보를 바탕으로, 학습자가 직접 값을 입력할 수 있는 직관적인 HTML 입력 폼 템플릿을 생성하세요.
     
     [작성 가이드]
     1. HTML 태그(h3, p, ul, li, table, th, td, div 등)를 적극적으로 사용하여 깔끔하게 구성하세요.
     2. '제출 형태'나 '가이드'에 표 형태의 요약이 필요하다면 반드시 <table> 태그를 사용하여 틀을 만들어주세요. (table 속성에 style="width: 100%; border-collapse: collapse; border: 1px solid #ccc;" 와 th, td에 테두리 스타일을 넣으세요)
     3. 용어 선택(매우 중요): 표의 헤더나 항목을 구분할 때 문맥에 맞지 않는 '채널(Channel)'이라는 단어의 사용을 엄격히 금지합니다.
-    4. (★매우 중요) 학습자가 입력해야 할 '빈칸'이나 '밑줄(____)'을 절대 만들지 마세요. 그 대신 학습자가 직접 텍스트를 타이핑할 수 있도록 반드시 <input type="text" class="learner-input" placeholder="여기에 입력하세요"> 태그나, 내용이 긴 경우 <textarea class="learner-textarea" placeholder="여기에 내용을 상세히 입력하세요"></textarea> 태그를 넣어주세요.
-    5. 코드 블록(```html ... ```) 같은 마크다운 기호 없이, Tiptap 웹 에디터에 바로 렌더링 가능한 순수 HTML 문자열만 반환하세요.
+    4. (★매우 중요) 학습자가 실제로 데이터를 채워넣어야 하는 영역(표 안의 빈칸, 서술형 답변란 등)에는 반드시 다음 형식의 입력 태그를 삽입하세요:
+       - 짧은 단답형 텍스트: `<input type="text" class="template-input-text" placeholder="내용을 입력하세요" />`
+       - 여러 줄의 서술형 텍스트: `<textarea class="template-input-textarea" placeholder="상세 내용을 입력하세요"></textarea>`
+       - 빈 <td></td> 태그만 두지 말고, 반드시 그 안에 입력 태그를 포함하세요.
+    5. 코드 블록(```html ... ```) 같은 마크다운 기호 없이, 웹 에디터에 바로 렌더링 가능한 순수 HTML 문자열만 반환하세요.
     """
 
     user_prompt = f"""
