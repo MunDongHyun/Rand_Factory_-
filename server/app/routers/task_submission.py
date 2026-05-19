@@ -219,6 +219,8 @@ def list_my_submissions(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    if current_user.user_role != "j":
+        raise HTTPException(status_code=404, detail="찾을 수 없습니다")
     submissions = (
         db.query(TaskSubmission)
         .filter(TaskSubmission.task_learner_id == current_user.user_id)

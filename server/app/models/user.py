@@ -12,7 +12,12 @@ class User(Base):
     user_pw: Mapped[str] = mapped_column(String(255), nullable=False)
     user_name: Mapped[str] = mapped_column(String(50), nullable=False)
     user_company: Mapped[str] = mapped_column(String(100), nullable=False, default="")
-    user_role: Mapped[str] = mapped_column(Enum("j", "m", "a"), nullable=False)
+    user_role: Mapped[str] = mapped_column(
+        Enum("c", "m", "j", "a"), nullable=False, default="c", server_default="c"
+    )
+    user_invite_code: Mapped[str | None] = mapped_column(
+        String(14), nullable=True, unique=True
+    )
     user_created_at: Mapped[DateTime | None] = mapped_column(DateTime, nullable=True, server_default=func.now())
     user_updated_at: Mapped[DateTime] = mapped_column(
         DateTime,
