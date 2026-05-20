@@ -29,4 +29,3 @@ class Curriculum(Base):
 
     creator: Mapped["User"] = relationship("User", back_populates="curricula")
     task_submissions: Mapped[list["TaskSubmission"]] = relationship("TaskSubmission", back_populates="curriculum")
-    chatbot_sessions: Mapped[list["ChatbotSession"]] = relationship("ChatbotSession", back_populates="curriculum")
