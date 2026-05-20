@@ -4,9 +4,10 @@
    페이지 컨테이너
    ============================================= */
 .curriculumPageContainer {
-  height: 100vh;
+  height: calc(100vh - 24px);
+  margin-bottom: 24px;
   background: var(--bg);
-  padding: 40px 0;
+  padding: 40px 0 0 0;
   font-family: 'Pretendard', sans-serif;
   box-sizing: border-box;
   display: flex;
@@ -69,8 +70,10 @@
    ============================================= */
 .curriculumWrapper {
   display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
 }
 
 /* =============================================
@@ -83,7 +86,8 @@
   padding: 42px 25px 39px 25px;
   display: flex;
   flex-direction: column;
-  min-height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .curriculumSidebarTitle {
@@ -110,6 +114,8 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 
@@ -463,6 +469,9 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .extracted-section-margin {
@@ -1301,10 +1310,12 @@
   width: 860px;
   max-height: 92vh;
   transition: width 0.25s ease, height 0.25s ease;
-  overflow: hidden;
+  overflow: auto;
   display: flex;
   flex-direction: column;
 }
+
+
 
 /* 전체보기 상태 */
 .confirmModal.templateModal.fullscreen {
@@ -1390,7 +1401,8 @@
   flex: 1;
   border: 1px solid var(--line);
   border-radius: 4px;
-  overflow-y: auto;
+  min-height: 0;
+  overflow-y: hidden;
   max-height: 60vh;
   display: flex;
   flex-direction: column;
@@ -1661,7 +1673,8 @@
   font-family: 'Pretendard', sans-serif;
   font-size: 12px;
   color: var(--ink-muted);
-  margin: 0;
+  margin-top: -50px;
+  margin-bottom: 18px;
 }
 
 .assignEmpty {

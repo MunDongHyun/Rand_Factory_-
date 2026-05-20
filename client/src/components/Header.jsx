@@ -2,9 +2,11 @@ import { useState } from 'react';
 import '../styles/Dashboard.css';
 import searchIcon from '../public/search_icon.png';
 
-function Header({ canUseCurriculum = true, onViewChange, onLogout, onScrollToTop, onScrollToArticle, onSearch, onReset }) {
+function Header({ canUseCurriculum = true, onViewChange, onLogout, onScrollToTop, onScrollToArticle, onSearch, onReset, isModalOpen}) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [inputValue, setInputValue] = useState(''); 
+
+  if (isModalOpen) return null;
 
   // 검색 실행 핸들러
   const handleSearchAction = () => {
@@ -78,7 +80,7 @@ function Header({ canUseCurriculum = true, onViewChange, onLogout, onScrollToTop
             setTimeout(() => onScrollToTop(), 100); 
           }}>아티클 페이지</li>
           
-          <li className={canUseCurriculum ? '' : 'drawerMenuHidden'} onClick={() => { 
+          <li onClick={() => { 
             onViewChange('curriculum'); 
             setMenuOpen(false); 
           }}>커리큘럼 관리</li>

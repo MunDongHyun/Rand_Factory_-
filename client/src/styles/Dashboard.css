@@ -10,66 +10,6 @@
   color: var(--ink);
 }
 
-.managerInviteNotice {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  max-width: 1200px;
-  margin: 16px auto 0;
-  padding: 12px 18px;
-  background: var(--bg-alt);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  font-size: 13px;
-  color: var(--ink);
-}
-
-.managerInviteNotice__label {
-  font-weight: 700;
-  color: var(--ink-muted);
-  letter-spacing: 0.3px;
-}
-
-.managerInviteNotice__code {
-  font-family: 'JetBrains Mono', Consolas, monospace;
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  color: var(--ink);
-  padding: 4px 10px;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-}
-
-.managerInviteNotice__copy {
-  margin-left: auto;
-  padding: 6px 14px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--card);
-  background: var(--ink);
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-family: 'Pretendard', sans-serif;
-  transition: background 0.15s ease;
-}
-
-.managerInviteNotice__copy:hover {
-  background: var(--primary);
-}
-
-.managerInviteNotice__copy.is-copied {
-  background: #2f7d5c;
-}
-
-.managerInviteNotice__copied {
-  font-size: 12px;
-  font-weight: 600;
-  color: #2f7d5c;
-}
-
 
 /* ===========================
    헤더
@@ -279,10 +219,6 @@
 .drawerMenu li:hover {
   background: var(--bg-alt);
   color: var(--primary);
-}
-
-.drawerMenuHidden {
-  display: none !important;
 }
 
 .drawerLogout {
@@ -544,10 +480,6 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 6px;
-}
-
-.floatingCtaHidden {
-  display: none;
 }
 
 .floatingCtaLabel {
