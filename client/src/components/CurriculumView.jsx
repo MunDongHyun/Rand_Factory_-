@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import api from '../lib/api';
 import { sanitizeHtml } from '../lib/sanitize';
 import { downloadAttachment, formatBytes } from '../lib/attachments';
@@ -829,7 +830,7 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
       )}
 
       {/* 모달: 템플릿 양식 배포 (관리자용) */}
-      {templateModal.open && (
+      {templateModal.open && createPortal(
         <>
           <div className="confirmOverlay" onClick={() => setTemplateModal({ ...templateModal, open: false })} />
 
@@ -870,7 +871,8 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
               <button type="button" className="confirmBtnCreate" onClick={saveTemplate} disabled={templateModal.saving}>{templateModal.saving ? '배포 중...' : '템플릿 배포'}</button>
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
 
       {/* 모달: 다운로드 선택 */}
