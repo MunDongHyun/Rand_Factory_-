@@ -262,21 +262,30 @@
 }
 
 .learner-custom-form table {
-  border-collapse: collapse;
-  width: 100%;
-  margin: 16px 0;
+  display: table !important;
+  border-collapse: collapse !important;
+  table-layout: fixed !important;
+  width: 100% !important;
+  margin: 16px 0 !important;
+}
+
+.learner-custom-form tr {
+  display: table-row !important;
 }
 
 .learner-custom-form td,
 .learner-custom-form th {
-  border: 1px solid #ced4da;
-  padding: 10px;
-  vertical-align: top;
+  display: table-cell !important;
+  border: 1px solid #ced4da !important;
+  padding: 10px !important;
+  vertical-align: top !important;
+  box-sizing: border-box !important;
+  text-align: left !important;
 }
 
 .learner-custom-form th {
-  background-color: #f1f3f5;
-  font-weight: bold;
+  background-color: #f1f3f5 !important;
+  font-weight: bold !important;
 }
 
 /* ── 클릭 가능한 빈칸 입력 스타일 ── */
