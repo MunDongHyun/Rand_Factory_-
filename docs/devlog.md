@@ -2,6 +2,40 @@
 
 ---
 
+## 2026-05-20 - Claude (챗봇 백엔드 제거 + CLAUDE.md 정리)
+
+### 배경
+- 2026-05-19 사용자 결정: 챗봇은 프로젝트 범위에서 제외 (memory [[project-chatbot-removed]])
+- 백엔드에 챗봇 관련 라우터/모델/스키마/관계가 남아 있어 정리
+
+### 삭제 파일
+- `server/app/routers/chatbot.py`
+- `server/app/models/chatbot.py`
+- `server/app/schemas/chatbot.py`
+
+### 수정 파일
+- `server/app/main.py` — `chatbot` import 와 `app.include_router(chatbot.router)` 제거
+- `server/app/models/__init__.py` — `ChatbotMessage`, `ChatbotSession` import/export 제거
+- `server/app/schemas/__init__.py` — `Chatbot*` import/export 제거
+- `server/app/models/user.py` — `chatbot_sessions` relationship 제거
+- `server/app/models/curriculum.py` — `chatbot_sessions` relationship 제거
+- `CLAUDE.md`
+  - 핵심 테이블 섹션에서 `chatbot_sessions`, `chatbot_messages` 제거 (DB 테이블 자체는 데이터 보존 차원에서 남김)
+  - 현재 라우터 목록에서 `chatbot` 제거, 누락됐던 `author` 추가
+  - 권한 정책표 매니저 행에서 "챗봇 사용" 제거
+  - 제거된 예전 구조에 `chatbot` 추가
+  - 챗봇 전용 권한 차단 규칙 줄 제거
+
+### 미정리 (의도)
+- DB 테이블 `chatbot_sessions`, `chatbot_messages` — 데이터 영구 손실 방지 위해 보존. 드롭 여부는 별도 결정
+
+### 검증
+- `python -m compileall -q app` 통과
+- `from app.main import app` import 정상, 등록된 routes 48개
+- 프론트는 챗봇 참조 없음 확인 (`grep` 결과 비어있음)
+
+---
+
 ## 2026-05-20 - Claude (잔여 미커밋 정리)
 
 ### 변경

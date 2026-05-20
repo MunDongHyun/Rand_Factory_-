@@ -4,12 +4,6 @@ from app.schemas.article import (
     ArticleListResponse,
     ArticleResponse,
 )
-from app.schemas.chatbot import (
-    ChatbotMessageCreate,
-    ChatbotMessageResponse,
-    ChatbotSessionCreate,
-    ChatbotSessionResponse,
-)
 from app.schemas.curriculum import CurriculumCreate, CurriculumResponse, CurriculumUpdate
 from app.schemas.rag import RagQuery, RagResponse
 from app.schemas.task_submission import (
@@ -25,10 +19,6 @@ __all__ = [
     "ArticleInsightsResponse",
     "ArticleListResponse",
     "ArticleResponse",
-    "ChatbotMessageCreate",
-    "ChatbotMessageResponse",
-    "ChatbotSessionCreate",
-    "ChatbotSessionResponse",
     "CurriculumCreate",
     "CurriculumResponse",
     "CurriculumUpdate",

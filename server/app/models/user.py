@@ -28,5 +28,4 @@ class User(Base):
     user_deleted_at: Mapped[DateTime | None] = mapped_column(DateTime, nullable=True)
 
     curricula: Mapped[list["Curriculum"]] = relationship("Curriculum", back_populates="creator")
-    chatbot_sessions: Mapped[list["ChatbotSession"]] = relationship("ChatbotSession", back_populates="manager")
     task_submissions: Mapped[list["TaskSubmission"]] = relationship("TaskSubmission", back_populates="learner")
