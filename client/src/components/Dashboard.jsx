@@ -26,6 +26,7 @@ const CATEGORY_EN = {
 function Dashboard({ user, onLogout }) {
   const [view, setView] = useState('articles');
   const [selectedArticle, setSelectedArticle] = useState(null);
+  const [pendingAuthorNumb, setPendingAuthorNumb] = useState(null);
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -42,6 +43,10 @@ function Dashboard({ user, onLogout }) {
   // EmailingView가 상세 화면에 들어가 있는지 알리기 위한 ref (popstate 처리 분기용)
   const emailingDetailRef = useRef(false);
   const curriculumDetailRef = useRef(false);
+  // 요약문(✉)에서 이메일링으로 외부 진입한 경우: 뒤로가기 시 요약문 복귀를 위한 플래그
+  const cameFromArticleDetailRef = useRef(false);
+  // articleDetail 직전 view 기억 (뒤로가기 시 그 view 로 복귀)
+  const previousViewRef = useRef(null);
 
   const fetchArticles = () => {
     setLoading(true);
@@ -182,6 +187,10 @@ function Dashboard({ user, onLogout }) {
   };
 
   const openArticleDetail = async (article) => {
+    // articleDetail 끼리 이동(예: 추천 아티클 클릭) 시에는 최초 진입한 view 를 유지
+    if (viewRef.current !== 'articleDetail') {
+      previousViewRef.current = viewRef.current;
+    }
     setSelectedArticle(article);
     setView('articleDetail');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -195,6 +204,13 @@ function Dashboard({ user, onLogout }) {
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const openEmailingForAuthor = (authorNumb) => {
+    if (!authorNumb) return;
+    cameFromArticleDetailRef.current = true;
+    setPendingAuthorNumb(authorNumb);
+    setView('emailing');
   };
 
   const viewRef = useRef(view);
@@ -218,6 +234,24 @@ function Dashboard({ user, onLogout }) {
       }
       // LearnerCurriculumView 상세 화면에서 뒤로가기는 커리큘럼 목록 복귀로 자체 처리
       if (curriculumDetailRef.current) {
+        return;
+      }
+      // 요약문(✉)에서 외부 진입한 이메일링이면 뒤로가기 시 요약문으로 복귀
+      if (viewRef.current === 'emailing' && cameFromArticleDetailRef.current) {
+        cameFromArticleDetailRef.current = false;
+        setView('articleDetail');
+        return;
+      }
+      // articleDetail 에서 뒤로가기: 진입 직전 view 가 articles 가 아니면 그 view 로 복귀
+      if (
+        viewRef.current === 'articleDetail' &&
+        previousViewRef.current &&
+        previousViewRef.current !== 'articleDetail' &&
+        previousViewRef.current !== 'articles'
+      ) {
+        const prev = previousViewRef.current;
+        previousViewRef.current = null;
+        setView(prev);
         return;
       }
       if (viewRef.current === 'articles') {
@@ -366,6 +400,7 @@ function Dashboard({ user, onLogout }) {
           <ArticleDetailView
             article={selectedArticle}
             onBack={() => window.history.back()}
+            onOpenEmailing={openEmailingForAuthor}
           />
         )}
 
@@ -375,7 +410,14 @@ function Dashboard({ user, onLogout }) {
             : <CurriculumView onOpenArticle={openArticleDetail} onModalToggle={setIsSubModalOpen}/>
         )}
 
-        {view === 'emailing' && <EmailingView onOpenArticle={openArticleDetail} emailingDetailRef={emailingDetailRef} />}
+        {view === 'emailing' && (
+          <EmailingView
+            onOpenArticle={openArticleDetail}
+            emailingDetailRef={emailingDetailRef}
+            initialAuthorNumb={pendingAuthorNumb}
+            onConsumePendingAuthor={() => setPendingAuthorNumb(null)}
+          />
+        )}
       </main>
 
 

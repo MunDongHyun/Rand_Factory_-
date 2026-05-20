@@ -35,6 +35,18 @@ class ArticleResponse(BaseModel):
     article_preview_summary_title: str | None = None
 
 
+class AuthorBrief(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    author_numb: int
+    author_name: str
+    author_email: str | None = None
+
+
+class ArticleDetailResponse(ArticleResponse):
+    authors: list[AuthorBrief] = []
+
+
 class ArticleListResponse(BaseModel):
     articles: list[ArticleResponse]
     total: int

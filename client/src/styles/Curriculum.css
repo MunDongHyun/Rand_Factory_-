@@ -724,7 +724,7 @@
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.35);
-  z-index: 100;
+  z-index: 9998;
 }
 
 .downloadModal {
@@ -732,7 +732,7 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  z-index: 101;
+  z-index: 9999;
   background: var(--card);
   border-radius: 8px;
   padding: 24px 28px;
@@ -1115,7 +1115,7 @@
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.45);
-  z-index: 100;
+  z-index: 9998;
 }
 
 /* =============================================
@@ -1126,7 +1126,7 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  z-index: 101;
+  z-index: 9999;
   display: flex;
   width: 860px;
   max-height: 90vh;
@@ -1291,7 +1291,7 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  z-index: 101;
+  z-index: 9999;
   background: var(--card);
   border-radius: 10px;
   width: 860px;
@@ -1331,7 +1331,7 @@
   overflow-y: scroll !important;
   margin: 0 !important;
   padding: 32px 40px;
-  z-index: 102;
+  z-index: 10000;
   display: flex;
   flex-direction: column;
 }
