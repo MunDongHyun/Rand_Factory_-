@@ -6,7 +6,9 @@ import { downloadAttachment, formatBytes } from '../lib/attachments';
 import curri_nulll from '../public/download_img.png';
 import '../styles/Curriculum.css';
 
-// --- Tiptap Named Imports ---
+import rodingRafaGif from '../public/roding_rafa.gif';
+import randLogo from '../public/roding_rafa.png';
+
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Table } from '@tiptap/extension-table';
@@ -21,7 +23,6 @@ import { Color } from '@tiptap/extension-color';
 import { Highlight } from '@tiptap/extension-highlight';
 import { Link } from '@tiptap/extension-link';
 
-// --- 관리자용 Tiptap Editor 서브 컴포넌트 ---
 const TiptapMenuBar = ({ editor }) => {
   if (!editor) return null;
 
@@ -65,13 +66,12 @@ const TiptapMenuBar = ({ editor }) => {
       <button type="button" onClick={() => editor.chain().focus().setTextAlign('center').run()} className={editor.isActive({ textAlign: 'center' }) ? 'is-active' : ''}>가운데</button>
       <span className="confirmDivider" style={{ margin: '0 4px', height: '16px', display: 'inline-block', verticalAlign: 'middle' }}></span>
 
-      <button type="button" onClick={() => editor.chain().focus().toggleBulletList().run()} className={editor.isActive('bulletList') ? 'is-active' : ''}>• 리스트</button>
-      <button type="button" onClick={() => editor.chain().focus().toggleOrderedList().run()} className={editor.isActive('orderedList') ? 'is-active' : ''}>1. 리스트</button>
-      <button type="button" onClick={setLink} className={editor.isActive('link') ? 'is-active' : ''}>🔗 링크</button>
-      <button type="button" onClick={addImage}>🖼️ 이미지</button>
+      <button type="button" onClick={() => editor.chain().focus().toggleBulletList().run()} className={editor.isActive('bulletList') ? 'is-active' : ''}>리스트</button>
+      <button type="button" onClick={() => editor.chain().focus().toggleOrderedList().run()} className={editor.isActive('orderedList') ? 'is-active' : ''}>숫자 리스트</button>
+      <button type="button" onClick={setLink} className={editor.isActive('link') ? 'is-active' : ''}>[링크]</button>
+      <button type="button" onClick={addImage}>[이미지]</button>
       <span className="confirmDivider" style={{ margin: '0 4px', height: '16px', display: 'inline-block', verticalAlign: 'middle' }}></span>
 
-      {/* 관리자용 표 구조 변경 툴 */}
       <div style={{ display: 'flex', gap: '2px', background: '#ffebee', padding: '2px 4px', borderRadius: '4px' }}>
         <button type="button" onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>표 삽입</button>
         <button type="button" onClick={() => editor.chain().focus().addColumnBefore().run()}>+열 앞</button>
@@ -110,7 +110,31 @@ const TiptapEditor = ({ value, onChange, heightMode }) => {
   );
 };
 
-// --- 유틸 및 초기값 ---
+const LoadingModal = ({ generating, currentMessageIndex }) => {
+  const messages = [
+    { text: "AI가 커리큘럼 초안을 구상 중입니다...", img: rodingRafaGif },
+    { text: "직무에 맞는 학습 목표를 설정하고 있습니다...", img: rodingRafaGif },
+    { text: "주차별 상세 과제를 생성 중입니다...", img: randLogo },
+    { text: "거의 다 되었습니다. 마지막 정리 중입니다...", img: randLogo },
+    { text: "커리큘럼 생성이 완료되었습니다!", img: randLogo }
+  ];
+
+  const currentMessage = messages[currentMessageIndex];
+
+  return createPortal(
+    <div className={`loadingModalOverlay ${generating ? 'active' : ''}`}>
+      <div className="loadingModalContainer">
+        <img src={currentMessage.img} alt="로딩 이미지" className="loadingModalImage" />
+        <p className="loadingModalText">{currentMessage.text}</p>
+        <div className="loadingModalBar">
+          <div className="loadingModalBarFill" style={{ width: `${(currentMessageIndex + 1) / messages.length * 100}%` }} />
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
 const initialForm = { cur_title: '', cur_duration_weeks: 4, cur_target_job: '', cur_target_industry: '', cur_learning_goal: '', required_content: '' };
 const normalizeWeekPlan = (plan) => { if (Array.isArray(plan)) return plan; if (plan && typeof plan === 'object') return [plan]; return []; };
 const buildGeneratePayload = (form) => ({
@@ -132,6 +156,7 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState(null);
 
+  const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const [detailExpandedWeek, setDetailExpandedWeek] = useState(null);
   const [previewExpandedWeek, setPreviewExpandedWeek] = useState(null);
 
@@ -154,6 +179,15 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
 
   const [templateModal, setTemplateModal] = useState({ open: false, week: null, assignmentIdx: null, title: '', content: '', fullscreen: false, generating: false });
+  
+  const [templateMessageIndex, setTemplateMessageIndex] = useState(0);
+  const TEMPLATE_MESSAGES = [
+    "과제 양식을 새롭게 구상 중입니다...",
+    "학습 목표에 맞춰 표와 항목을 쪼개고 있습니다...",
+    "답변하기 쉬운 형태로 빈칸을 배치하고 있습니다...",
+    "거의 다 되었습니다. 마무리 정리 중입니다...",
+    "템플릿 재생성이 완료되었습니다!"
+  ];
 
   const loadCurriculums = () => {
     setLoading(true); setError(null);
@@ -198,14 +232,6 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
       .then((res) => setSubmissions(Array.isArray(res.data) ? res.data : [])).catch(() => setSubmissions([])).finally(() => setSubmissionsLoading(false));
   }, [selectedId]);
 
-  // 대시보드로 이벤트 알리는 로직 완전히 주석처리 (부모 오버레이 차단용)
-  // useEffect(() => {
-  //   if (onModalToggle) {
-  //     const anyModalOpen = modalOpen || downloadModalOpen || assignModalOpen || templateModal.open;
-  //     onModalToggle(anyModalOpen);
-  //   }
-  // }, [modalOpen, downloadModalOpen, assignModalOpen, templateModal.open, onModalToggle]);
-
   const handleAttachmentDownload = async (submissionId, attachment) => {
     try { await downloadAttachment(submissionId, attachment); } catch (err) { alert(err.response?.data?.detail || '첨부파일 다운로드에 실패했습니다.'); }
   };
@@ -229,9 +255,9 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
   const selectedCurriculum = curriculums.find((c) => c.cur_id === selectedId);
 
   const handleDownloadTxt = async () => {
-    if (!selectedCurriculum || !selectedCurriculum.cur_week_plan) return;
+    if (!selectedCurriculum) return;
     try {
-      const res = await api.post('/curricula/download/txt', normalizeWeekPlan(selectedCurriculum.cur_week_plan), { responseType: 'blob' });
+      const res = await api.post('/curricula/download/txt', selectedCurriculum, { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement('a'); link.href = url; link.setAttribute('download', `${selectedCurriculum.cur_title}.txt`);
       document.body.appendChild(link); link.click(); link.remove();
@@ -239,14 +265,25 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
   };
 
   const handleDownloadPdf = async () => {
-    if (!selectedCurriculum || !selectedCurriculum.cur_week_plan) return;
+    if (!selectedCurriculum) return;
     try {
-      const res = await api.post('/curricula/download/pdf', normalizeWeekPlan(selectedCurriculum.cur_week_plan), { responseType: 'blob' });
+      const res = await api.post('/curricula/download/pdf', selectedCurriculum, { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement('a'); link.href = url; link.setAttribute('download', `${selectedCurriculum.cur_title}.pdf`);
       document.body.appendChild(link); link.click(); link.remove();
     } catch (error) { alert('PDF 다운로드 중 오류가 발생했습니다.'); }
   };
+
+  const handleDownloadDocx = async () => {
+    if (!selectedCurriculum) return;
+    try {
+      const res = await api.post('/curricula/download/docx', selectedCurriculum, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a'); link.href = url; link.setAttribute('download', `${selectedCurriculum.cur_title}.docx`);
+      document.body.appendChild(link); link.click(); link.remove();
+    } catch (error) { alert('DOCX 다운로드 중 오류가 발생했습니다.'); }
+  };
+
 
   const closeModal = () => {
     if (generating || saving) return;
@@ -263,16 +300,35 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
     const payload = buildGeneratePayload(form);
     if (!payload.cur_title) { setFormError('과정명을 입력해 주세요.'); return; }
     if (!payload.cur_duration_weeks || payload.cur_duration_weeks < 1) { setFormError('기간은 1주 이상으로 입력해 주세요.'); return; }
+    
     setGenerating(true);
+    setCurrentMessageIndex(0);
+    const timer = setInterval(() => {
+      setCurrentMessageIndex(prev => {
+        if (prev < 3) return prev + 1; 
+        clearInterval(timer);
+        return prev;
+      });
+    }, 4000); 
+
     try {
       const res = await api.post('/curricula/generate', payload);
-      setPreview(res.data);
-      if (res.data?.cur_week_plan?.length > 0) setPreviewExpandedWeek(res.data.cur_week_plan[0].week);
-      setConfirmOpen(true);
+      
+      clearInterval(timer);
+      setCurrentMessageIndex(4);
+      setTimeout(() => {
+        setGenerating(false);
+        setPreview(res.data);
+        if (res.data?.cur_week_plan?.length > 0) setPreviewExpandedWeek(res.data.cur_week_plan[0].week);
+        setConfirmOpen(true);
+      }, 2000); 
+
     } catch (err) {
+      clearInterval(timer);
+      setGenerating(false);
       const detail = err.response?.data?.detail;
-      setFormError(Array.isArray(detail) ? detail[0].msg : detail || 'AI 커리큘럼 생성에 실패했어요.');
-    } finally { setGenerating(false); }
+      setFormError(Array.isArray(detail) ? detail[0].msg : detail || 'AI 커리큘럼 생성에 실패했어요. 입력값을 확인해주세요.');
+    }
   };
 
   const handleSave = async () => {
@@ -335,6 +391,16 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
     const assignment = targetWeek.assignments[templateModal.assignmentIdx];
 
     setTemplateModal(prev => ({ ...prev, generating: true }));
+    
+    setTemplateMessageIndex(0);
+    const timer = setInterval(() => {
+      setTemplateMessageIndex(prev => {
+        if (prev < 3) return prev + 1;
+        clearInterval(timer);
+        return prev;
+      });
+    }, 3500); 
+
     try {
       const res = await api.post('/curricula/generate-template', {
         theme: targetWeek.theme,
@@ -343,8 +409,15 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
         step_by_step_guide: assignment.step_by_step_guide || [],
         expected_output_format: assignment.expected_output_format || assignment.submission || '지정되지 않음'
       });
-      setTemplateModal(prev => ({ ...prev, content: res.data.template_content, generating: false }));
+      
+      clearInterval(timer);
+      setTemplateMessageIndex(4);
+      setTimeout(() => {
+        setTemplateModal(prev => ({ ...prev, content: res.data.template_content, generating: false }));
+      }, 1500);
+      
     } catch (err) {
+      clearInterval(timer);
       alert('AI 템플릿 재생성에 실패했습니다.');
       setTemplateModal(prev => ({ ...prev, generating: false }));
     }
@@ -371,13 +444,13 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
           <div className="extracted-accordion-body">
             {step.learning_objective && (
               <div className="extracted-section-margin">
-                <h4 className="extracted-objective-title">이번 주차 학습 목표</h4>
+                <h4 className="extracted-objective-title">[학습 목표]</h4>
                 <p className="extracted-objective-text">{step.learning_objective}</p>
               </div>
             )}
             {(step.tasks || step.task) && (
               <div className="extracted-section-margin">
-                <h4 className="extracted-task-title">멘토링 및 실습 과제</h4>
+                <h4 className="extracted-task-title">[멘토링 및 실습 과제]</h4>
                 <ul className="extracted-task-list">
                   {Array.isArray(step.tasks || step.task) ? (step.tasks || step.task).map((t, idx) => (<li key={idx} className="extracted-list-item">{t}</li>)) : <p className="extracted-objective-text">{step.tasks || step.task}</p>}
                 </ul>
@@ -385,7 +458,7 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
             )}
             {Array.isArray(step.assignments) && step.assignments.length > 0 && (
               <div className="extracted-assignment-wrapper">
-                <h4 className="extracted-task-title">실무 수행 과제</h4>
+                <h4 className="extracted-task-title">[실무 수행 과제]</h4>
                 <div className="extracted-assignment-grid">
                   {step.assignments.map((a, idx) => (
                     <div key={idx} className="extracted-assignment-card">
@@ -409,7 +482,7 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
             )}
             {step.instructor_guide && (
               <div className="extracted-instructor-box">
-                <h4 className="extracted-instructor-title">교육담당자(사수) 코칭 가이드</h4>
+                <h4 className="extracted-instructor-title">[교육담당자 코칭 가이드]</h4>
                 {Array.isArray(step.instructor_guide.check_points) && step.instructor_guide.check_points.length > 0 && (
                   <div className="extracted-section-margin">
                     <strong className="extracted-guide-label">[평가 체크포인트]</strong>
@@ -420,9 +493,9 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
                 )}
                 {Array.isArray(step.instructor_guide.coaching_questions) && step.instructor_guide.coaching_questions.length > 0 && (
                   <div>
-                    <strong className="extracted-guide-label">[1:1 미팅 권장 질문]</strong>
+                    <strong className="extracted-guide-label">[권장 질문]</strong>
                     <ul className="extracted-coaching-list">
-                      {step.instructor_guide.coaching_questions.map((cq, idx) => (<li key={idx} className="extracted-coaching-item">🗣️ {cq}</li>))}
+                      {step.instructor_guide.coaching_questions.map((cq, idx) => (<li key={idx} className="extracted-coaching-item">- {cq}</li>))}
                     </ul>
                   </div>
                 )}
@@ -432,20 +505,20 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
               <div>
                 {Array.isArray(step.recommended_articles) && step.recommended_articles.length > 0 && (
                   <>
-                    <h4 className="extracted-ref-title">참고 자료</h4>
+                    <h4 className="extracted-ref-title">[참고 자료]</h4>
                     {step.recommended_articles.map((article, idx) => {
                       const hasValidUrl = article.url && article.url.trim() !== "";
                       return (
                         <div key={idx} className="extracted-ref-item">
-                          {hasValidUrl ? (<a href={article.url} target="_blank" rel="noopener noreferrer" className="extracted-ref-link">🔗 {article.title}</a>) : (<span className="extracted-ref-doc">📁 {article.title} <span className="extracted-ref-small">(사내 문서 참고)</span></span>)}
-                          {(article.reason_for_reading || article.why_relevant) && (<p className="extracted-ref-reason">✓ {article.reason_for_reading || article.why_relevant}</p>)}
+                          {hasValidUrl ? (<a href={article.url} target="_blank" rel="noopener noreferrer" className="extracted-ref-link">[링크] {article.title}</a>) : (<span className="extracted-ref-doc">[문서] {article.title} <span className="extracted-ref-small">(사내 문서 참고)</span></span>)}
+                          {(article.reason_for_reading || article.why_relevant) && (<p className="extracted-ref-reason">- {article.reason_for_reading || article.why_relevant}</p>)}
                         </div>
                       );
                     })}
                   </>
                 )}
               </div>
-              {step.estimated_hours && (<div className="extracted-time-badge">⏱ 예상 소요: {step.estimated_hours}시간</div>)}
+              {step.estimated_hours && (<div className="extracted-time-badge">[예상 소요] {step.estimated_hours}시간</div>)}
             </div>
           </div>
         )}
@@ -595,13 +668,13 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
                     <div className="extracted-accordion-body" style={{ border: 'none', background: 'transparent' }}>
                       {weekData.learning_objective && (
                         <div className="extracted-section-margin">
-                          <h4 className="extracted-objective-title">🎯 이번 주차 학습 목표</h4>
+                          <h4 className="extracted-objective-title">[학습 목표]</h4>
                           <p className="extracted-objective-text">{weekData.learning_objective}</p>
                         </div>
                       )}
                       {(weekData.tasks || weekData.task) && (
                         <div className="extracted-section-margin">
-                          <h4 className="extracted-task-title">📚 멘토링 및 실습 과제</h4>
+                          <h4 className="extracted-task-title">[멘토링 및 실습 과제]</h4>
                           <ul className="extracted-task-list">
                             {Array.isArray(weekData.tasks || weekData.task)
                               ? (weekData.tasks || weekData.task).map((t, idx) => <li key={idx} className="extracted-list-item">{t}</li>)
@@ -611,7 +684,7 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
                       )}
                       {Array.isArray(weekData.assignments) && weekData.assignments.length > 0 && (
                         <div className="extracted-assignment-wrapper">
-                          <h4 className="extracted-task-title">📝 실무 수행 과제</h4>
+                          <h4 className="extracted-task-title">[실무 수행 과제]</h4>
                           <div className="extracted-assignment-grid">
                             {weekData.assignments.map((a, idx) => (
                               <div key={idx} className="extracted-assignment-card">
@@ -635,7 +708,7 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
                       )}
                       {weekData.instructor_guide && (
                         <div className="extracted-instructor-box">
-                          <h4 className="extracted-instructor-title">💡 교육담당자(사수) 코칭 가이드</h4>
+                          <h4 className="extracted-instructor-title">[교육담당자 코칭 가이드]</h4>
                           {Array.isArray(weekData.instructor_guide.check_points) && weekData.instructor_guide.check_points.length > 0 && (
                             <div className="extracted-section-margin">
                               <strong className="extracted-guide-label">[평가 체크포인트]</strong>
@@ -646,9 +719,9 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
                           )}
                           {Array.isArray(weekData.instructor_guide.coaching_questions) && weekData.instructor_guide.coaching_questions.length > 0 && (
                             <div>
-                              <strong className="extracted-guide-label">[1:1 미팅 권장 질문]</strong>
+                              <strong className="extracted-guide-label">[권장 질문]</strong>
                               <ul className="extracted-coaching-list">
-                                {weekData.instructor_guide.coaching_questions.map((cq, idx) => <li key={idx} className="extracted-coaching-item">🗣️ {cq}</li>)}
+                                {weekData.instructor_guide.coaching_questions.map((cq, idx) => <li key={idx} className="extracted-coaching-item">- {cq}</li>)}
                               </ul>
                             </div>
                           )}
@@ -658,16 +731,16 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
                         <div>
                           {Array.isArray(weekData.recommended_articles) && weekData.recommended_articles.length > 0 && (
                             <>
-                              <h4 className="extracted-ref-title">📖 참고 자료</h4>
+                              <h4 className="extracted-ref-title">[참고 자료]</h4>
                               {weekData.recommended_articles.map((article, idx) => {
                                 const hasValidUrl = article.url && article.url.trim() !== "";
                                 return (
                                   <div key={idx} className="extracted-ref-item">
                                     {hasValidUrl
-                                      ? <a href={article.url} target="_blank" rel="noopener noreferrer" className="extracted-ref-link">🔗 {article.title}</a>
-                                      : <span className="extracted-ref-doc">📁 {article.title} <span className="extracted-ref-small">(사내 문서 참고)</span></span>}
+                                      ? <a href={article.url} target="_blank" rel="noopener noreferrer" className="extracted-ref-link">[링크] {article.title}</a>
+                                      : <span className="extracted-ref-doc">[문서] {article.title} <span className="extracted-ref-small">(사내 문서 참고)</span></span>}
                                     {(article.reason_for_reading || article.why_relevant) && (
-                                      <p className="extracted-ref-reason">✓ {article.reason_for_reading || article.why_relevant}</p>
+                                      <p className="extracted-ref-reason">- {article.reason_for_reading || article.why_relevant}</p>
                                     )}
                                   </div>
                                 );
@@ -675,7 +748,7 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
                             </>
                           )}
                         </div>
-                        {weekData.estimated_hours && <div className="extracted-time-badge">⏱ 예상 소요: {weekData.estimated_hours}시간</div>}
+                        {weekData.estimated_hours && <div className="extracted-time-badge">[예상 소요] {weekData.estimated_hours}시간</div>}
                       </div>
                     </div>
                   </div>
@@ -702,7 +775,7 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
                     </div>
                     {Array.isArray(s.task_submitted_content?.attachments) && s.task_submitted_content.attachments.length > 0 && (
                       <div className="managerSubmissionAttachments">
-                        <p className="managerSubmissionContentLabel">📎 첨부파일</p>
+                        <p className="managerSubmissionContentLabel">[첨부파일]</p>
                         <ul className="managerSubmissionAttachmentList">
                           {s.task_submitted_content.attachments.map((a, i) => (
                             <li key={i} className="managerSubmissionAttachmentItem">
@@ -743,10 +816,8 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
         </div>
       )}
 
+      <LoadingModal generating={generating} currentMessageIndex={currentMessageIndex} />
 
-      {/* 🚀 CSS 파일을 철저하게 무시하도록 오버레이와 컨테이너에 직접 z-index: 99999 를 인라인으로 박아넣은 최종 해결책! 🚀 */}
-
-      {/* 모달: 커리큘럼 생성 */}
       {modalOpen && createPortal(
         <>
           <div className="chatModalOverlay" style={{ zIndex: 99998 }} onClick={closeModal} />
@@ -780,7 +851,6 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
         document.body
       )}
 
-      {/* 모달: 학습자 배정 변경 */}
       {assignModalOpen && selectedCurriculum && createPortal(
         <>
           <div className="confirmOverlay" style={{ zIndex: 99998 }} onClick={() => !assignSaving && setAssignModalOpen(false)} />
@@ -802,7 +872,6 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
         document.body
       )}
 
-      {/* 모달: 커리큘럼 저장 확인 */}
       {confirmOpen && preview && createPortal(
         <>
           <div className="confirmOverlay" style={{ zIndex: 99998 }} onClick={() => !saving && setConfirmOpen(false)} />
@@ -831,7 +900,6 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
         document.body
       )}
 
-      {/* 모달: 템플릿 양식 배포 (관리자용) */}
       {templateModal.open && createPortal(
         <>
           <div className="confirmOverlay" style={{ zIndex: 99998 }} onClick={() => setTemplateModal({ ...templateModal, open: false })} />
@@ -842,10 +910,10 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
               <h3 className="sectionTitle">과제 양식(템플릿) 배포</h3>
               <div className="modalHeaderActions">
                 <button type="button" className="template-action-btn admin ai-regenerate-btn" onClick={handleRegenerateTemplate} disabled={templateModal.generating}>
-                  {templateModal.generating ? 'AI 작성 중...' : '✨ AI 템플릿 재작성'}
+                  {templateModal.generating ? 'AI 작성 중...' : 'AI 템플릿 재작성'}
                 </button>
                 <button type="button" className="fullscreenBtn" onClick={() => setTemplateModal(prev => ({ ...prev, fullscreen: !prev.fullscreen }))}>
-                  {templateModal.fullscreen ? '✕ 축소' : '⛶ 전체보기'}
+                  {templateModal.fullscreen ? '축소' : '전체보기'}
                 </button>
               </div>
             </div>
@@ -855,12 +923,17 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
             </p>
 
             <div className="templateEditorWrapper" style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', border: '1px solid #ccc', borderRadius: '4px', overflow: 'hidden', minHeight: 0 }}>
+              
               {templateModal.generating && (
-                <div className="tiptap-loading-overlay">
-                  <div className="tiptap-spinner"></div>
-                  <span className="tiptap-loading-text">AI가 템플릿을 재작성하고 있습니다...</span>
+                <div className="template-loading-overlay">
+                  <img src={rodingRafaGif} alt="AI 로딩" className="template-loading-gif" />
+                  <p className="template-loading-text">{TEMPLATE_MESSAGES[templateMessageIndex]}</p>
+                  <div className="template-loading-bar">
+                    <div className="template-loading-bar-fill" style={{ width: `${((templateMessageIndex + 1) / TEMPLATE_MESSAGES.length) * 100}%` }} />
+                  </div>
                 </div>
               )}
+
               <TiptapEditor
                 value={templateModal.content}
                 onChange={(newContent) => setTemplateModal({ ...templateModal, content: newContent })}
@@ -876,14 +949,14 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
         document.body
       )}
 
-      {/* 모달: 다운로드 선택 */}
       {downloadModalOpen && createPortal(
         <>
           <div className="downloadOverlay" style={{ zIndex: 99998 }} onClick={() => setDownloadModalOpen(false)} />
           <div className="downloadModal" style={{ zIndex: 99999 }}>
             <p className="downloadModalTitle">다운로드 형식 선택</p>
-            <button type="button" className="downloadModalBtn" onClick={() => { handleDownloadTxt(); setDownloadModalOpen(false); }}>TXT 다운로드</button>
+            <button type="button" className="downloadModalBtn" onClick={() => { handleDownloadDocx(); setDownloadModalOpen(false); }}>DOCX 다운로드</button>
             <button type="button" className="downloadModalBtn" onClick={() => { handleDownloadPdf(); setDownloadModalOpen(false); }}>PDF 다운로드</button>
+            <button type="button" className="downloadModalBtn" onClick={() => { handleDownloadTxt(); setDownloadModalOpen(false); }}>TXT 다운로드</button>
           </div>
         </>,
         document.body
