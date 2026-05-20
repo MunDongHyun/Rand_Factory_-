@@ -13,6 +13,69 @@
 
 ---
 
+## 2026-05-20 - Claude (요약문 페이지 → 저자 이메일링 진입점 추가)
+
+### 배경
+- 요약문 페이지(ArticleDetailView)에서 저자에게 바로 이메일을 보낼 수 있는 진입점이 없었음
+- 사용자 결정: 저자명 옆에 메일 아이콘(✉) 버튼 + 클릭 시 EmailingView에서 해당 저자 자동 선택
+
+### 백엔드
+- `schemas/article.py` — `AuthorBrief`, `ArticleDetailResponse` 신설
+  - `AuthorBrief`: `author_numb`, `author_name`, `author_email`
+  - `ArticleDetailResponse(ArticleResponse)`: `authors: list[AuthorBrief] = []`
+  - list 응답은 그대로 `ArticleResponse` 유지 (N+1 회피 — 단건 detail에서만 authors 노출)
+- `routers/article.py` — `GET /articles/{id}` response_model을 `ArticleDetailResponse`로 교체. relationship `article.authors`를 직렬화해서 응답에 포함
+
+### 프론트
+- `ArticleDetailView.jsx`
+  - prop에 `onOpenEmailing(authorNumb)` 추가
+  - 메타 라인에서 `authors` 배열이 있으면 저자별로 `이름 ✉` 렌더 (각 저자 1:1 매칭)
+  - `author_email`이 없는 저자는 ✉ 버튼 숨김
+  - 매핑 없는 구 데이터(`authors` 빈 배열)는 fallback으로 기존 `article_author` 문자열만 표시
+- `Dashboard.jsx`
+  - `pendingAuthorNumb` state + `openEmailingForAuthor(authorNumb)` 함수 추가
+  - `ArticleDetailView`에 `onOpenEmailing`, `EmailingView`에 `initialAuthorNumb`/`onConsumePendingAuthor` 전달
+- `EmailingView.jsx`
+  - prop에 `initialAuthorNumb`, `onConsumePendingAuthor` 추가
+  - 마운트 후 `initialAuthorNumb` 있으면 한 번만 `handleAuthorClick` 자동 호출 → 부모에게 consume 콜백
+
+### 스타일
+- `styles/ArticleDetailView.css` — `.articleAuthorList`, `.articleAuthorItem`, `.articleAuthorSep`, `.authorMailBtn` 추가 (CLAUDE.md inline style 금지 룰 준수)
+
+### 검증
+- backend `python -m compileall -q app` 통과
+- frontend `npm run build` 통과 (5.10s, 기존 청크 경고만 유지)
+
+### 미결 / 후속
+- 저자에 매핑이 안 된 구 article 데이터 비율 확인 필요 (백필 여부 결정)
+  - 진단 결과: articles 53건 중 매핑 43건. 누락 10건. authors 41명 중 이메일 보유 25명. (예: article_id=50의 "미셸 테이트"는 authors 테이블에도 없음)
+- 모바일에서 메타 라인 줄바꿈 시 ✉ 버튼 위치 확인 (CSS는 inline-flex로 짜였음)
+
+### 후속 2 — articleDetail 진입 직전 view 로 뒤로가기 복귀 (일반화)
+- 이메일링 → 저자 상세 → 그 저자가 쓴 아티클 클릭 → articleDetail 진입 후 뒤로가기를 누르면 메인 대시보드(articles)로 점프하던 문제 해결
+- `Dashboard.jsx`
+  - `previousViewRef` 추가
+  - `openArticleDetail` 호출 시 `viewRef.current` 를 `previousViewRef.current` 에 캡쳐 (단, articleDetail → articleDetail 이동(추천 아티클 등)에서는 최초 진입 view 유지)
+  - `onPop` 분기 추가: `view==='articleDetail' && previousView 가 articles/articleDetail 이 아니면` 그 view 로 `setView` 후 ref reset
+- 일반화 효과로 이메일링뿐 아니라 커리큘럼 등 다른 진입 view 에서도 articleDetail 뒤로가기 시 해당 view 로 복귀
+- frontend `npm run build` 통과 (5.20s)
+
+### 후속 — 외부 진입 흐름의 뒤로가기 동선 보정
+- 요약문 → ✉ → 이메일링(저자 자동 선택) 흐름에서 뒤로가기가 저자 목록에 한 번 머무는 동작을 제거
+- `Dashboard.jsx`
+  - `cameFromArticleDetailRef` 추가. `openEmailingForAuthor` 호출 시 true 설정
+  - `onPop` 분기: `view==='emailing' && cameFromArticleDetailRef.current` 이면 `setView('articleDetail')` 로 복원
+- `EmailingView.jsx`
+  - `externalAuthorNumbRef` 추가. `initialAuthorNumb` 자동 선택 시 해당 author_numb 보관
+  - 상세 진입 useEffect: `externalAuthorNumbRef.current === selectedAuthor.author_numb` 동안에는 자체 `pushState` 와 popstate listener 등록을 skip + `emailingDetailRef`도 false 유지 (Dashboard onPop 위임)
+  - `handleAuthorClick`: 다른 저자 번호로 호출되면 `externalAuthorNumbRef.current = null` 로 reset → 이후 일반 동작 (자체 history push) 복귀
+- 결과 동작
+  - 요약문 → ✉ → 이메일링(저자 자동 선택) → 뒤로가기 1번 → 요약문 복귀
+  - 메뉴에서 직접 이메일링 진입 / EmailingView 내에서 저자 클릭 → 기존 그대로 (저자 목록 → 뒤로가기 → 아티클 목록)
+- frontend `npm run build` 통과 (5.07s)
+
+---
+
 ## 2026-05-19 - Codex (권한 노출 점검 후 안정화)
 
 ### 변경

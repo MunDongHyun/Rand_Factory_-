@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import api from '../lib/api';
 import '../styles/EmailingView.css';
 import icon from '../public/챗봇_아이콘.png';
@@ -10,7 +10,7 @@ function formatPublishedDate(value) {
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
 }
 
-function EmailingView({ onOpenArticle, emailingDetailRef }) {
+function EmailingView({ onOpenArticle, emailingDetailRef, initialAuthorNumb, onConsumePendingAuthor }) {
   const [authors, setAuthors] = useState([]);
   const [listLoading, setListLoading] = useState(false);
   const [listError, setListError] = useState(null);
@@ -24,6 +24,9 @@ function EmailingView({ onOpenArticle, emailingDetailRef }) {
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState(null);
 
+  // 요약문(✉)에서 자동 선택된 저자 번호. 일치할 동안만 자체 history push를 skip (Dashboard 위임)
+  const externalAuthorNumbRef = useRef(null);
+
   useEffect(() => {
     setListLoading(true);
     api.get('/authors')
@@ -32,11 +35,27 @@ function EmailingView({ onOpenArticle, emailingDetailRef }) {
       .finally(() => setListLoading(false));
   }, []);
 
+  // 외부에서 진입한 initialAuthorNumb 가 있으면 한 번만 자동 선택
+  useEffect(() => {
+    if (!initialAuthorNumb) return;
+    if (selectedAuthor) return;
+    externalAuthorNumbRef.current = initialAuthorNumb;
+    handleAuthorClick({ author_numb: initialAuthorNumb });
+    if (onConsumePendingAuthor) onConsumePendingAuthor();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialAuthorNumb]);
+
   // 상세 진입 시 history push + popstate로 뒤로가기 처리
   useEffect(() => {
-    if (emailingDetailRef) emailingDetailRef.current = !!selectedAuthor;
+    // 외부 진입(요약문 → ✉)인 저자가 선택된 동안에는 자체 history 관리하지 않음.
+    // Dashboard onPop 이 articleDetail 로 복귀 처리 → emailingDetailRef 도 false 로 유지.
+    const isExternalEntry =
+      !!selectedAuthor && externalAuthorNumbRef.current === selectedAuthor.author_numb;
+
+    if (emailingDetailRef) emailingDetailRef.current = !!selectedAuthor && !isExternalEntry;
 
     if (!selectedAuthor) return;
+    if (isExternalEntry) return;
 
     window.history.pushState({ in: 'emailing-detail' }, '');
 
@@ -52,6 +71,10 @@ function EmailingView({ onOpenArticle, emailingDetailRef }) {
   }, [selectedAuthor, emailingDetailRef]);
 
   const handleAuthorClick = async (authorListItem) => {
+    // 외부 진입과 다른 저자를 사용자가 직접 클릭하면 외부 진입 표시 해제 → 일반 history 동작 복귀
+    if (externalAuthorNumbRef.current !== authorListItem.author_numb) {
+      externalAuthorNumbRef.current = null;
+    }
     setDetailError(null);
     setSelectedAuthor({ ...authorListItem, articles: [] });
     setDetailLoading(true);
