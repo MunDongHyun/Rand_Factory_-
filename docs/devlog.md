@@ -2,6 +2,17 @@
 
 ---
 
+## 2026-05-20 - Claude (잔여 미커밋 정리)
+
+### 변경
+- `.gitignore` — 로컬 `deliverables/` 디렉토리(기획서 hwp/pdf) 추적 제외
+- `client/src/components/LearnerCurriculumView.jsx` — CSS import를 공용 `Curriculum.css` → 분리된 `LearnerCurriculum.css`로 교체 (어제 분리된 학습자 전용 스타일 파일과 정렬)
+
+### 비고
+- 어제(2026-05-19) 종료 시점에 남아 있던 워킹 트리 변경분 정리 차원의 커밋
+
+---
+
 ## 2026-05-19 - Codex (권한 노출 점검 후 안정화)
 
 ### 변경

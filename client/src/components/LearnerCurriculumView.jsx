@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import api from '../lib/api';
 import { sanitizeHtml } from '../lib/sanitize';
 import { downloadAttachment, formatBytes } from '../lib/attachments';
-import '../styles/Curriculum.css';
+import '../styles/LearnerCurriculum.css';
 
 // --- Tiptap Named Imports ---
 import { useEditor, EditorContent } from '@tiptap/react';
