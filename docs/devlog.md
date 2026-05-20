@@ -2,6 +2,65 @@
 
 ---
 
+## 2026-05-19 - Codex (권한 노출 점검 후 안정화)
+
+### 변경
+- 실제 DB 스키마 확인: `users.user_role` enum에 `c/m/j/a` 반영, `users.user_invite_code varchar(14) UNIQUE` 반영 확인.
+- `GET /api/users/{user_id}` 매니저 조회 범위 축소
+  - admin(`a`)은 기존처럼 전체 활성 회원 조회 가능.
+  - manager(`m`)는 같은 회사 학습자(`j`)만 조회 가능.
+  - 다른 회사/다른 매니저/관리자 row는 404로 숨김 처리하여 `user_invite_code` 노출 차단.
+- `PATCH /api/curricula/{cur_id}` admin 수정 권한 보강
+  - manager는 기존처럼 본인이 만든 커리큘럼만 수정.
+  - admin은 전체 활성 커리큘럼 수정 가능.
+  - consumer/learner는 404.
+- 잘못된 위치에 남아 있던 루트 `package.json`, `package-lock.json` 제거.
+  - 프론트 의존성 기준은 `client/package.json` / `client/package-lock.json`로 단일화.
+
+### 검증
+- `python -m compileall -q app` 통과
+- `npm run build` 통과 (기존 대형 청크 경고만 유지)
+
+---
+
+## 2026-05-19 - Codex (역할별 프론트 진입 정리)
+
+### 변경
+- Dashboard에서 역할 플래그 정리
+  - `canUseCurriculum`: `j/m/a`
+  - `canCreateCurriculum`: `m/a`
+- 일반회원(`c`)은 커리큘럼 메뉴와 히어로 플로팅 CTA를 숨김.
+- 저장된 세션 view가 `curriculum`이어도 현재 역할이 접근 불가하면 `articles`로 되돌림.
+- 커리큘럼 화면 렌더링도 `canUseCurriculum` 조건을 한 번 더 통과하게 정리.
+- 매니저 초대코드 복사 버튼에 성공 피드백 추가
+  - 복사 후 버튼 배경 변경
+  - `복사 완료` 텍스트 표시
+
+### 검증
+- `npm run build` 통과 (기존 대형 청크 경고만 유지)
+- `python -m compileall -q app` 통과
+
+---
+
+## 2026-05-19 - Codex (가입/초대코드 API 시나리오 검증)
+
+### 검증 방식
+- FastAPI `TestClient` + 실제 로컬 DB 연결로 발표용 가입/권한 흐름을 호출.
+- 테스트 데이터 prefix: `codex_api_check_20260519`
+- 검증 후 테스트 계정/커리큘럼 데이터 삭제 완료.
+
+### 결과
+- admin 로그인 성공.
+- 일반 가입 시 `c` 역할 생성 확인.
+- admin `PATCH /api/users/{id}`로 `c -> m` 승급 시 `user_invite_code` 자동 발급 확인.
+- 초대코드 가입 시 `j` 역할 생성 및 매니저 회사명 상속 확인.
+- manager가 다른 manager를 `GET /api/users/{id}`로 조회하면 404 확인 (`user_invite_code` 노출 차단).
+- manager가 같은 회사 learner를 조회하면 200 확인.
+- manager 커리큘럼 생성 성공.
+- admin이 manager 생성 커리큘럼을 `PATCH /api/curricula/{id}`로 수정 가능 확인.
+
+---
+
 ## 2026-05-18 - Claude (DOMPurify sanitize 도입 — 저장형 XSS 방어)
 
 ### 배경

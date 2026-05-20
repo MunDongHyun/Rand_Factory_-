@@ -203,15 +203,17 @@ def update_curriculum(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    curriculum = (
-        db.query(Curriculum)
-        .filter(
-            Curriculum.cur_id == cur_id,
-            Curriculum.cur_creator_id == current_user.user_id,
-            Curriculum.cur_deleted_at.is_(None),
-        )
-        .first()
+    if current_user.user_role not in {"m", "a"}:
+        raise HTTPException(status_code=404, detail="커리큘럼을 찾을 수 없습니다")
+
+    query = db.query(Curriculum).filter(
+        Curriculum.cur_id == cur_id,
+        Curriculum.cur_deleted_at.is_(None),
     )
+    if current_user.user_role == "m":
+        query = query.filter(Curriculum.cur_creator_id == current_user.user_id)
+
+    curriculum = query.first()
     if not curriculum:
         raise HTTPException(status_code=404, detail="커리큘럼을 찾을 수 없습니다")
 

@@ -30,9 +30,11 @@ function Dashboard({ user, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+
   // --- 검색 및 모달 관련 상태 ---
   const [searchQuery, setSearchQuery] = useState(''); // AI 생성을 위해 보관할 검색어
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubModalOpen, setIsSubModalOpen] = useState(false);
   const [modalStatus, setModalStatus] = useState('searching');
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [originalSections, setOriginalSections] = useState([]);
@@ -336,7 +338,10 @@ function Dashboard({ user, onLogout }) {
         onScrollToTop={scrollToTop}
         onSearch={handleSearch}
         onReset={resetDashboard}
-      />
+        isModalOpen={isModalOpen || isSubModalOpen}
+
+        />
+        {isModalOpen && <isModalOpenModal onClose={() => setIsModalOpen(false)} />}
 
       {user?.user_role === 'm' && user?.user_invite_code && (
         <div className="managerInviteNotice">
@@ -364,11 +369,10 @@ function Dashboard({ user, onLogout }) {
           />
         )}
 
-        {/* 🔥 변경: onOpenArticle props를 추가하여 함수를 넘겨줍니다 */}
         {view === 'curriculum' && (
           user?.user_role === 'j'
             ? <LearnerCurriculumView curriculumDetailRef={curriculumDetailRef} />
-            : <CurriculumView onOpenArticle={openArticleDetail} />
+            : <CurriculumView onOpenArticle={openArticleDetail} onModalToggle={setIsSubModalOpen}/>
         )}
 
         {view === 'emailing' && <EmailingView onOpenArticle={openArticleDetail} emailingDetailRef={emailingDetailRef} />}

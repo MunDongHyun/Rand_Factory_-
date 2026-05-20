@@ -269,7 +269,14 @@ def get_user(
     if current_user.user_role not in {"m", "a"}:
         raise HTTPException(status_code=404, detail="찾을 수 없습니다")
 
-    user = db.query(User).filter(User.user_id == user_id, User.user_deleted_at.is_(None)).first()
+    query = db.query(User).filter(User.user_id == user_id, User.user_deleted_at.is_(None))
+    if current_user.user_role == "m":
+        query = query.filter(
+            User.user_role == "j",
+            User.user_company == current_user.user_company,
+        )
+
+    user = query.first()
     if not user:
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다")
     return user
