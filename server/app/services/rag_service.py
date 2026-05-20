@@ -54,14 +54,16 @@ def search_similar_with_scores(query_text: str, k: int = 50) -> list[tuple[int, 
     """검색어와 유사한 아티클 ID, 거리(Distance) 점수, 그리고 '요약문 내용'을 반환합니다."""
     vs = _get_vectorstore()
     
+    DISTANCE_THRESHOLD = 0.37
+    
     docs_and_scores = vs.similarity_search_with_score(query_text, k=k)
     
     results = []
     seen = set()
     for doc, distance in docs_and_scores:
+        
         aid = doc.metadata.get("article_id")
         if aid and aid not in seen:
-            # 👇 수정: doc.page_content (요약문 내용)를 튜플에 추가해서 반환!
             results.append((int(aid), float(distance), doc.page_content))
             seen.add(aid)
             

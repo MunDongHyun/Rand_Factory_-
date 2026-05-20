@@ -1,5 +1,3 @@
-
-
 /* =============================================
    페이지 컨테이너
    ============================================= */
@@ -132,7 +130,7 @@
   white-space: normal;
   overflow: visible;
   text-overflow: clip;
-  
+
 }
 
 .curriculumSidebarItem:hover {
@@ -308,14 +306,14 @@
   border: 1px solid var(--ink);
   background: var(--card);
   overflow: hidden;
-  min-height: 0; 
+  min-height: 0;
 }
 
 
 .curriculumLeft {
   flex: 3;
   min-width: 0;
-  min-height: 0; 
+  min-height: 0;
   padding: 32px 24px;
   display: flex;
   flex-direction: column;
@@ -330,7 +328,7 @@
   display: flex;
   flex-direction: column;
   background: var(--card);
-  min-height: 0; 
+  min-height: 0;
 }
 
 .curriculumRightEmpty {
@@ -346,7 +344,7 @@
 .curriculumRightContent {
   padding: 32px 36px;
   flex: 1 1 auto;
-  min-height: 0; 
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
@@ -476,6 +474,26 @@
   min-height: 0;
   overflow-y: auto;
 }
+
+/* 우측 컨텐츠 아코디언/제출/피드백 바디 덮어쓰기 */
+.curriculumRightContent .right-pane-accordion-body {
+  border: none;
+  background: transparent;
+}
+
+.curriculumRightContent .right-pane-submission-body {
+  max-height: none;
+  overflow: visible;
+}
+
+.curriculumRightContent .right-pane-feedback-form {
+  position: static;
+  margin: 0;
+  padding: 0;
+  box-shadow: none;
+  border-top: none;
+}
+
 
 .extracted-section-margin {
   margin-bottom: 4px;
@@ -724,7 +742,7 @@
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.35);
-  z-index: 9998;
+  z-index: 99998;
 }
 
 .downloadModal {
@@ -732,7 +750,7 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  z-index: 9999;
+  z-index: 99999;
   background: var(--card);
   border-radius: 8px;
   padding: 24px 28px;
@@ -1115,7 +1133,7 @@
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.45);
-  z-index: 9998;
+  z-index: 99998;
 }
 
 /* =============================================
@@ -1126,7 +1144,7 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  z-index: 9999;
+  z-index: 99999;
   display: flex;
   width: 860px;
   max-height: 90vh;
@@ -1291,7 +1309,7 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  z-index: 9999;
+  z-index: 99999;
   background: var(--card);
   border-radius: 10px;
   width: 860px;
@@ -1311,14 +1329,13 @@
 /* 템플릿 모달 */
 .confirmModal.templateModal {
   width: 860px;
+  height: 90vh; /* 인라인 속성에서 가져옴 */
   max-height: 92vh;
   transition: width 0.25s ease, height 0.25s ease;
-  overflow: auto;
+  overflow: hidden; /* 인라인 속성에서 가져옴 */
   display: flex;
   flex-direction: column;
 }
-
-
 
 /* 전체보기 상태 */
 .confirmModal.templateModal.fullscreen {
@@ -1331,7 +1348,7 @@
   overflow-y: scroll !important;
   margin: 0 !important;
   padding: 32px 40px;
-  z-index: 10000;
+  z-index: 100000; /* 오버레이보다 높게 최상단으로 설정 */
   display: flex;
   flex-direction: column;
 }
@@ -1401,15 +1418,15 @@
 
 /* Tiptap 에디터 래퍼 */
 .templateEditorWrapper {
+  position: relative;
   flex: 1;
-  border: 1px solid var(--line);
+  border: 1px solid var(--line); /* 기존 인라인의 #ccc 대신 테마 변수 활용 */
   border-radius: 4px;
   min-height: 0;
   overflow-y: hidden;
   max-height: 60vh;
   display: flex;
   flex-direction: column;
-  position: relative;
 }
 
 /* Tiptap 툴바 */
@@ -1444,6 +1461,41 @@
   background: var(--ink);
   color: var(--card);
   border-color: var(--ink);
+}
+
+.tiptap-vertical-divider {
+  margin: 0 4px;
+  height: 16px;
+  width: 1px;
+  display: inline-block;
+  vertical-align: middle;
+  background-color: var(--line);
+}
+
+.tiptap-color-picker {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+}
+
+.tiptap-table-tools {
+  display: flex;
+  gap: 2px;
+  background: #ffebee;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.tiptap-btn-danger {
+  color: red !important;
+}
+
+.tiptap-btn-danger-bold {
+  color: red !important;
+  font-weight: bold !important;
 }
 
 /* Tiptap 에디터 본문 */
@@ -1602,6 +1654,10 @@
   flex-shrink: 0;
 }
 
+.confirmBtns.template-btns {
+  padding-top: 16px;
+}
+
 .confirmBtnBack {
   padding: 10px 22px;
   background: var(--card);
@@ -1676,8 +1732,9 @@
   font-family: 'Pretendard', sans-serif;
   font-size: 14px;
   color: var(--ink-muted);
-  margin-top: -50px;
   margin-bottom: 18px;
+  white-space: pre-wrap;
+  flex-shrink: 0;
 }
 
 .assignEmpty {
@@ -1733,7 +1790,7 @@
 .ProseMirror ul,
 .ProseMirror ol {
   padding-left: 28px !important;
-  margin: 12px 0 !important;     
+  margin: 12px 0 !important;
 }
 
 
@@ -1743,8 +1800,111 @@
   line-height: 1.6;
 }
 
-.tiptap-content-area li > p,
-.ProseMirror li > p {
+.tiptap-content-area li>p,
+.ProseMirror li>p {
   margin: 0 !important;
-  display: inline-block; 
+  display: inline-block;
+}
+
+/* 🚀 추가: 로딩 모달 스타일 */
+.loadingModalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100000;
+  /* 모든 모달 위에 뜨도록 설정 */
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.loadingModalOverlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.loadingModalContainer {
+  background: white;
+  padding: 40px;
+  border-radius: 20px;
+  text-align: center;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: 400px;
+}
+
+.loadingModalImage {
+  max-width: 150px;
+  height: auto;
+  border-radius: 10px;
+}
+
+.loadingModalText {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+  margin: 0;
+}
+
+.loadingModalBar {
+  width: 100%;
+  height: 10px;
+  background: #eee;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.loadingModalBarFill {
+  height: 100%;
+  background: var(--primary); /* 앱의 기본 테마 색상 사용 */
+  transition: width 0.3s ease;
+}
+
+.template-loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.85);
+  /* 에디터 내용이 살짝 비치는 반투명 흰색 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  backdrop-filter: blur(4px);
+  gap: 20px;
+}
+
+.template-loading-gif {
+  width: 140px;
+  height: auto;
+  border-radius: 16px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.template-loading-text {
+  font-size: 16px;
+  font-weight: 700;
+  color: #333;
+  margin: 0;
+}
+
+.template-loading-bar {
+  width: 240px;
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.template-loading-bar-fill {
+  height: 100%;
+  background: #4A7C59;
+  /* 앱 기본 테마(초록색 계열) 사용 */
+  transition: width 0.4s ease;
 }

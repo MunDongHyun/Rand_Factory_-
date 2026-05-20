@@ -6,6 +6,10 @@ import { downloadAttachment, formatBytes } from '../lib/attachments';
 import curri_nulll from '../public/download_img.png';
 import '../styles/Curriculum.css';
 
+// 로딩창용 이미지 및 GIF 임포트
+import rodingRafaGif from '../public/roding_rafa.gif';
+import randLogo from '../public/roding_rafa.png';
+
 // --- Tiptap Named Imports ---
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -71,7 +75,6 @@ const TiptapMenuBar = ({ editor }) => {
       <button type="button" onClick={addImage}>🖼️ 이미지</button>
       <span className="confirmDivider" style={{ margin: '0 4px', height: '16px', display: 'inline-block', verticalAlign: 'middle' }}></span>
 
-      {/* 관리자용 표 구조 변경 툴 */}
       <div style={{ display: 'flex', gap: '2px', background: '#ffebee', padding: '2px 4px', borderRadius: '4px' }}>
         <button type="button" onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>표 삽입</button>
         <button type="button" onClick={() => editor.chain().focus().addColumnBefore().run()}>+열 앞</button>
@@ -110,6 +113,32 @@ const TiptapEditor = ({ value, onChange, heightMode }) => {
   );
 };
 
+// 커리큘럼 생성 로딩창 컴포넌트
+const LoadingModal = ({ generating, currentMessageIndex }) => {
+  const messages = [
+    { text: "AI가 커리큘럼 초안을 구상 중입니다...", img: rodingRafaGif },
+    { text: "직무에 맞는 학습 목표를 설정하고 있습니다...", img: rodingRafaGif },
+    { text: "주차별 상세 과제를 생성 중입니다...", img: randLogo },
+    { text: "거의 다 되었습니다. 마지막 정리 중입니다...", img: randLogo },
+    { text: "커리큘럼 생성이 완료되었습니다!", img: randLogo }
+  ];
+
+  const currentMessage = messages[currentMessageIndex];
+
+  return createPortal(
+    <div className={`loadingModalOverlay ${generating ? 'active' : ''}`}>
+      <div className="loadingModalContainer">
+        <img src={currentMessage.img} alt="로딩 이미지" className="loadingModalImage" />
+        <p className="loadingModalText">{currentMessage.text}</p>
+        <div className="loadingModalBar">
+          <div className="loadingModalBarFill" style={{ width: `${(currentMessageIndex + 1) / messages.length * 100}%` }} />
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
 // --- 유틸 및 초기값 ---
 const initialForm = { cur_title: '', cur_duration_weeks: 4, cur_target_job: '', cur_target_industry: '', cur_learning_goal: '', required_content: '' };
 const normalizeWeekPlan = (plan) => { if (Array.isArray(plan)) return plan; if (plan && typeof plan === 'object') return [plan]; return []; };
@@ -132,6 +161,7 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState(null);
 
+  const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const [detailExpandedWeek, setDetailExpandedWeek] = useState(null);
   const [previewExpandedWeek, setPreviewExpandedWeek] = useState(null);
 
@@ -154,6 +184,16 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
 
   const [templateModal, setTemplateModal] = useState({ open: false, week: null, assignmentIdx: null, title: '', content: '', fullscreen: false, generating: false });
+  
+  // 템플릿 재생성 로딩 메시지 상태
+  const [templateMessageIndex, setTemplateMessageIndex] = useState(0);
+  const TEMPLATE_MESSAGES = [
+    "과제 양식을 새롭게 구상 중입니다...",
+    "학습 목표에 맞춰 표와 항목을 쪼개고 있습니다...",
+    "답변하기 쉬운 형태로 빈칸을 배치하고 있습니다...",
+    "거의 다 되었습니다. 마무리 정리 중입니다...",
+    "템플릿 재생성이 완료되었습니다!"
+  ];
 
   const loadCurriculums = () => {
     setLoading(true); setError(null);
@@ -197,14 +237,6 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
     api.get(`/task-submissions/by-curriculum/${selectedId}`)
       .then((res) => setSubmissions(Array.isArray(res.data) ? res.data : [])).catch(() => setSubmissions([])).finally(() => setSubmissionsLoading(false));
   }, [selectedId]);
-
-  // 대시보드로 이벤트 알리는 로직 완전히 주석처리 (부모 오버레이 차단용)
-  // useEffect(() => {
-  //   if (onModalToggle) {
-  //     const anyModalOpen = modalOpen || downloadModalOpen || assignModalOpen || templateModal.open;
-  //     onModalToggle(anyModalOpen);
-  //   }
-  // }, [modalOpen, downloadModalOpen, assignModalOpen, templateModal.open, onModalToggle]);
 
   const handleAttachmentDownload = async (submissionId, attachment) => {
     try { await downloadAttachment(submissionId, attachment); } catch (err) { alert(err.response?.data?.detail || '첨부파일 다운로드에 실패했습니다.'); }
@@ -263,16 +295,35 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
     const payload = buildGeneratePayload(form);
     if (!payload.cur_title) { setFormError('과정명을 입력해 주세요.'); return; }
     if (!payload.cur_duration_weeks || payload.cur_duration_weeks < 1) { setFormError('기간은 1주 이상으로 입력해 주세요.'); return; }
+    
     setGenerating(true);
+    setCurrentMessageIndex(0);
+    const timer = setInterval(() => {
+      setCurrentMessageIndex(prev => {
+        if (prev < 3) return prev + 1; 
+        clearInterval(timer);
+        return prev;
+      });
+    }, 4000); 
+
     try {
       const res = await api.post('/curricula/generate', payload);
-      setPreview(res.data);
-      if (res.data?.cur_week_plan?.length > 0) setPreviewExpandedWeek(res.data.cur_week_plan[0].week);
-      setConfirmOpen(true);
+      
+      clearInterval(timer);
+      setCurrentMessageIndex(4);
+      setTimeout(() => {
+        setGenerating(false);
+        setPreview(res.data);
+        if (res.data?.cur_week_plan?.length > 0) setPreviewExpandedWeek(res.data.cur_week_plan[0].week);
+        setConfirmOpen(true);
+      }, 2000); 
+
     } catch (err) {
+      clearInterval(timer);
+      setGenerating(false);
       const detail = err.response?.data?.detail;
       setFormError(Array.isArray(detail) ? detail[0].msg : detail || 'AI 커리큘럼 생성에 실패했어요.');
-    } finally { setGenerating(false); }
+    }
   };
 
   const handleSave = async () => {
@@ -327,6 +378,7 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
     }
   };
 
+  // 🔥 확실하게 async 키워드가 추가된 템플릿 재생성 함수입니다. 🔥
   const handleRegenerateTemplate = async () => {
     if (!selectedCurriculum) return;
     const weekPlan = normalizeWeekPlan(selectedCurriculum.cur_week_plan);
@@ -335,6 +387,16 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
     const assignment = targetWeek.assignments[templateModal.assignmentIdx];
 
     setTemplateModal(prev => ({ ...prev, generating: true }));
+    
+    setTemplateMessageIndex(0);
+    const timer = setInterval(() => {
+      setTemplateMessageIndex(prev => {
+        if (prev < 3) return prev + 1;
+        clearInterval(timer);
+        return prev;
+      });
+    }, 3500); 
+
     try {
       const res = await api.post('/curricula/generate-template', {
         theme: targetWeek.theme,
@@ -343,8 +405,15 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
         step_by_step_guide: assignment.step_by_step_guide || [],
         expected_output_format: assignment.expected_output_format || assignment.submission || '지정되지 않음'
       });
-      setTemplateModal(prev => ({ ...prev, content: res.data.template_content, generating: false }));
+      
+      clearInterval(timer);
+      setTemplateMessageIndex(4);
+      setTimeout(() => {
+        setTemplateModal(prev => ({ ...prev, content: res.data.template_content, generating: false }));
+      }, 1500);
+      
     } catch (err) {
+      clearInterval(timer);
       alert('AI 템플릿 재생성에 실패했습니다.');
       setTemplateModal(prev => ({ ...prev, generating: false }));
     }
@@ -744,7 +813,8 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
       )}
 
 
-      {/* 🚀 CSS 파일을 철저하게 무시하도록 오버레이와 컨테이너에 직접 z-index: 99999 를 인라인으로 박아넣은 최종 해결책! 🚀 */}
+      {/* CSS 파일을 철저하게 무시하도록 오버레이와 컨테이너에 직접 z-index: 99999 를 인라인으로 박아넣은 최종 해결책! */}
+      <LoadingModal generating={generating} currentMessageIndex={currentMessageIndex} />
 
       {/* 모달: 커리큘럼 생성 */}
       {modalOpen && createPortal(
@@ -855,12 +925,18 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
             </p>
 
             <div className="templateEditorWrapper" style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', border: '1px solid #ccc', borderRadius: '4px', overflow: 'hidden', minHeight: 0 }}>
+              
+              {/* 변경된 템플릿 로딩 오버레이 */}
               {templateModal.generating && (
-                <div className="tiptap-loading-overlay">
-                  <div className="tiptap-spinner"></div>
-                  <span className="tiptap-loading-text">AI가 템플릿을 재작성하고 있습니다...</span>
+                <div className="template-loading-overlay">
+                  <img src={rodingRafaGif} alt="AI 로딩" className="template-loading-gif" />
+                  <p className="template-loading-text">{TEMPLATE_MESSAGES[templateMessageIndex]}</p>
+                  <div className="template-loading-bar">
+                    <div className="template-loading-bar-fill" style={{ width: `${((templateMessageIndex + 1) / TEMPLATE_MESSAGES.length) * 100}%` }} />
+                  </div>
                 </div>
               )}
+
               <TiptapEditor
                 value={templateModal.content}
                 onChange={(newContent) => setTemplateModal({ ...templateModal, content: newContent })}
