@@ -1,46 +1,23 @@
-/* ── 상태 메시지 ─────────────────────────────────────── */
+/* ── 공통 상태 메시지 ────────────────────────────────── */
 .learnerInlineHint {
-  color: var(--cur-text-muted);
-  font-size: 13px;
+  color: #9C9C9C;
+  font-size: 14px;
   padding: 10px 0;
 }
 
 .learnerInlineError {
-  color: var(--cur-red);
-  background: var(--cur-red-bg);
-  font-size: 13px;
-  padding: 9px 14px;
-  border-radius: var(--cur-radius-sm);
+  color: #e05252;
+  font-size: 14px;
 }
 
 .learnerInlineMuted {
-  color: var(--cur-text-muted);
-  font-size: 13px;
-  padding: 48px 0;
+  color: #9C9C9C;
+  font-size: 14px;
+  margin-top: 10px;
   text-align: center;
 }
 
 /* ── 커리큘럼 카드 그리드 ─────────────────────────────── */
-
-/* =============================================
-   ✨ 누락된 학습자 페이지 레이아웃 (Learner View)
-   ============================================= */
-.learnerInlineHint {
-  font-size: 14px;
-  color: #9C9C9C;
-}
-
-.learnerInlineError {
-  font-size: 14px;
-  color: #e05252;
-}
-
-.learnerInlineMuted {
-  font-size: 14px;
-  color: #9C9C9C;
-  margin-top: 10px;
-}
-
 .learnerCurriculumGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -54,7 +31,6 @@
   border-radius: 8px;
   padding: 24px;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -63,108 +39,32 @@
   overflow: hidden;
 }
 
-.learnerCurriculumCard::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--cur-primary);
-  opacity: 0;
-  transition: opacity var(--cur-transition);
-}
-
 .learnerCurriculumCard:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(58, 74, 92, .11), 0 2px 6px rgba(58, 74, 92, .07);
-  border-color: var(--cur-primary);
-}
-
-.learnerCurriculumCard:hover::before {
-  opacity: 1;
-}
-
-.learnerCurriculumCardHeader {
-  margin-bottom: 12px;
-}
-
-.learnerCurriculumCardSubtitle {
-  font-size: 12px;
-  color: #94B8C8;
-  margin: 0 0 4px 0;
-  font-weight: 500;
+  box-shadow: 0 6px 20px rgba(58, 74, 92, .11);
+  border-color: #4A7C59;
 }
 
 .learnerCurriculumCardTitle {
   font-size: 18px;
   color: #3A4A5C;
-  margin: 0;
   font-weight: 700;
-  line-height: 1.4;
-}
-
-.learnerCurriculumCardMeta {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
 }
 
 .learnerCurriculumCardBadge {
-  background: #F2F2EF;
+  background: #EAF0F5;
   color: #3A4A5C;
   padding: 4px 10px;
   border-radius: 4px;
   font-size: 11px;
-  font-weight: 600;
 }
 
-.learnerCurriculumCardBadge.active {
-  color: var(--cur-green);
-  background: var(--cur-green-bg);
-  border-color: rgba(107, 158, 126, .25);
-  background: #EAF0F5;
-  color: #3A4A5C;
-  border: 1px solid #94B8C8;
-}
-
-.learnerProgressBar {
-  background: #F2F2EF;
-  border-radius: 4px;
-  height: 6px;
-  width: 100%;
-  overflow: hidden;
-  margin-bottom: 16px;
-}
-
-.learnerProgressFill {
-  background: #3A4A5C;
-  height: 100%;
-  background: var(--cur-primary);
-  border-radius: 10px;
-  transition: width .5s cubic-bezier(.4, 0, .2, 1);
-  transition: width 0.3s ease;
-}
-
-.learnerCurriculumCardGoal {
-  font-size: 13px;
-  color: #3A4A5C;
-  margin: 0 0 16px 0;
-  flex: 1;
-}
-
-.learnerCurriculumCardFooter {
-  font-size: 13px;
-  color: #94B8C8;
-  font-weight: 600;
-  text-align: right;
-  margin-top: auto;
-}
-
-/* =============================================
-   ✨ 학습자 상세 뷰 (Learner Detail View)
-   ============================================= */
+/* ── 학습자 상세 뷰 ──────────────────────────────────── */
 .authorBackBtn {
+  display: block;
+  margin-left: 0;
+  margin-right: auto;
+  margin-bottom: 24px;
   background: none;
   border: none;
   color: #94B8C8;
@@ -172,36 +72,10 @@
   font-weight: 600;
   cursor: pointer;
   padding: 0;
-  margin-bottom: 24px;
-  font-family: 'pretendard', sans-serif;
-}
-
-.authorBackBtn:hover {
-  color: #3A4A5C;
+  font-family: 'Pretendard', sans-serif;
 }
 
 .learnerDetailHeader {
-  background: var(--cur-surface);
-  border: 1px solid var(--cur-border);
-  border-radius: var(--cur-radius-xl);
-  padding: 26px 26px 22px;
-  margin-bottom: 20px;
-  box-shadow: var(--cur-shadow-card);
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-  position: relative;
-  overflow: hidden;
-}
-
-.learnerDetailHeader::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--cur-primary) 60%, var(--cur-accent) 100%);
   background: #fff;
   border: 1px solid #BEC6CF;
   border-radius: 8px;
@@ -209,104 +83,46 @@
   margin-bottom: 24px;
 }
 
-.learnerDetailSubtitle {
-  font-size: 13px;
-  color: #94B8C8;
-  margin: 0 0 8px 0;
-  font-weight: 600;
-}
-
 .learnerDetailTitle {
   font-size: 24px;
   color: #3A4A5C;
-  margin: 0 0 16px 0;
   font-weight: 700;
-}
-
-.learnerDetailGoal {
-  font-size: 15px;
-  color: #3A4A5C;
-  margin: 0 0 24px 0;
-}
-
-.learnerDetailProgress {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.learnerDetailProgress .learnerProgressBar {
-  flex: 1;
-  margin: 0;
-  max-width: 400px;
-}
-
-.learnerDetailProgressText {
-  font-size: 13px;
-  color: #3A4A5C;
-  font-weight: 500;
+  margin: 0 0 16px 0;
 }
 
 /* 주차별 스테퍼 */
 .learnerWeekStepper {
   display: flex;
-  gap: 12px;
-  overflow-x: auto;
+  gap: 8px;
+  overflow-x: visible;
   padding-bottom: 12px;
   margin-bottom: 24px;
+  scrollbar-width: thin; 
+  flex-wrap: wrap;
 }
 
 .learnerWeekStep {
   background: #fff;
   border: 1px solid #BEC6CF;
   border-radius: 8px;
-  padding: 12px 20px;
+  padding: 10px 16px; 
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  justify-content: center; 
   cursor: pointer;
-  min-width: 80px;
-  position: relative;
-  transition: all 0.2s;
+  white-space: nowrap; 
+  min-width: 60px; 
+  flex-shrink: 0; 
+  transition: all 0.2s ease;
 }
 
 .learnerWeekStep.active {
-  border-color: var(--cur-primary-dark);
-  background: var(--cur-primary-bg);
-  box-shadow: 0 0 0 3px rgba(148, 184, 200, .2);
-}
-
-.learnerWeekStep.submitted {
-  border-color: var(--cur-green);
-  background: var(--cur-green-bg);
-}
-
-.learnerWeekStep.submitted.resubmit_requested {
-  border-color: var(--cur-orange);
-  background: var(--cur-orange-bg);
-  border-color: #3A4A5C;
-  background: #EAF0F5;
-}
-
-.learnerWeekStepNum {
-  font-size: 18px;
-  font-weight: 700;
-  color: #3A4A5C;
-}
-
-.learnerWeekStepLabel {
-  font-size: 12px;
-  color: #9C9C9C;
+  border-color: #2b6cb0;
+  background: #ebf8ff;
 }
 
 .learnerWeekStepDot {
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  width: 5px;
-  height: 5px;
-  background: var(--cur-green);
   width: 6px;
   height: 6px;
   background: #4A7C59;
@@ -316,833 +132,236 @@
   right: 8px;
 }
 
-/* 주차별 카드 리스트 */
-.learnerWeekList {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
+/* 주차 카드 및 상세 내용 */
 .learnerWeekCard {
   background: #fff;
   border: 1px solid #BEC6CF;
   border-radius: 8px;
-  overflow: hidden;
+  margin-bottom: 16px;
 }
 
 .learnerWeekCardHeader {
   display: flex;
   justify-content: space-between;
-  align-items: center;
   padding: 16px 24px;
   background: #F8FAFC;
   cursor: pointer;
-  user-select: none;
-}
-
-.learnerWeekCardHeader:hover {
-  background: var(--cur-surface-2);
-}
-
-.learnerWeekCardWeek {
-  font-size: 15px;
-  font-weight: 700;
-  color: #3A4A5C;
-  margin-right: 12px;
-}
-
-.learnerWeekCardTheme {
-  font-size: 15px;
-  color: #3A4A5C;
-}
-
-.learnerWeekCardHeaderRight {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.learnerWeekStatusBadge {
-  font-size: 11px;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-weight: 600;
-  background: #EAF0F5;
-  color: #3A4A5C;
-}
-
-.learnerWeekStatusBadge.submitted {
-  color: var(--cur-primary-dark);
-  background: var(--cur-primary-bg);
-  border-color: rgba(148, 184, 200, .4);
-}
-
-.learnerWeekStatusBadge.feedback_given {
-  color: var(--cur-green);
-  background: var(--cur-green-bg);
-  border-color: rgba(107, 158, 126, .3);
-}
-
-.learnerWeekStatusBadge.resubmit_requested {
-  color: var(--cur-orange);
-  background: var(--cur-orange-bg);
-  border-color: rgba(192, 128, 64, .3);
-}
-
-/* ── 주차 카드 본문 ─────────────────────────────────── */
-.learnerWeekStatusBadge.resubmit_requested {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-
-.learnerWeekStatusBadge.feedback_given {
-  background: #dcfce7;
-  color: #15803d;
-}
-
-.learnerWeekCardToggle {
-  font-size: 12px;
-  color: #94B8C8;
 }
 
 .learnerWeekCardBody {
   padding: 24px;
   border-top: 1px solid #BEC6CF;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
 }
 
-@keyframes wkFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-5px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.learnerWeekSection {
-  margin-top: 16px;
-}
-
-.learnerWeekSectionTitle {
-  font-size: 14px;
-  font-weight: 700;
-  color: #3A4A5C;
-  margin: 0 0 10px 0;
-}
-
-.learnerWeekSectionText {
+/* ── 제출 확인 버튼 ── */
+.btn-view-submission {
+  padding: 8px 16px;
+  background-color: #f1f3f5;
+  color: #333;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
   font-size: 13px;
-  color: var(--cur-text);
-  line-height: 1.65;
-  margin: 0;
-}
-
-.learnerWeekSectionList {
-  margin: 0;
-  padding-left: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.learnerWeekSectionList li {
-  font-size: 13px;
-  color: var(--cur-text);
-  line-height: 1.55;
-}
-
-.learnerWeekArticle {
-  margin-bottom: 8px;
-}
-
-.learnerWeekArticleLink {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--cur-primary-dark);
-  text-decoration: none;
-  transition: color var(--cur-transition);
-}
-
-.learnerWeekArticleLink:hover {
-  color: var(--cur-accent);
-  text-decoration: underline;
-}
-
-.learnerWeekArticleReason {
-  font-size: 12px;
-  color: var(--cur-text-muted);
-  margin: 3px 0 0 4px;
-  line-height: 1.45;
-}
-
-/* ── 제출 내역 ───────────────────────────────────────── */
-.learnerWeekSubmission {
-  margin-top: 18px;
-  background: var(--cur-surface-2);
-  border: 1px solid var(--cur-border);
-  border-radius: var(--cur-radius-md);
-  padding: 14px 16px;
-}
-
-.learnerWeekSubmissionMeta {
-  font-size: 11px;
-  color: var(--cur-text-muted);
-  margin: 5px 0 10px;
-}
-
-.learnerWeekSubmissionBody {
-  font-size: 13px;
-  color: var(--cur-text);
-  line-height: 1.65;
-  padding: 12px 13px;
-  background: var(--cur-surface);
-  border: 1px solid var(--cur-border);
-  border-radius: var(--cur-radius-sm);
-}
-
-.learnerWeekSubmissionAttachments {
-  margin-top: 12px;
-}
-
-.learnerSubmitAttachmentList {
-  list-style: none;
-  padding: 0;
-  margin: 5px 0 0;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.learnerSubmitAttachmentItem {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--cur-surface);
-  border: 1px solid var(--cur-border);
-  border-radius: var(--cur-radius-sm);
-  padding: 7px 11px;
-}
-
-.learnerSubmitAttachmentLink {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--cur-primary-dark);
-  background: none;
-  border: none;
   cursor: pointer;
-  padding: 0;
-  flex: 1;
-  text-align: left;
-  transition: color var(--cur-transition);
+  margin-bottom: 12px;
 }
 
-.learnerSubmitAttachmentLink:hover {
-  color: var(--cur-accent);
-  text-decoration: underline;
+/* ── 모달 오버레이 ── */
+.confirmOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 9999; 
 }
 
-.learnerSubmitAttachmentSize {
-  font-size: 11px;
-  color: var(--cur-text-muted);
+/* ── 모달 기본 (헤더 아래에서 시작) ── */
+.confirmModal.templateModal {
+  position: fixed;
+  /* 헤더 높이(약 70px)만큼 아래에서 시작, 하단 20px 여유 */
+  top: 75px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  width: min(1050px, 95vw);
+  /* 뷰포트 높이 - 헤더(75px) - 하단여백(20px) */
+  height: calc(100vh - 95px);
+  background: #fff;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+/* ── 전체보기: 화면 전체를 꽉 채우는 모달 ── */
+.confirmModal.templateModal.fullscreen {
+  top: 0;
+  left: 0;
+  transform: none;
+  width: 100vw;
+  height: 100vh;
+  border-radius: 0;
+}
+
+/* ── 모달 내부 레이아웃 ── */
+.modalTopBar {
+  padding: 20px 30px;
   flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e2e8f0;
 }
 
-/* ── 피드백 ─────────────────────────────────────────── */
-.learnerWeekFeedback {
-  margin-top: 12px;
-  padding: 12px 14px;
-  background: var(--cur-primary-bg);
-  border-left: 3px solid var(--cur-primary);
-  border-radius: 0 var(--cur-radius-sm) var(--cur-radius-sm) 0;
+.emailModalBody.learnerSubmitModalBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background: #fff;
+  min-height: 0;
 }
 
-.learnerWeekFeedbackTitle {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--cur-text-muted);
-  margin: 0 0 3px;
-  text-transform: uppercase;
-  letter-spacing: .3px;
+.confirmBtns {
+  flex-shrink: 0;
+  padding: 16px 30px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  background: #fff;
 }
 
-.learnerWeekFeedbackMeta {
-  font-size: 11px;
-  color: var(--cur-text-muted);
-  margin: 0 0 7px;
+/* ── 에디터 섹션 ── */
+.learnerSubmitEditorSection {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 260px;
 }
 
-.learnerWeekFeedbackBody {
+.learnerSubmitEditorWrapper {
+  flex: 1;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+
+/* ── 템플릿 문서 스타일 ── */
+.learner-custom-form {
+  padding: 24px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  min-height: 500px;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #333;
+}
+
+.learner-custom-form table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 16px 0;
+}
+
+.learner-custom-form td,
+.learner-custom-form th {
+  border: 1px solid #ced4da;
+  padding: 10px;
+  vertical-align: top;
+}
+
+.learner-custom-form th {
+  background-color: #f1f3f5;
+  font-weight: bold;
+}
+
+/* ── 클릭 가능한 빈칸 입력 스타일 ── */
+.learner-editable-cell,
+.learner-editable-p,
+.learner-editable-fallback {
+  outline: none;
+  cursor: text;
+  background-color: #f8fafc;
+  border: 2px dashed #4a90e2;
+  padding: 8px;
+  border-radius: 4px;
+  min-height: 1.5em;
+  display: block;
+}
+
+.learner-editable-cell:focus,
+.learner-editable-p:focus,
+.learner-editable-fallback:focus {
+  background-color: #fff;
+  border: 2px solid #3182ce;
+}
+
+.placeholder-text {
+  pointer-events: none;
+  user-select: none;
+  color: #a0aec0;
+  font-style: italic;
+}
+
+.btn-reset-template {
+  font-size: 12px;
+  color: #e53e3e;
+  background: #fff5f5;
+  border: 1px solid #feb2b2;
+  border-radius: 20px;
+  padding: 4px 12px;
+  cursor: pointer;
+  margin-right: 10px;
+}
+
+/* ── 전체보기 버튼 ── */
+.fullscreenBtn {
+  font-size: 12px;
+  color: #2b6cb0;
+  background: #ebf8ff;
+  border: 1px solid #bee3f8;
+  border-radius: 4px;
+  padding: 5px 12px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.fullscreenBtn:hover {
+  background: #bee3f8;
+}
+
+/* ── assignSectionHint ── */
+.assignSectionHint {
   font-size: 13px;
-  color: var(--cur-text);
-
-  .learnerWeekSectionText,
-  .learnerWeekSectionList {
-    font-size: 14px;
-    color: #3A4A5C;
-    line-height: 1.6;
-    margin: 0;
-  }
-
-  .learnerWeekSectionList {
-    padding-left: 20px;
-  }
-
-  .learnerWeekSectionList li {
-    margin-bottom: 6px;
-  }
-
-  .learnerWeekArticle {
-    margin-bottom: 12px;
-  }
-
-  .learnerWeekArticleLink {
-    font-size: 14px;
-    color: #3A4A5C;
-    text-decoration: underline;
-    font-weight: 500;
-  }
-
-  .learnerWeekArticleReason {
-    font-size: 12px;
-    color: #9C9C9C;
-    margin: 4px 0 0 0;
-  }
-
-  /* 제출 영역 */
-  .learnerWeekSubmission {
-    background: #F8FAFC;
-    border: 1px solid #E2E8F0;
-    border-radius: 8px;
-    padding: 20px;
-  }
-
-  .learnerWeekSubmissionMeta {
-    font-size: 12px;
-    color: #94A3B8;
-    margin: 0 0 12px 0;
-  }
-
-  .learnerWeekSubmissionBody {
-    font-size: 14px;
-    line-height: 1.6;
-    color: #334155;
-    margin-bottom: 16px;
-  }
-
-  .learnerWeekSubmissionAttachments {
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px dashed #CBD5E1;
-  }
-
-  .learnerWeekFeedback {
-    margin-top: 16px;
-    background: #EAF0F5;
-    padding: 16px;
-    border-radius: 6px;
-  }
-
-  .learnerWeekFeedbackTitle {
-    font-size: 13px;
-    font-weight: 700;
-    color: #3A4A5C;
-    margin: 0 0 6px 0;
-  }
-
-  .learnerWeekFeedbackMeta {
-    font-size: 11px;
-    color: #94B8C8;
-    margin: 0 0 8px 0;
-  }
-
-  .learnerWeekFeedbackBody {
-    font-size: 13px;
-    color: #3A4A5C;
-    line-height: 1.5;
-    margin: 0;
-  }
-
-  .learnerWeekFeedbackPending {
-    font-size: 13px;
-    color: #94A3B8;
-    margin-top: 16px;
-  }
-
-  /* Footer / Submit Button */
-  .learnerWeekFooter {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 16px;
-    margin-top: 8px;
-  }
-
-  .learnerWeekBadge {
-    font-size: 12px;
-    color: #94B8C8;
-    background: #F8FAFC;
-    padding: 4px 10px;
-    border-radius: 4px;
-  }
-
-  .learnerWeekSubmitBtn {
-    background: #3A4A5C;
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    padding: 10px 24px;
-    font-family: 'pretendard', sans-serif;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background var(--cur-transition), transform var(--cur-transition), box-shadow var(--cur-transition);
-    box-shadow: 0 2px 8px rgba(106, 154, 174, .3);
-  }
-
-  .learnerWeekSubmitBtn:hover:not(:disabled) {
-    background: var(--cur-accent);
-    transform: translateY(-1px);
-    box-shadow: 0 3px 12px rgba(92, 61, 48, .25);
-  }
-
-  .learnerWeekSubmitBtn:disabled {
-    background: var(--cur-border);
-    color: var(--cur-text-muted);
-    box-shadow: none;
-    cursor: not-allowed;
-  }
-
-  /* ── 모달 오버레이 ───────────────────────────────────── */
-  .emailModalOverlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(58, 74, 92, .4);
-    backdrop-filter: blur(2px);
-    z-index: 999;
-    animation: overlayIn .16s ease;
-  }
-
-  @keyframes overlayIn {
-    from {
-      opacity: 0;
-    }
-
-    to {
-      opacity: 1;
-    }
-  }
-
-  /* ── 제출 모달 ───────────────────────────────────────── */
-  .emailModal.learnerSubmitModal {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 1000;
-    width: min(1050px, 95vw);
-
-    max-height: 84vh;
-    background: var(--cur-surface);
-    border-radius: var(--cur-radius-xl);
-    box-shadow: var(--cur-shadow-modal);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    animation: modalIn .2s cubic-bezier(.34, 1.45, .64, 1);
-  }
-
-  @keyframes modalIn {
-    from {
-      opacity: 0;
-      transform: translate(-50%, -47%) scale(.97);
-    }
-
-    to {
-      opacity: 1;
-      transform: translate(-50%, -50%) scale(1);
-    }
-  }
-
-  .emailModal.learnerSubmitModal.fullscreen {
-    width: 96vw;
-    max-height: 92vh;
-  }
-
-  .emailModalHeader {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 20px 14px;
-    gap: 10px;
-  }
-
-  .learnerSubmitModalTitle {
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--cur-text);
-  }
-
-  .learnerSubmitModalHeaderActions {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .learnerSubmitFullscreenBtn {
-    font-family: 'Pretendard', sans-serif;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--cur-text-muted);
-    background: var(--cur-surface-2);
-    border: 1px solid var(--cur-border);
-    border-radius: 20px;
-    padding: 4px 12px;
-    cursor: pointer;
-    transition: background var(--cur-transition), color var(--cur-transition);
-  }
-
-  .learnerSubmitFullscreenBtn:hover:not(:disabled) {
-    background: var(--cur-primary-bg);
-    color: var(--cur-primary-dark);
-    border-color: var(--cur-primary);
-  }
-
-  .emailModalClose {
-    font-size: 14px;
-    color: var(--cur-text-muted);
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 4px 7px;
-    border-radius: var(--cur-radius-sm);
-    transition: background var(--cur-transition), color var(--cur-transition);
-  }
-
-  .emailModalClose:hover {
-    background: var(--cur-red-bg);
-    color: var(--cur-red);
-  }
-
-  .emailModalDivider {
-    height: 1px;
-    background: var(--cur-border);
-  }
-
-  .emailModalBody.learnerSubmitModalBody {
-    flex: 1;
-    overflow-y: auto;
-    padding: 18px 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
-
-  .learnerSubmitEditorSection,
-  .learnerSubmitAttachmentSection {
-    display: flex;
-    flex-direction: column;
-    gap: 7px;
-  }
-
-  .learnerSubmitSectionTitle {
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--cur-text-muted);
-    letter-spacing: .4px;
-    text-transform: uppercase;
-    margin: 0;
-  }
-
-  .learnerSubmitSectionHint {
-    font-size: 12px;
-    color: var(--cur-text-muted);
-    margin: 0;
-  }
-
-  .learnerSubmitAttachmentPicker {
-    display: inline-flex;
-    align-items: center;
-    cursor: pointer;
-  }
-
-  .learnerSubmitAttachmentPicker input[type="file"] {
-    display: none;
-  }
-
-  .learnerSubmitAttachmentPicker span {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--cur-primary-dark);
-    background: var(--cur-primary-bg);
-    border: 1.5px dashed var(--cur-primary);
-    border-radius: var(--cur-radius-sm);
-    padding: 6px 14px;
-    transition: background var(--cur-transition), border-color var(--cur-transition);
-  }
-
-  .learnerSubmitAttachmentPicker:hover span {
-    background: #c4dde8;
-    border-color: var(--cur-primary-dark);
-  }
-
-  .learnerSubmitFileList {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-  }
-
-  .learnerSubmitFileItem {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: var(--cur-surface-2);
-    border: 1px solid var(--cur-border);
-    border-radius: var(--cur-radius-sm);
-    padding: 7px 11px;
-  }
-
-  .learnerSubmitFileName {
-    flex: 1;
-    font-size: 13px;
-    color: var(--cur-text);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .learnerSubmitFileSize {
-    font-size: 11px;
-    color: var(--cur-text-muted);
-    flex-shrink: 0;
-  }
-
-  .learnerSubmitFileRemove {
-    font-size: 11px;
-    font-family: 'Pretendard', sans-serif;
-    color: var(--cur-red);
-    background: var(--cur-red-bg);
-    border: none;
-    border-radius: 4px;
-    padding: 3px 8px;
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: opacity var(--cur-transition);
-  }
-
-  .learnerSubmitFileRemove:hover:not(:disabled) {
-    opacity: .7;
-  }
-
-  .emailingError.learnerSubmitError {
-    margin: 0 20px;
-    font-size: 13px;
-    color: var(--cur-red);
-    background: var(--cur-red-bg);
-    border-radius: var(--cur-radius-sm);
-    padding: 8px 13px;
-  }
-
-  .emailModalFooter {
-    padding: 12px 20px 16px;
-    display: flex;
-    justify-content: flex-end;
-    border-top: 1px solid var(--cur-border);
-  }
-
-  .emailSendBtn {
-    font-family: 'Pretendard', sans-serif;
-    font-size: 13px;
-    font-weight: 700;
-    color: #fff;
-    background: var(--cur-primary-dark);
-    border: none;
-    border-radius: 20px;
-    padding: 9px 26px;
-    cursor: pointer;
-    transition: background var(--cur-transition), transform var(--cur-transition), box-shadow var(--cur-transition);
-    box-shadow: 0 2px 8px rgba(106, 154, 174, .3);
-  }
-
-  .emailSendBtn:hover:not(:disabled) {
-    background: var(--cur-accent);
-    transform: translateY(-1px);
-    box-shadow: 0 3px 14px rgba(92, 61, 48, .25);
-  }
-
-  .emailSendBtn:disabled {
-    background: var(--cur-border);
-    color: var(--cur-text-muted);
-    box-shadow: none;
-    transition: background 0.2s;
-  }
-
-  .learnerWeekSubmitBtn:hover:not(:disabled) {
-    background: #2e3c4c;
-  }
-
-  .learnerWeekSubmitBtn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  /* =========================================
-   제출 내용 보기 및 닫기 버튼
-========================================= */
-  .btn-view-submission {
-    padding: 8px 16px;
-    background-color: #f1f3f5;
-    color: #333;
-    border: 1px solid #ced4da;
-    border-radius: 6px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    margin-bottom: 12px;
-  }
-
-  .btn-view-submission:hover {
-    background-color: #e9ecef;
-  }
-
-  .btn-modal-cancel {
-    padding: 10px 20px;
-    background-color: #e9ecef;
-    color: #495057;
-    border: none;
-    border-radius: 6px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  .btn-modal-cancel:hover {
-    background-color: #dde2e6;
-  }
-
-  /* =========================================
-   ✨ 새롭게 적용된 에디터 템플릿(Tiptap 느낌) 및 표 디자인
-========================================= */
-
-  /* 에디터 껍데기(Tiptap 문서처럼 보이게 보정) */
-  .learner-custom-form {
-    padding: 24px 30px;
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    min-height: 400px;
-    font-size: 15px;
-    line-height: 1.7;
-    color: #333;
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
-    outline: none;
-  }
-
-  .learner-custom-form p {
-    margin: 0.5em 0;
-  }
-
-  /* Tiptap의 표(Table) CSS와 완전히 동일하게 구현 */
-  .learner-custom-form table,
-  .learner-rendered-content table {
-    border-collapse: collapse;
-    table-layout: fixed;
-    width: 100%;
-    margin: 16px 0;
-    overflow: hidden;
-  }
-
-  .learner-custom-form td,
-  .learner-custom-form th,
-  .learner-rendered-content td,
-  .learner-rendered-content th {
-    min-width: 1em;
-    border: 1px solid #ced4da;
-    padding: 8px 10px;
-    vertical-align: top;
-    box-sizing: border-box;
-    position: relative;
-    word-break: break-word;
-  }
-
-  .learner-custom-form th,
-  .learner-rendered-content th {
-    background-color: #f1f3f5;
-    font-weight: bold;
-    text-align: left;
-  }
-
-  /* =========================================
-   📌 동적으로 삽입되는 입력 영역 (에디터 내 에디터)
-========================================= */
-
-  /* 표(td) 안의 빈칸이거나 단락(p)의 빈칸일 때 적용되는 클래스 */
-  .learner-editable-cell,
-  .learner-editable-p,
-  .learner-editable-fallback {
-    outline: none;
-    cursor: text;
-    background-color: rgba(226, 232, 240, 0.4);
-    /* 연한 회색/파란색으로 빈칸 표시 */
-    transition: background-color 0.2s, box-shadow 0.2s;
-    min-height: 1.5em;
-    /* 클릭 가능한 최소 높이 보장 */
-  }
-
-  /* 단락(p)이나 div일 경우 테두리 보정 */
-  .learner-editable-p,
-  .learner-editable-fallback {
-    border-radius: 6px;
-    padding: 6px 12px;
-    margin: 8px 0;
-    border: 1px solid transparent;
-  }
-
-  /* 마우스를 올렸을 때 클릭 가능하다는 시각적 피드백 */
-  .learner-editable-cell:hover,
-  .learner-editable-p:hover,
-  .learner-editable-fallback:hover {
-    background-color: rgba(226, 232, 240, 0.7);
-  }
-
-  /* 텍스트를 입력하려고 클릭(포커스)했을 때 명확하게 에디터처럼 활성화 */
-  .learner-editable-cell:focus,
-  .learner-editable-p:focus,
-  .learner-editable-fallback:focus {
-    background-color: #ffffff;
-  }
-
-  /* 단락 형태의 빈칸을 포커스했을 때는 파란색 테두리 효과 */
-  .learner-editable-p:focus,
-  .learner-editable-fallback:focus {
-    border: 1px solid #3182ce;
-    box-shadow: inset 0 0 0 1px #3182ce;
-  }
-
-  .learner-editable-cell,
-  .learner-editable-p,
-  .learner-editable-fallback {
-    outline: none;
-    cursor: text;
-    transition: background-color 0.2s, border-color 0.2s;
-    min-height: 1.5em;
-    display: block;
-    /* 줄바꿈 자연스럽게 */
-  }
-
-  /* 플레이스홀더 텍스트 스타일 (span태그용) */
-  .placeholder-text {
-    pointer-events: none;
-    user-select: none;
-  }
+  color: #718096;
+}
+
+.submit-modal {
+  position: fixed;
+  top: 70px; /* 기존 HEADER_HEIGHT 값 */
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(1050px, 95vw);
+  height: calc(100vh - 90px); /* 100vh - (HEADER_HEIGHT 70 + 20) */
+  border-radius: 12px;
+  z-index: 10000; /* 헤더 침범 방지 */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  transition: all 0.3s ease; /* 전체화면 전환 시 부드러운 애니메이션 효과 (선택사항) */
+}
+
+.submit-modal.fullscreen {
+  top: 0;
+  left: 0;
+  transform: none;
+  width: 100vw;
+  height: 100vh;
+  border-radius: 0;
 }

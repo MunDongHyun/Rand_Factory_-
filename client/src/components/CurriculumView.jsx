@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import api from '../lib/api';
 import { sanitizeHtml } from '../lib/sanitize';
 import { downloadAttachment, formatBytes } from '../lib/attachments';
@@ -147,8 +148,7 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
   const [feedbackSavingId, setFeedbackSavingId] = useState(null);
   const [expandedSubmissionId, setExpandedSubmissionId] = useState(null);
 
-
-  const [viewMode, setViewMode] = useState('curriculum'); // 'curriculum' | 'learner'
+  const [viewMode, setViewMode] = useState('curriculum'); 
   const [selectedLearnerId, setSelectedLearnerId] = useState(null);
   const [selectedWeek, setSelectedWeek] = useState(null);
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
@@ -198,13 +198,13 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
       .then((res) => setSubmissions(Array.isArray(res.data) ? res.data : [])).catch(() => setSubmissions([])).finally(() => setSubmissionsLoading(false));
   }, [selectedId]);
 
-  useEffect(() => {
-    if (onModalToggle) {
-      const anyModalOpen = modalOpen || downloadModalOpen || assignModalOpen || templateModal.open;
-      onModalToggle(anyModalOpen);
-    }
-  }, [modalOpen, downloadModalOpen, assignModalOpen, templateModal.open, onModalToggle]);
-
+  // 대시보드로 이벤트 알리는 로직 완전히 주석처리 (부모 오버레이 차단용)
+  // useEffect(() => {
+  //   if (onModalToggle) {
+  //     const anyModalOpen = modalOpen || downloadModalOpen || assignModalOpen || templateModal.open;
+  //     onModalToggle(anyModalOpen);
+  //   }
+  // }, [modalOpen, downloadModalOpen, assignModalOpen, templateModal.open, onModalToggle]);
 
   const handleAttachmentDownload = async (submissionId, attachment) => {
     try { await downloadAttachment(submissionId, attachment); } catch (err) { alert(err.response?.data?.detail || '첨부파일 다운로드에 실패했습니다.'); }
@@ -250,7 +250,7 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
 
   const closeModal = () => {
     if (generating || saving) return;
-    setModalOpen(false); setConfirmOpen(false); setPreview(null); setFormError(null); setPreviewExpandedWeek(null); setCreateAssignedIds([]); if (onModalToggle) onModalToggle(false);;
+    setModalOpen(false); setConfirmOpen(false); setPreview(null); setFormError(null); setPreviewExpandedWeek(null); setCreateAssignedIds([]); 
   };
 
   const handleChange = (event) => {
@@ -524,9 +524,6 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
                     </div>
                   </div>
 
-
-
-
                   <div className="curriculumSteps">
                     {normalizeWeekPlan(selectedCurriculum.cur_week_plan).map((step) => (
                       <div
@@ -746,11 +743,14 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
         </div>
       )}
 
+
+      {/* 🚀 CSS 파일을 철저하게 무시하도록 오버레이와 컨테이너에 직접 z-index: 99999 를 인라인으로 박아넣은 최종 해결책! 🚀 */}
+
       {/* 모달: 커리큘럼 생성 */}
-      {modalOpen && (
+      {modalOpen && createPortal(
         <>
-          <div className="chatModalOverlay" onClick={closeModal} />
-          <div className="chatModalContainer">
+          <div className="chatModalOverlay" style={{ zIndex: 99998 }} onClick={closeModal} />
+          <div className="chatModalContainer" style={{ zIndex: 99999 }}>
             <aside className="chatSidebar">
               <p className="chatSidebarTitle">생성한 커리큘럼</p>
               <div className="chatSidebarDivider" />
@@ -776,14 +776,15 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
               </form>
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
 
       {/* 모달: 학습자 배정 변경 */}
-      {assignModalOpen && selectedCurriculum && (
+      {assignModalOpen && selectedCurriculum && createPortal(
         <>
-          <div className="confirmOverlay" onClick={() => !assignSaving && setAssignModalOpen(false)} />
-          <div className="confirmModal assignModal">
+          <div className="confirmOverlay" style={{ zIndex: 99998 }} onClick={() => !assignSaving && setAssignModalOpen(false)} />
+          <div className="confirmModal assignModal" style={{ zIndex: 99999 }}>
             <div className="confirmHeader"><div className="confirmHeaderRight"><p className="confirmHeaderLabel">{selectedCurriculum.cur_title}</p><h3 className="confirmTitle">학습자 배정 변경</h3><div className="confirmDivider" /></div></div>
             <div className="assignSection">
               {learners.length === 0 ? <p className="assignEmpty">같은 회사의 등록된 학습자가 없습니다.</p> : (
@@ -797,14 +798,15 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
             </div>
             <div className="confirmBtns"><button className="confirmBtnBack" onClick={() => setAssignModalOpen(false)} disabled={assignSaving}>취소</button><button className="confirmBtnCreate" onClick={handleAssignSave} disabled={assignSaving}>{assignSaving ? '저장 중...' : '저장'}</button></div>
           </div>
-        </>
+        </>,
+        document.body
       )}
 
       {/* 모달: 커리큘럼 저장 확인 */}
-      {confirmOpen && preview && (
+      {confirmOpen && preview && createPortal(
         <>
-          <div className="confirmOverlay" onClick={() => !saving && setConfirmOpen(false)} />
-          <div className="confirmModal">
+          <div className="confirmOverlay" style={{ zIndex: 99998 }} onClick={() => !saving && setConfirmOpen(false)} />
+          <div className="confirmModal" style={{ zIndex: 99999 }}>
             <div className="confirmHeader"><div className="confirmHeaderRight"><p className="confirmHeaderLabel">{preview.cur_target_job || '직무 미지정'} | {preview.cur_duration_weeks}주차</p><h3 className="confirmTitle">이 커리큘럼을 저장할까요?</h3><div className="confirmDivider" /></div></div>
             <div className="confirmGoalBox"><p className="confirmGoalLabel">교육 목표 :</p><p className="confirmGoalText">{preview.cur_learning_goal || '교육 목표가 입력되지 않았습니다.'}</p></div>
             <p className="confirmProgramName">{preview.cur_title}</p>
@@ -825,15 +827,16 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
             {formError && <p className="curriculumFormError">{formError}</p>}
             <div className="confirmBtns"><button className="confirmBtnBack" onClick={() => setConfirmOpen(false)} disabled={saving}>돌아가기</button><button className="confirmBtnCreate" onClick={handleSave} disabled={saving}>{saving ? '저장 중...' : '생성'}</button></div>
           </div>
-        </>
+        </>,
+        document.body
       )}
 
       {/* 모달: 템플릿 양식 배포 (관리자용) */}
-      {templateModal.open && (
+      {templateModal.open && createPortal(
         <>
-          <div className="confirmOverlay" onClick={() => setTemplateModal({ ...templateModal, open: false })} />
+          <div className="confirmOverlay" style={{ zIndex: 99998 }} onClick={() => setTemplateModal({ ...templateModal, open: false })} />
 
-          <div className={`confirmModal templateModal ${templateModal.fullscreen ? 'fullscreen' : ''}`} style={{ display: 'flex', flexDirection: 'column', height: '90vh', overflow: 'hidden' }}>
+          <div className={`confirmModal templateModal ${templateModal.fullscreen ? 'fullscreen' : ''}`} style={{ zIndex: 99999, display: 'flex', flexDirection: 'column', height: '90vh', overflow: 'hidden' }}>
 
             <div className="modalTopBar" style={{ flexShrink: 0 }}>
               <h3 className="sectionTitle">과제 양식(템플릿) 배포</h3>
@@ -858,7 +861,6 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
                   <span className="tiptap-loading-text">AI가 템플릿을 재작성하고 있습니다...</span>
                 </div>
               )}
-              {/* 관리자 모드의 Tiptap 에디터 */}
               <TiptapEditor
                 value={templateModal.content}
                 onChange={(newContent) => setTemplateModal({ ...templateModal, content: newContent })}
@@ -870,19 +872,21 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
               <button type="button" className="confirmBtnCreate" onClick={saveTemplate} disabled={templateModal.saving}>{templateModal.saving ? '배포 중...' : '템플릿 배포'}</button>
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
 
       {/* 모달: 다운로드 선택 */}
-      {downloadModalOpen && (
+      {downloadModalOpen && createPortal(
         <>
-          <div className="downloadOverlay" onClick={() => setDownloadModalOpen(false)} />
-          <div className="downloadModal">
+          <div className="downloadOverlay" style={{ zIndex: 99998 }} onClick={() => setDownloadModalOpen(false)} />
+          <div className="downloadModal" style={{ zIndex: 99999 }}>
             <p className="downloadModalTitle">다운로드 형식 선택</p>
             <button type="button" className="downloadModalBtn" onClick={() => { handleDownloadTxt(); setDownloadModalOpen(false); }}>TXT 다운로드</button>
             <button type="button" className="downloadModalBtn" onClick={() => { handleDownloadPdf(); setDownloadModalOpen(false); }}>PDF 다운로드</button>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   );
