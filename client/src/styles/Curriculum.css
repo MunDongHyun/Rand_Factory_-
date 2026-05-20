@@ -1724,3 +1724,25 @@
   color: var(--ink-muted);
   margin-left: auto;
 }
+
+.tiptap-content-area ul,
+.tiptap-content-area ol,
+.ProseMirror ul,
+.ProseMirror ol {
+  padding-left: 28px !important; /* 기호가 들어갈 충분한 왼쪽 여백 확보 */
+  margin: 12px 0 !important;     /* 리스트 위아래로 자연스러운 간격 띄우기 */
+}
+
+/* 리스트의 각 항목(li) 사이의 간격 */
+.tiptap-content-area li,
+.ProseMirror li {
+  margin-bottom: 6px;
+  line-height: 1.6;
+}
+
+/* 리스트 항목 내부에 들어간 p 태그의 쓸데없는 여백 제거 (글씨가 기호 밑으로 떨어지는 현상 방지) */
+.tiptap-content-area li > p,
+.ProseMirror li > p {
+  margin: 0 !important;
+  display: inline-block; /* 텍스트가 기호 바로 옆에 예쁘게 붙도록 처리 */
+}
