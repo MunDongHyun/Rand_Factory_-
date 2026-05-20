@@ -12,6 +12,10 @@ from langchain_core.prompts import ChatPromptTemplate
 class TemplateOutput(BaseModel):
     html_content: str = Field(description="학습자가 바로 작성할 수 있도록 구성된 HTML 양식 코드")
 
+class ValidationOutput(BaseModel):
+    is_valid: bool = Field(description="입력값이 교육 과정 설계에 유의미한 정보인지 여부")
+    reason: str = Field(description="유효하지 않은 경우 사용자에게 보여줄 구체적인 안내 메시지 (한국어)")
+
 # 1. 환경변수 설정
 CURRENT_DIR = Path(__file__).resolve().parent
 BASE_DIR = CURRENT_DIR.parent.parent
@@ -22,7 +26,7 @@ load_dotenv(PROJECT_DIR / ".env", override=False)
 
 openai_api_key = os.getenv("OPENAI_API_KEY")
 if not openai_api_key:
-    print("🚨 경고: OPENAI_API_KEY를 찾을 수 없습니다.")
+    print("경고: OPENAI_API_KEY를 찾을 수 없습니다.")
 
 
 # 2. Pydantic 스키마 정의
@@ -51,7 +55,38 @@ class WeekPlan(BaseModel):
 class CurriculumOutput(BaseModel):
     curriculum: List[WeekPlan]
 
-# 3. URL 검색 및 커리큘럼 생성 로직
+
+# 3. 유효성 검증 로직 추가
+def validate_curriculum_input(cur_title: str, cur_target_job: str, cur_target_industry: str, cur_learning_goal: str, required_content: str) -> ValidationOutput:
+    ai_model = os.getenv("AI_MODEL", "gpt-4o-mini")
+    llm = ChatOpenAI(model=ai_model, temperature=0.0, api_key=openai_api_key)
+    structured_llm = llm.with_structured_output(ValidationOutput)
+
+    system_prompt = """
+    당신은 입력된 텍스트가 커리큘럼 생성을 위한 유의미한 정보인지 검증하는 필터링 AI입니다.
+    사용자가 키보드를 막 친 의미 없는 문자열(예: '94ㅕ2184ㅕ21야러...', 'asdfg', 'ㅋㅋ')을 입력했거나, 
+    교육 과정 설계와 전혀 무관한 장난성 입력을 한 경우 is_valid를 false로 설정하세요.
+    올바른 값이라고 판단되면 is_valid를 true로 설정하고 reason은 빈 문자열로 남깁니다.
+    """
+
+    user_prompt = f"""
+    아래 입력값을 확인하고 올바른 커리큘럼 요청인지 판별하세요:
+    - 과정명: {cur_title}
+    - 직무/산업: {cur_target_job} / {cur_target_industry}
+    - 교육 목표: {cur_learning_goal}
+    - 필수 포함 내용: {required_content}
+    """
+
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", system_prompt),
+        ("user", user_prompt)
+    ])
+    
+    chain = prompt | structured_llm
+    return chain.invoke({})
+
+
+# 4. URL 검색 및 커리큘럼 생성 로직
 def retrieve_real_urls_for_context(course_name: str, required_content: str) -> str:
     search_tool = DuckDuckGoSearchResults(num_results=5)
     search_query = f"{course_name} {required_content} 실무 가이드 템플릿"
@@ -65,7 +100,7 @@ def retrieve_real_urls_for_context(course_name: str, required_content: str) -> s
         return "=== [웹 참고 자료 검색 실패. 내부 자료를 권장하도록 안내하세요.] ==="
 
 def generate_week_plan(cur_title: str, cur_duration_weeks: int, cur_target_job: str, cur_target_industry: str, cur_learning_goal: str, required_content: str):
-    ai_model = os.getenv("AI_MODEL", "gpt-5.4-mini")
+    ai_model = os.getenv("AI_MODEL", "gpt-4o-mini")
     llm = ChatOpenAI(model=ai_model, temperature=0.2, api_key=openai_api_key)
     
     structured_llm = llm.with_structured_output(CurriculumOutput)
@@ -117,12 +152,11 @@ def generate_week_plan(cur_title: str, cur_duration_weeks: int, cur_target_job: 
 
 # 과제 템플릿 생성하는 모델
 def generate_assignment_template(theme: str, learning_objective: str, assignment_title: str, step_by_step_guide: list[str], expected_output_format: str) -> str:
-    ai_model = os.getenv("AI_MODEL", "gpt-5.4-mini")
+    ai_model = os.getenv("AI_MODEL", "gpt-4o-mini")
     llm = ChatOpenAI(model=ai_model, temperature=0.3, api_key=openai_api_key)
     
     structured_llm = llm.with_structured_output(TemplateOutput)
 
-    # ✨ 수정사항: Tiptap 에디터를 쓰지 않고, 순수 HTML 입력 폼을 렌더링하도록 요구사항 변경
     system_prompt = """
     당신은 실무 기반 교육 과제 템플릿(양식)을 제작하는 전문가입니다.
     사용자가 제공한 과제 정보를 바탕으로, 학습자가 직접 값을 입력할 수 있는 직관적인 HTML 입력 폼 템플릿을 생성하세요.
@@ -131,7 +165,7 @@ def generate_assignment_template(theme: str, learning_objective: str, assignment
     1. HTML 태그(h3, p, ul, li, table, th, td, div 등)를 적극적으로 사용하여 깔끔하게 구성하세요.
     2. '제출 형태'나 '가이드'에 표 형태의 요약이 필요하다면 반드시 <table> 태그를 사용하여 틀을 만들어주세요. (table 속성에 style="width: 100%; border-collapse: collapse; border: 1px solid #ccc;" 와 th, td에 테두리 스타일을 넣으세요)
     3. 용어 선택(매우 중요): 표의 헤더나 항목을 구분할 때 문맥에 맞지 않는 '채널(Channel)'이라는 단어의 사용을 엄격히 금지합니다.
-    4. (★매우 중요) 학습자가 실제로 데이터를 채워넣어야 하는 영역(표 안의 빈칸, 서술형 답변란 등)에는 반드시 다음 형식의 입력 태그를 삽입하세요:
+    4. (매우 중요) 학습자가 실제로 데이터를 채워넣어야 하는 영역(표 안의 빈칸, 서술형 답변란 등)에는 반드시 다음 형식의 입력 태그를 삽입하세요:
        - 짧은 단답형 텍스트: `<input type="text" class="template-input-text" placeholder="내용을 입력하세요" />`
        - 여러 줄의 서술형 텍스트: `<textarea class="template-input-textarea" placeholder="상세 내용을 입력하세요"></textarea>`
        - 빈 <td></td> 태그만 두지 말고, 반드시 그 안에 입력 태그를 포함하세요.
