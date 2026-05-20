@@ -518,9 +518,9 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
                     <div className="curriculumTitleGroup">
                       <div className="curriculumTitleRow">
                         <h3 className="curriculumDetailTitle">{selectedCurriculum.cur_title}</h3>
-                        <img src={curri_nulll} alt="다운로드" className="downloadIcon" onClick={() => setDownloadModalOpen(true)} />
                       </div>
                       <p className="curriculumDetailDesc">{selectedCurriculum.cur_learning_goal || ''}</p>
+                      <img src={curri_nulll} alt="다운로드" className="downloadIcon" onClick={() => setDownloadModalOpen(true)} />
                     </div>
                   </div>
 
@@ -833,7 +833,6 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
         <>
           <div className="confirmOverlay" onClick={() => setTemplateModal({ ...templateModal, open: false })} />
 
-          {/* ✨ 1. maxHeight를 height로 변경하여 모달 창 크기를 화면의 90%로 꽉 고정합니다. */}
           <div className={`confirmModal templateModal ${templateModal.fullscreen ? 'fullscreen' : ''}`} style={{ display: 'flex', flexDirection: 'column', height: '90vh', overflow: 'hidden' }}>
 
             <div className="modalTopBar" style={{ flexShrink: 0 }}>
@@ -848,12 +847,10 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
               </div>
             </div>
 
-            {/* ✨ 2. flexShrink: 0 을 추가하여 안내 문구가 찌그러지지 않게 방어합니다. */}
             <p className="assignSectionHint" style={{ whiteSpace: 'pre-wrap', flexShrink: 0 }}>
               {`학습자에게 전달될 '${templateModal.title}'의 작성 양식 가이드를 작성해주세요.\n표나 양식을 지정해주면 학습자가 쉽게 채워넣을 수 있습니다.`}
             </p>
 
-            {/* ✨ 3. 가장 핵심! minHeight: 0 을 추가해야 에디터가 길어져도 모달창을 뚫고 나가지 않고 내부에 스크롤을 만듭니다. */}
             <div className="templateEditorWrapper" style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', border: '1px solid #ccc', borderRadius: '4px', overflow: 'hidden', minHeight: 0 }}>
               {templateModal.generating && (
                 <div className="tiptap-loading-overlay">

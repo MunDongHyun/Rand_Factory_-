@@ -78,7 +78,7 @@
   border: 1px solid var(--line);
   border-radius: 8px;
   font-family: 'Pretendard', sans-serif;
-  background: var(--bg);
+  background:#f1f1f1;
   color: var(--ink);
   font-size: 14px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
