@@ -13,10 +13,12 @@ from app.models.article import Article
 from app.models.user import User
 from app.schemas.article import (
     ArticleCreate,
+    ArticleDetailResponse,
     ArticleInsightsResponse,
     ArticleListResponse,
     ArticleResponse,
     ArticleSummaryResponse,
+    AuthorBrief,
     CategoryStatItem,
     CategoryStatsResponse,
     TimelinePoint,
@@ -379,7 +381,7 @@ def get_article_insights(
     )
 
 
-@router.post("/{article_id}/view", response_model=ArticleResponse)
+@router.post("/{article_id}/view", response_model=ArticleDetailResponse)
 def record_article_view(
     article_id: int,
     db: Session = Depends(get_db),
@@ -410,9 +412,13 @@ def record_article_view(
     article_ids = [article.article_id]
     summary_article_ids = _summary_article_ids(db, article_ids)
     preview_summary_titles = _preview_summary_titles(db, article_ids)
-    return _to_response(article, summary_article_ids, preview_summary_titles)
+    base = _to_response(article, summary_article_ids, preview_summary_titles)
+    return ArticleDetailResponse(
+        **base.model_dump(),
+        authors=[AuthorBrief.model_validate(a) for a in article.authors],
+    )
 
-@router.get("/{article_id}", response_model=ArticleResponse)
+@router.get("/{article_id}", response_model=ArticleDetailResponse)
 def get_article(
     article_id: int,
     db: Session = Depends(get_db),
@@ -425,4 +431,8 @@ def get_article(
     article_ids = [article.article_id]
     summary_article_ids = _summary_article_ids(db, article_ids)
     preview_summary_titles = _preview_summary_titles(db, article_ids)
-    return _to_response(article, summary_article_ids, preview_summary_titles)
+    base = _to_response(article, summary_article_ids, preview_summary_titles)
+    return ArticleDetailResponse(
+        **base.model_dump(),
+        authors=[AuthorBrief.model_validate(a) for a in article.authors],
+    )

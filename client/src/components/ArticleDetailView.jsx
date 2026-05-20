@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../lib/api';
 import "../styles/ArticleDetailView.css"
 
-function ArticleDetailView({ article, onBack }) {
+function ArticleDetailView({ article, onBack, onOpenEmailing }) {
   const [summary, setSummary] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState(null);
@@ -87,7 +87,32 @@ function ArticleDetailView({ article, onBack }) {
         <h1 className="articleDetailTitle">{displayArticle.article_title}</h1>
         <div className="articleDetailMeta">
           <span>{displayArticle.article_source}</span>
-          {displayArticle.article_author && <> <span className="cardDot">·</span> <span>{displayArticle.article_author}</span></>}
+          {Array.isArray(displayArticle.authors) && displayArticle.authors.length > 0 ? (
+            <>
+              <span className="cardDot">·</span>
+              <span className="articleAuthorList">
+                {displayArticle.authors.map((author, idx) => (
+                  <span key={author.author_numb} className="articleAuthorItem">
+                    {idx > 0 && <span className="articleAuthorSep">, </span>}
+                    <span>{author.author_name}</span>
+                    {author.author_email && onOpenEmailing && (
+                      <button
+                        type="button"
+                        className="authorMailBtn"
+                        onClick={() => onOpenEmailing(author.author_numb)}
+                        aria-label={`${author.author_name}에게 이메일 보내기`}
+                        title={`${author.author_name}에게 이메일 보내기`}
+                      >
+                        ✉
+                      </button>
+                    )}
+                  </span>
+                ))}
+              </span>
+            </>
+          ) : (
+            displayArticle.article_author && <> <span className="cardDot">·</span> <span>{displayArticle.article_author}</span></>
+          )}
           {displayArticle.article_published_date && <> <span className="cardDot">·</span> <span>{displayArticle.article_published_date}</span></>}
           {displayArticle.article_category && <> <span className="cardDot">·</span> <span># {displayArticle.article_category}</span></>}
           <span className="cardDot">·</span>

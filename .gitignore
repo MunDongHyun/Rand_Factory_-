@@ -25,6 +25,7 @@ dist/
 
 # Data (로컬 데이터 파일 제외)
 data/
+deliverables/
 
 # 학습자 업로드 첨부파일 (로컬 디스크 저장)
 server/uploads/
