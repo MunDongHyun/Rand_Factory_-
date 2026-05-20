@@ -83,7 +83,7 @@
   width: 310px;
   flex-shrink: 0;
   background: #3A4A5C;
-  padding: 42px 25px 39px 25px;
+  padding: 42px 25px 20px 25px;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -93,7 +93,7 @@
 .curriculumSidebarTitle {
   font-family: 'Pretendard', sans-serif;
   font-weight: 700;
-  font-size: 24px;
+  font-size: 28px;
   line-height: 29px;
   color: var(--card);
   margin: 0 0 16px 0;
@@ -102,7 +102,7 @@
 .curriculumSidebarDivider {
   width: 248px;
   height: 1px;
-  background: #fff;
+  background: var(--line);
   margin-bottom: 16px;
 }
 
@@ -113,11 +113,10 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   min-height: 0;
   overflow-y: auto;
 }
-
 
 .curriculumSidebarItem {
   width: 240px;
@@ -127,20 +126,23 @@
   font-weight: 500;
   font-size: 16px;
   line-height: 19px;
-  color: #fff;
+  color: var(--ink-muted);
   cursor: pointer;
   transition: background 0.15s;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  
 }
 
 .curriculumSidebarItem:hover {
   background: rgba(217, 217, 217, 0.18);
+  color: var(--card);
 }
 
 .curriculumSidebarItem.active {
   background: rgba(217, 217, 217, 0.28);
+  color: var(--card);
 }
 
 
@@ -148,7 +150,7 @@
   margin-top: auto;
   width: 218px;
   padding: 12px 0;
-  border: 1px solid #fff;
+  border: 1px solid var(--line);
   border-radius: 6px;
   background: transparent;
   font-family: 'Pretendard', sans-serif;
@@ -257,7 +259,7 @@
   border: 1.5px solid var(--line);
   border-radius: 50%;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--ink-muted);
   transition: background 0.12s, color 0.12s;
   user-select: none;
@@ -303,7 +305,7 @@
 .curriculumLayout {
   display: flex;
   flex: 1;
-  border: 1px solid var(--line);
+  border: 1px solid var(--ink);
   background: var(--card);
   overflow: hidden;
   min-height: 0; 
@@ -376,7 +378,7 @@
 .curriculumDetailTitle {
   font-family: 'Pretendard', sans-serif;
   font-weight: 700;
-  font-size: 28px;
+  font-size: 24px;
   line-height: 38px;
   color: var(--ink);
   margin: 0;
@@ -392,10 +394,11 @@
 }
 
 .downloadIcon {
-  width: 28px;
-  height: 30px;
+  width: 50px;
+  height: 50px;
   cursor: pointer;
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 /* =============================================
@@ -454,14 +457,14 @@
   flex: 1;
 }
 
-/* 피그마: "▶" → color #94B8C8 */
+
 .extracted-toggle-label {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--primary);
   flex-shrink: 0;
 }
 
-/* 아코디언 바디 */
+
 .extracted-accordion-body {
   padding: 16px 20px;
   background: #FAFAFA;
@@ -481,7 +484,7 @@
 .extracted-objective-title {
   font-family: 'Pretendard', sans-serif;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--ink);
   margin: 0 0 6px 0;
 }
@@ -489,7 +492,7 @@
 .extracted-objective-text {
   font-family: 'Pretendard', sans-serif;
   font-weight: 400;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--ink);
   margin: 0;
 }
@@ -497,7 +500,7 @@
 .extracted-task-title {
   font-family: 'Pretendard', sans-serif;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--ink);
   margin: 0 0 6px 0;
 }
@@ -509,7 +512,7 @@
 
 .extracted-list-item {
   font-family: 'Pretendard', sans-serif;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--ink);
   margin-bottom: 3px;
 }
@@ -539,7 +542,7 @@
 .extracted-assignment-name {
   font-family: 'Pretendard', sans-serif;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--ink);
 }
 
@@ -550,14 +553,14 @@
 
 .extracted-guide-item {
   font-family: 'Pretendard', sans-serif;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--ink);
   margin-bottom: 2px;
 }
 
 .extracted-submission-format {
   font-family: 'Pretendard', sans-serif;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--ink-muted);
   margin-top: 4px;
 }
@@ -580,7 +583,7 @@
   border-radius: 4px;
   font-family: 'Pretendard', sans-serif;
   font-weight: 500;
-  font-size: 11px;
+  font-size: 14px;
   cursor: pointer;
   border: none;
   transition: background 0.12s;
@@ -617,7 +620,7 @@
 .extracted-instructor-title {
   font-family: 'Pretendard', sans-serif;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--ink);
   margin: 0 0 6px 0;
 }
@@ -625,7 +628,7 @@
 .extracted-guide-label {
   font-family: 'Pretendard', sans-serif;
   font-weight: 700;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--ink);
 }
 
@@ -636,7 +639,7 @@
 
 .extracted-guide-item-small {
   font-family: 'Pretendard', sans-serif;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--ink);
   margin-bottom: 2px;
 }
@@ -648,7 +651,7 @@
 
 .extracted-coaching-item {
   font-family: 'Pretendard', sans-serif;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--ink);
   margin-bottom: 3px;
 }
@@ -665,7 +668,7 @@
 .extracted-ref-title {
   font-family: 'Pretendard', sans-serif;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--ink);
   margin: 0 0 6px 0;
 }
@@ -676,7 +679,7 @@
 
 .extracted-ref-link {
   font-family: 'Pretendard', sans-serif;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--ink);
   text-decoration: underline;
 }
@@ -687,7 +690,7 @@
 
 .extracted-ref-doc {
   font-family: 'Pretendard', sans-serif;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--ink);
 }
 
@@ -709,7 +712,7 @@
   background: var(--bg);
   border-radius: 4px;
   font-family: 'Pretendard', sans-serif;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--ink);
   white-space: nowrap;
 }
@@ -961,7 +964,7 @@
 .managerSubmissionContentLabel {
   font-family: 'Pretendard', sans-serif;
   font-weight: 500;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--ink);
   margin: 0;
 }
@@ -1007,7 +1010,7 @@
   background: none;
   border: none;
   font-family: 'Pretendard', sans-serif;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--ink);
   text-decoration: underline;
   cursor: pointer;
@@ -1074,7 +1077,7 @@
   border-radius: 6px;
   font-family: 'Pretendard', sans-serif;
   font-weight: 500;
-  font-size: 12px;
+  font-size: 14px;
   cursor: pointer;
   border: none;
   transition: background 0.15s, transform 0.1s;
@@ -1360,7 +1363,7 @@
   border: 1.5px solid var(--primary);
   border-radius: 6px;
   font-family: 'Pretendard', sans-serif;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--ink);
   cursor: pointer;
@@ -1384,7 +1387,7 @@
   border: 1.5px solid var(--line);
   border-radius: 6px;
   font-family: 'Pretendard', sans-serif;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--ink-muted);
   cursor: pointer;
@@ -1426,7 +1429,7 @@
   border-radius: 4px;
   background: var(--card);
   font-family: 'Pretendard', sans-serif;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--ink);
   cursor: pointer;
   transition: background 0.1s;
@@ -1566,7 +1569,7 @@
 .confirmGoalLabel {
   font-family: 'Pretendard', sans-serif;
   font-weight: 500;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--primary);
   margin: 0;
 }
@@ -1671,7 +1674,7 @@
 
 .assignSectionHint {
   font-family: 'Pretendard', sans-serif;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--ink-muted);
   margin-top: -50px;
   margin-bottom: 18px;
@@ -1720,7 +1723,7 @@
 
 .assignEmail {
   font-family: 'Pretendard', sans-serif;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--ink-muted);
   margin-left: auto;
 }
@@ -1729,20 +1732,19 @@
 .tiptap-content-area ol,
 .ProseMirror ul,
 .ProseMirror ol {
-  padding-left: 28px !important; /* 기호가 들어갈 충분한 왼쪽 여백 확보 */
-  margin: 12px 0 !important;     /* 리스트 위아래로 자연스러운 간격 띄우기 */
+  padding-left: 28px !important;
+  margin: 12px 0 !important;     
 }
 
-/* 리스트의 각 항목(li) 사이의 간격 */
+
 .tiptap-content-area li,
 .ProseMirror li {
   margin-bottom: 6px;
   line-height: 1.6;
 }
 
-/* 리스트 항목 내부에 들어간 p 태그의 쓸데없는 여백 제거 (글씨가 기호 밑으로 떨어지는 현상 방지) */
 .tiptap-content-area li > p,
 .ProseMirror li > p {
   margin: 0 !important;
-  display: inline-block; /* 텍스트가 기호 바로 옆에 예쁘게 붙도록 처리 */
+  display: inline-block; 
 }
