@@ -1,113 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import api from '../lib/api';
 import { sanitizeHtml } from '../lib/sanitize';
 import { downloadAttachment, formatBytes } from '../lib/attachments';
 import '../styles/LearnerCurriculum.css';
-
-// --- Tiptap Named Imports ---
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import { Table } from '@tiptap/extension-table';
-import { TableRow } from '@tiptap/extension-table-row';
-import { TableCell } from '@tiptap/extension-table-cell';
-import { TableHeader } from '@tiptap/extension-table-header';
-import { Image } from '@tiptap/extension-image';
-import { TextAlign } from '@tiptap/extension-text-align';
-import { Underline } from '@tiptap/extension-underline';
-import { TextStyle } from '@tiptap/extension-text-style';
-import { Color } from '@tiptap/extension-color';
-import { Highlight } from '@tiptap/extension-highlight';
-import { Link } from '@tiptap/extension-link';
-
-// --- Tiptap 컴포넌트 (학습자 전용 툴바 적용) ---
-const TiptapMenuBar = ({ editor, role }) => {
-  if (!editor) return null;
-  const isManager = role !== 'learner';
-
-  const addImage = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.onchange = (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (e) => editor.chain().focus().setImage({ src: e.target.result }).run();
-        reader.readAsDataURL(file);
-      }
-    };
-    input.click();
-  };
-
-  const setLink = () => {
-    const previousUrl = editor.getAttributes('link').href;
-    const url = window.prompt('URL을 입력하세요', previousUrl);
-    if (url === null) return;
-    if (url === '') { editor.chain().focus().extendMarkRange('link').unsetLink().run(); return; }
-    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
-  };
-
-  return (
-    <div className="tiptap-toolbar" style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', padding: '8px', borderBottom: '1px solid #ddd' }}>
-      <button type="button" onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} className={editor.isActive('heading', { level: 1 }) ? 'is-active' : ''}>H1</button>
-      <button type="button" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={editor.isActive('heading', { level: 2 }) ? 'is-active' : ''}>H2</button>
-      <button type="button" onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} className={editor.isActive('heading', { level: 3 }) ? 'is-active' : ''}>H3</button>
-      <span className="confirmDivider" style={{ margin: '0 4px', height: '16px', display: 'inline-block', verticalAlign: 'middle' }}></span>
-      
-      <button type="button" onClick={() => editor.chain().focus().toggleBold().run()} className={editor.isActive('bold') ? 'is-active' : ''}><b>B</b></button>
-      <button type="button" onClick={() => editor.chain().focus().toggleUnderline().run()} className={editor.isActive('underline') ? 'is-active' : ''}><u>U</u></button>
-      <input type="color" onInput={event => editor.chain().focus().setColor(event.target.value).run()} value={editor.getAttributes('textStyle').color || '#000000'} title="글자 색상" style={{ width: '24px', height: '24px', padding: 0, cursor: 'pointer' }} />
-      <button type="button" onClick={() => editor.chain().focus().toggleHighlight().run()} className={editor.isActive('highlight') ? 'is-active' : ''}>형광펜</button>
-      <span className="confirmDivider" style={{ margin: '0 4px', height: '16px', display: 'inline-block', verticalAlign: 'middle' }}></span>
-      
-      <button type="button" onClick={() => editor.chain().focus().toggleBulletList().run()} className={editor.isActive('bulletList') ? 'is-active' : ''}>• 리스트</button>
-      <button type="button" onClick={() => editor.chain().focus().toggleOrderedList().run()} className={editor.isActive('orderedList') ? 'is-active' : ''}>1. 리스트</button>
-      <button type="button" onClick={setLink} className={editor.isActive('link') ? 'is-active' : ''}>🔗 링크</button>
-      <button type="button" onClick={addImage}>🖼️ 이미지</button>
-
-      {/* 관리자일 때만 표 구조 변경 버튼 표시 (학습자는 표 내용만 수정 가능) */}
-      {isManager && (
-        <>
-          <span className="confirmDivider" style={{ margin: '0 4px', height: '16px', display: 'inline-block', verticalAlign: 'middle' }}></span>
-          <div style={{ display: 'flex', gap: '2px', background: '#ffebee', padding: '2px 4px', borderRadius: '4px' }}>
-            <button type="button" onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>표 삽입</button>
-            <button type="button" onClick={() => editor.chain().focus().addColumnBefore().run()}>+열 앞</button>
-            <button type="button" onClick={() => editor.chain().focus().addColumnAfter().run()}>+열 뒤</button>
-            <button type="button" onClick={() => editor.chain().focus().deleteColumn().run()} style={{ color: 'red' }}>-열 삭제</button>
-            <button type="button" onClick={() => editor.chain().focus().addRowBefore().run()}>+행 위</button>
-            <button type="button" onClick={() => editor.chain().focus().addRowAfter().run()}>+행 아래</button>
-            <button type="button" onClick={() => editor.chain().focus().deleteRow().run()} style={{ color: 'red' }}>-행 삭제</button>
-            <button type="button" onClick={() => editor.chain().focus().deleteTable().run()} style={{ color: 'red', fontWeight: 'bold' }}>표 전체 삭제</button>
-          </div>
-        </>
-      )}
-    </div>
-  );
-};
-
-const TiptapEditor = ({ value, onChange, role = 'learner' }) => {
-  const editor = useEditor({
-    extensions: [
-      StarterKit, Underline, TextStyle, Color, Highlight, Image.configure({ inline: true, allowBase64: true }), Link.configure({ openOnClick: false }), TextAlign.configure({ types: ['heading', 'paragraph'] }),
-      Table.configure({ resizable: true }), TableRow, TableHeader, TableCell,
-    ],
-    content: value,
-    onUpdate: ({ editor }) => onChange(editor.getHTML()),
-  });
-
-  useEffect(() => {
-    if (editor && value !== editor.getHTML()) { editor.commands.setContent(value, false); }
-  }, [value, editor]);
-
-  return (
-    <div className="tiptap-editor-container" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <TiptapMenuBar editor={editor} role={role} />
-      <div className="tiptap-content-area" style={{ flex: 1, overflowY: 'auto', padding: '16px', backgroundColor: '#fff' }}>
-        <EditorContent editor={editor} />
-      </div>
-    </div>
-  );
-};
 
 // --- 유틸 함수 ---
 const normalizeWeekPlan = (plan) => {
@@ -148,15 +43,19 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
   const [expandedWeek, setExpandedWeek] = useState(null);
 
   const [modalState, setModalState] = useState(null);
-  const [submitContent, setSubmitContent] = useState('');
+  const [viewSubmissionModal, setViewSubmissionModal] = useState(null);
+
   const [submitFiles, setSubmitFiles] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
 
+  // 템플릿 DOM 참조 컨테이너
+  const submitEditorRef = useRef(null);
+
   const loadSubmissions = () => {
     return api.get('/task-submissions/my')
       .then((res) => setSubmissions(Array.isArray(res.data) ? res.data : []))
-      .catch(() => {/* silent */});
+      .catch(() => {/* silent */ });
   };
 
   useEffect(() => {
@@ -218,21 +117,24 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
     setExpandedWeek((prev) => (prev === week ? null : week));
   };
 
+  // 📌 과제 제출 모달 열기
   const openSubmitModal = (curId, week) => {
     const targetCurriculum = curriculums.find((c) => c.cur_id === curId) || selected;
     const targetWeek = normalizeWeekPlan(targetCurriculum?.cur_week_plan).find((s) => s.week === week);
     const templateAssignments = (targetWeek && Array.isArray(targetWeek.assignments))
       ? targetWeek.assignments.filter((a) => a && a.template_content)
       : [];
-    const initialContent = templateAssignments
-      .map((a) => {
+
+    // 원본 템플릿 HTML 병합
+    const initialContent = templateAssignments.length > 0
+      ? templateAssignments.map((a) => {
         const title = a.title ? `<h3>${escapeHtml(a.title)}</h3>` : '';
         return `${title}${a.template_content}`;
-      })
-      .join('<hr>');
-      
-    setModalState({ curId, week, fullscreen: false });
-    setSubmitContent(initialContent || '<p>사수가 배포한 양식이 없습니다. 자유롭게 작성해주세요.</p>');
+      }).join('<hr>')
+      : '';
+
+    // 상태에 원본 HTML 세팅
+    setModalState({ curId, week, fullscreen: false, templateHtml: initialContent });
     setSubmitFiles([]);
     setSubmitError(null);
   };
@@ -242,15 +144,61 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
   const closeSubmitModal = () => {
     if (submitting) return;
     setModalState(null);
-    setSubmitContent('');
     setSubmitFiles([]);
     setSubmitError(null);
   };
 
+  // ✨ 핵심 마법: 템플릿의 빈칸을 찾아 'contenteditable'로 변환 (Tiptap과 동일한 작동 방식)
+  useEffect(() => {
+    if (modalState && submitEditorRef.current) {
+      const container = submitEditorRef.current;
+
+      const targets = container.querySelectorAll('td, p');
+      targets.forEach(el => {
+        const text = el.textContent.trim();
+        const hasImage = el.querySelector('img') !== null;
+
+        // 텍스트가 비어있는 빈칸만 대상
+        if (text === '' && !hasImage) {
+          el.setAttribute('contenteditable', 'true');
+          el.classList.add('learner-editable-cell');
+
+          // 📌 가이드 문구를 span으로 직접 삽입
+          el.innerHTML = '<span class="placeholder-text" style="color:#a0aec0; font-style:italic;">클릭하여 내용 입력</span>';
+
+          // 포커스 시 가이드 문구 삭제
+          el.onfocus = function () {
+            if (this.querySelector('.placeholder-text')) {
+              this.innerHTML = '';
+            }
+            this.style.backgroundColor = '#ffffff';
+            this.style.border = '2px solid #3182ce';
+          };
+
+          // 블러 시 내용이 없으면 가이드 문구 복구
+          el.onblur = function () {
+            if (this.textContent.trim() === '') {
+              this.innerHTML = '<span class="placeholder-text" style="color:#a0aec0; font-style:italic;">클릭하여 내용 입력</span>';
+            }
+            this.style.backgroundColor = '#f8fafc';
+            this.style.border = '2px dashed #4a90e2';
+          };
+
+          // 초기 스타일 적용
+          el.style.backgroundColor = '#f8fafc';
+          el.style.border = '2px dashed #4a90e2';
+          el.style.minHeight = '30px';
+          el.style.padding = '8px';
+          el.style.borderRadius = '4px';
+        }
+      });
+    }
+  }, [modalState?.templateHtml]);
+
   const handleFileSelect = (event) => {
     const picked = Array.from(event.target.files || []);
     setSubmitFiles((prev) => [...prev, ...picked]);
-    event.target.value = ''; 
+    event.target.value = '';
   };
 
   const handleFileRemove = (idx) => {
@@ -265,24 +213,41 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
     }
   };
 
+  // 📌 제출 시점: 입력 가능한 칸에 적힌 글씨를 그대로 HTML에 저장 후 속성만 지워 전송
   const handleSubmit = async () => {
-    if (!modalState) return;
-    // Tiptap은 HTML 문자열 자체를 관리하므로 별도의 DOM 복제/동기화(syncFormControlValues)가 필요 없습니다.
-    const trimmed = (submitContent || '').replace(/<p><br><\/p>/g, '').trim();
-    
-    if (!trimmed && submitFiles.length === 0) {
+    if (!modalState || !submitEditorRef.current) return;
+
+    // 현재 템플릿 DOM 전체를 복사
+    const htmlCopy = submitEditorRef.current.cloneNode(true);
+    let hasContent = false;
+
+    // 복사본에서 contenteditable 속성을 지워서 깔끔한 순수 HTML로 변환
+    const editableElements = htmlCopy.querySelectorAll('[contenteditable="true"]');
+    editableElements.forEach(el => {
+      if (el.textContent.trim() !== '') {
+        hasContent = true;
+      }
+      // 제출할 때는 편집 관련 속성과 클래스를 떼버림
+      el.removeAttribute('contenteditable');
+      el.classList.remove('learner-editable-cell', 'learner-editable-p', 'learner-editable-fallback');
+      delete el.dataset.placeholder;
+    });
+
+    const finalHtml = htmlCopy.innerHTML.trim();
+
+    if (!hasContent && submitFiles.length === 0) {
       setSubmitError('작성 내용이나 첨부파일 중 하나는 있어야 합니다.');
       return;
     }
-    
+
     setSubmitting(true);
     setSubmitError(null);
-    
+
     try {
       const res = await api.post('/task-submissions', {
         task_curriculum_id: modalState.curId,
         task_week_number: modalState.week,
-        task_submitted_content: { text: trimmed },
+        task_submitted_content: { text: finalHtml },
       });
       const submissionId = res.data?.task_submission_id;
 
@@ -296,10 +261,10 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
           failures.push(`${file.name}: ${err.response?.data?.detail || '업로드 실패'}`);
         }
       }
-      
+
       await loadSubmissions();
       if (failures.length > 0) alert(`제출은 완료됐지만 일부 첨부 업로드에 실패했습니다:\n${failures.join('\n')}`);
-      
+
       closeSubmitModal();
     } catch (err) {
       setSubmitError(err.response?.data?.detail || '제출에 실패했습니다.');
@@ -387,7 +352,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
           const tasks = step.tasks || step.task;
           const sub = getLatestSubmission(selected.cur_id, step.week);
           const canResubmit = !sub || sub.task_status === 'resubmit_requested';
-          
+
           return (
             <div key={step.week} className="learnerWeekCard">
               <div className="learnerWeekCardHeader" onClick={() => toggleWeek(step.week)}>
@@ -435,27 +400,19 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
                       })}
                     </section>
                   )}
-                  
+
                   {sub && (
                     <section className="learnerWeekSubmission">
                       <h4 className="learnerWeekSectionTitle">📝 내 제출</h4>
                       <p className="learnerWeekSubmissionMeta">제출일: {formatDateTime(sub.task_submitted_at)}</p>
-                      <div className="learnerWeekSubmissionBody" dangerouslySetInnerHTML={{ __html: sanitizeHtml(sub.task_submitted_content?.text) || '(내용 없음)' }} />
-                      
-                      {Array.isArray(sub.task_submitted_content?.attachments) && sub.task_submitted_content.attachments.length > 0 && (
-                        <div className="learnerWeekSubmissionAttachments">
-                          <h5 className="learnerWeekFeedbackTitle">📎 첨부파일</h5>
-                          <ul className="learnerSubmitAttachmentList">
-                            {sub.task_submitted_content.attachments.map((a, i) => (
-                              <li key={i} className="learnerSubmitAttachmentItem">
-                                <button type="button" className="learnerSubmitAttachmentLink" onClick={() => handleAttachmentDownload(sub.task_submission_id, a)}>{a.filename || a.stored_name}</button>
-                                <span className="learnerSubmitAttachmentSize">{formatBytes(a.size)}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                      
+
+                      <button
+                        className="btn-view-submission"
+                        onClick={() => setViewSubmissionModal(sub)}
+                      >
+                        제출한 내용 보기
+                      </button>
+
                       {sub.task_manager_feedback ? (
                         <div className="learnerWeekFeedback">
                           <h5 className="learnerWeekFeedbackTitle">🗨 매니저 피드백</h5>
@@ -470,14 +427,13 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
 
                   <div className="learnerWeekFooter">
                     {step.estimated_hours && <span className="learnerWeekBadge">⏱ 예상 {step.estimated_hours}시간</span>}
-                    {/* 과제 작성 모달을 여는 버튼 */}
                     <button
                       className="learnerWeekSubmitBtn"
                       onClick={() => openSubmitModal(selected.cur_id, step.week)}
                       disabled={!canResubmit}
                       title={canResubmit ? '과제 제출' : '이미 제출 완료 (재제출 요청 시 다시 활성화됩니다)'}
                     >
-                      {sub ? (canResubmit ? '재제출하기' : '제출 완료') : '과제 작성하기'}
+                      {sub ? (canResubmit ? '재제출' : '제출 완료') : '과제제출'}
                     </button>
                   </div>
                 </div>
@@ -487,13 +443,53 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
         })}
       </div>
 
-      {/* Tiptap 에디터가 탑재된 과제 제출 모달 */}
+      {/* 제출된 과제 내용 확인 모달 (읽기 전용) */}
+      {viewSubmissionModal && (
+        <>
+          <div className="emailModalOverlay" onClick={() => setViewSubmissionModal(null)} />
+          <div className="emailModal learnerSubmitModal">
+            <div className="emailModalHeader">
+              <div className="learnerSubmitModalTitle">제출한 과제 내용</div>
+              <button className="emailModalClose" onClick={() => setViewSubmissionModal(null)}>✕</button>
+            </div>
+
+            <div className="emailModalDivider" />
+
+            <div className="emailModalBody learnerSubmitModalBody">
+              {/* ✨ sanitizeHtml 제거하여 표 구조 유지 */}
+              <div
+                className="learnerWeekSubmissionBody learner-rendered-content learner-custom-form"
+                dangerouslySetInnerHTML={{ __html: viewSubmissionModal.task_submitted_content?.text || '(내용 없음)' }}
+              />
+
+              {Array.isArray(viewSubmissionModal.task_submitted_content?.attachments) && viewSubmissionModal.task_submitted_content.attachments.length > 0 && (
+                <div className="learnerSubmitAttachmentSection">
+                  <h5 className="learnerWeekFeedbackTitle">📎 첨부파일</h5>
+                  <ul className="learnerSubmitFileList">
+                    {viewSubmissionModal.task_submitted_content.attachments.map((a, i) => (
+                      <li key={i} className="learnerSubmitFileItem">
+                        <button type="button" className="learnerSubmitAttachmentLink" onClick={() => handleAttachmentDownload(viewSubmissionModal.task_submission_id, a)}>{a.filename || a.stored_name}</button>
+                        <span className="learnerSubmitAttachmentSize">{formatBytes(a.size)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            <div className="emailModalFooter">
+              <button className="btn-modal-cancel" onClick={() => setViewSubmissionModal(null)}>닫기</button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ✨ 과제 제출 모달 (Tiptap 처럼 완벽히 동작하지만 표 구조는 절대 안 부서지는 폼) */}
       {modalState && (
         <>
           <div className="emailModalOverlay" onClick={closeSubmitModal} />
-          {/* Flex 레이아웃을 통해 버튼이 에디터에 밀리지 않도록 구성 */}
-          <div className={`emailModal learnerSubmitModal ${modalState.fullscreen ? 'fullscreen' : ''}`} style={{ display: 'flex', flexDirection: 'column', maxHeight: '90vh', overflow: 'hidden' }}>
-            <div className="emailModalHeader" style={{ flexShrink: 0 }}>
+          <div className={`emailModal learnerSubmitModal ${modalState.fullscreen ? 'fullscreen' : ''}`}>
+            <div className="emailModalHeader">
               <div className="learnerSubmitModalTitle">{modalState.week}주차 과제 작성</div>
               <div className="learnerSubmitModalHeaderActions">
                 <button type="button" className="learnerSubmitFullscreenBtn" onClick={toggleSubmitFullscreen} disabled={submitting}>
@@ -502,26 +498,27 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
                 <button className="emailModalClose" onClick={closeSubmitModal} disabled={submitting}>✕</button>
               </div>
             </div>
-            
-            <div className="emailModalDivider" style={{ flexShrink: 0 }} />
 
-            <div className="emailModalBody learnerSubmitModalBody" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
-              <section className="learnerSubmitEditorSection" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '300px' }}>
+            <div className="emailModalDivider" />
+
+            <div className="emailModalBody learnerSubmitModalBody">
+              <section className="learnerSubmitEditorSection">
                 <h4 className="learnerSubmitSectionTitle">📝 과제 작성</h4>
-                <p className="learnerSubmitSectionHint" style={{ marginBottom: '8px', fontSize: '13px', color: '#666' }}>
-                  사수가 배포한 양식의 표 빈칸을 채워주세요. (표의 구조는 변경할 수 없습니다)
+                <p className="learnerSubmitSectionHint">
+                  마우스로 표의 옅은 회색 빈칸을 클릭하여 자유롭게 내용을 채워주세요. (구조는 변경할 수 없게 잠겨있습니다.)
                 </p>
-                <div className="learnerSubmitEditorWrapper" style={{ flex: 1, border: '1px solid #ccc', borderRadius: '4px', overflow: 'hidden' }}>
-                  {/* ✨ 새로 만든 Tiptap 에디터를 역할(role="learner")과 함께 렌더링 */}
-                  <TiptapEditor 
-                    role="learner" 
-                    value={submitContent} 
-                    onChange={setSubmitContent} 
-                  />
-                </div>
+
+                {/* 📌 ✨ sanitizeHtml 제거! 표가 무너지지 않습니다. */}
+                <div
+                  className="learnerSubmitEditorWrapper learner-custom-form"
+                  contentEditable={false} /* 표 틀 전체는 쓰기 금지! */
+                  ref={submitEditorRef}
+                  dangerouslySetInnerHTML={{ __html: modalState.templateHtml }}
+                ></div>
+
               </section>
 
-              <section className="learnerSubmitAttachmentSection" style={{ flexShrink: 0, marginTop: '16px' }}>
+              <section className="learnerSubmitAttachmentSection">
                 <h4 className="learnerSubmitSectionTitle">📎 첨부파일</h4>
                 <label className="learnerSubmitAttachmentPicker">
                   <input type="file" multiple onChange={handleFileSelect} disabled={submitting} />
@@ -541,9 +538,9 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
               </section>
             </div>
 
-            {submitError && <p className="emailingError learnerSubmitError" style={{ flexShrink: 0 }}>{submitError}</p>}
+            {submitError && <p className="emailingError learnerSubmitError">{submitError}</p>}
 
-            <div className="emailModalFooter" style={{ flexShrink: 0, paddingTop: '16px', borderTop: '1px solid #eee' }}>
+            <div className="emailModalFooter">
               <button className="emailSendBtn" onClick={handleSubmit} disabled={submitting}>
                 {submitting ? '제출 중...' : '최종 제출하기'}
               </button>
