@@ -115,11 +115,32 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
     setActiveTask({ week, assignmentIdx, assignmentData });
     const sub = getLatestSubmission(selectedId, week, assignmentIdx);
 
-    if (!sub || sub.task_status === 'resubmit_requested') {
-      setIsEditing(true);
-    } else {
-      setIsEditing(false);
-    }
+    const initialContent = templateAssignments.length > 0
+      ? templateAssignments.map((a) => {
+        const title = a.title ? `<h3>${escapeHtml(a.title)}</h3>` : '';
+        return `${title}${a.template_content}`;
+      }).join('<hr>')
+      : '';
+
+    const processedContent = initialContent.replace(
+      /(□|■)/g,
+      (match) => {
+        const color = match === '■' ? 'color: #3B82F6;' : 'color: inherit;';
+        return `<span class="learner-checkbox" style="cursor:pointer; user-select:none; font-weight:bold; padding:0 2px; ${color}">${match}</span>`;
+      }
+    );
+
+    setModalState({ curId, week, fullscreen: false, templateHtml: processedContent });
+    setSubmitFiles([]);
+    setSubmitError(null);
+  };
+
+  const toggleSubmitFullscreen = () =>
+    setModalState((prev) => (prev ? { ...prev, fullscreen: !prev.fullscreen } : prev));
+
+  const closeSubmitModal = () => {
+    if (submitting) return;
+    setModalState(null);
     setSubmitFiles([]);
     setSubmitError(null);
   };
@@ -129,6 +150,19 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
       const container = submitEditorRef.current;
       const templateHtml = activeTask.assignmentData.template_content || '';
       let injectedCount = 0;
+
+      // --- ✨ 추가된 로직: 체크박스 클릭 시 토글 및 색상 변경 이벤트 ---
+      const handleCheckboxClick = (e) => {
+        const target = e.target;
+        // 클릭된 요소가 우리가 위에서 만든 span(learner-checkbox)인 경우에만 작동
+        if (target.classList.contains('learner-checkbox')) {
+          const isChecked = target.textContent === '□'; // 현재 빈 칸이면 true
+          target.textContent = isChecked ? '■' : '□';
+          target.style.color = isChecked ? '#3B82F6' : 'inherit'; // 체크 시 파란색으로 변경
+        }
+      };
+
+      container.addEventListener('click', handleCheckboxClick);
 
       container.querySelectorAll('td').forEach((td) => {
         if (td.textContent.trim() === '' && !td.querySelector('img')) {
@@ -242,6 +276,9 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
         };
         container.appendChild(editableDiv);
       }
+      return () => {
+        container.removeEventListener('click', handleCheckboxClick);
+      };
     }
   }, [isEditing, activeTask]);
 

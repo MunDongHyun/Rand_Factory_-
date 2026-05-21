@@ -58,7 +58,7 @@ class CurriculumOutput(BaseModel):
 
 # 3. 유효성 검증 로직 추가
 def validate_curriculum_input(cur_title: str, cur_target_job: str, cur_target_industry: str, cur_learning_goal: str, required_content: str) -> ValidationOutput:
-    ai_model = os.getenv("AI_MODEL", "gpt-4o-mini")
+    ai_model = os.getenv("AI_MODEL", "gpt-5.4-mini")
     llm = ChatOpenAI(model=ai_model, temperature=0.0, api_key=openai_api_key)
     structured_llm = llm.with_structured_output(ValidationOutput)
 
@@ -100,7 +100,7 @@ def retrieve_real_urls_for_context(course_name: str, required_content: str) -> s
         return "=== [웹 참고 자료 검색 실패. 내부 자료를 권장하도록 안내하세요.] ==="
 
 def generate_week_plan(cur_title: str, cur_duration_weeks: int, cur_target_job: str, cur_target_industry: str, cur_learning_goal: str, required_content: str):
-    ai_model = os.getenv("AI_MODEL", "gpt-4o-mini")
+    ai_model = os.getenv("AI_MODEL", "gpt-5.4-mini")
     llm = ChatOpenAI(model=ai_model, temperature=0.2, api_key=openai_api_key)
     
     structured_llm = llm.with_structured_output(CurriculumOutput)
@@ -117,9 +117,7 @@ def generate_week_plan(cur_title: str, cur_duration_weeks: int, cur_target_job: 
     2. 구체성(Actionable): 과제는 "어떻게(How)" 해야 하는지 단계별 가이드(step_by-step)를 명시하세요. 빈 배열([])을 반환해서는 안 됩니다.
     3. 역할 분리: '학습자'가 할 일(assignments)과 '교육담당자'의 피드백 가이드(instructor_guide)를 채워 넣으세요.
     4. 팩트 기반 URL: 'recommended_articles'의 URL은 [실제 웹 참고 자료]에 있는 link만 사용하세요. 적절한 링크가 없다면 URL을 ""(빈 문자열)로 두세요.
-
-    [컨텍스트 데이터]
-    {context}
+    5. 언어 규칙 (매우 중요): 모든 내용(주제, 목표, 과제명, 가이드 등)은 오직 '한국어'로만 작성해야 합니다. 힌디어, 아랍어 등 엉뚱한 외국어가 섞이는 것을 엄격히 금지합니다. (단, 영문 IT/비즈니스 전문 용어는 예외)
     """
 
     user_prompt = """
@@ -152,7 +150,7 @@ def generate_week_plan(cur_title: str, cur_duration_weeks: int, cur_target_job: 
 
 # 과제 템플릿 생성하는 모델
 def generate_assignment_template(theme: str, learning_objective: str, assignment_title: str, step_by_step_guide: list[str], expected_output_format: str) -> str:
-    ai_model = os.getenv("AI_MODEL", "gpt-4o-mini")
+    ai_model = os.getenv("AI_MODEL", "gpt-5.4-mini")
     llm = ChatOpenAI(model=ai_model, temperature=0.3, api_key=openai_api_key)
     
     structured_llm = llm.with_structured_output(TemplateOutput)
@@ -165,11 +163,12 @@ def generate_assignment_template(theme: str, learning_objective: str, assignment
     1. HTML 태그(h3, p, ul, li, table, th, td, div 등)를 적극적으로 사용하여 깔끔하게 구성하세요.
     2. '제출 형태'나 '가이드'에 표 형태의 요약이 필요하다면 반드시 <table> 태그를 사용하여 틀을 만들어주세요. (table 속성에 style="width: 100%; border-collapse: collapse; border: 1px solid #ccc;" 와 th, td에 테두리 스타일을 넣으세요)
     3. 용어 선택(매우 중요): 표의 헤더나 항목을 구분할 때 문맥에 맞지 않는 '채널(Channel)'이라는 단어의 사용을 엄격히 금지합니다.
-    4. (매우 중요) 학습자가 실제로 데이터를 채워넣어야 하는 영역(표 안의 빈칸, 서술형 답변란 등)에는 반드시 다음 형식의 입력 태그를 삽입하세요:
+    4. 언어 규칙 (매우 중요): 모든 출력 텍스트는 오직 '한국어'만 사용해야 합니다. 힌디어, 아랍어 등 엉뚱한 외국어가 무작위로 섞여 나오는 것을 엄격히 금지합니다. (단, 영문 IT/비즈니스 용어 등은 제외)
+    5. (매우 중요) 학습자가 실제로 데이터를 채워넣어야 하는 영역(표 안의 빈칸, 서술형 답변란 등)에는 반드시 다음 형식의 입력 태그를 삽입하세요:
        - 짧은 단답형 텍스트: `<input type="text" class="template-input-text" placeholder="내용을 입력하세요" />`
        - 여러 줄의 서술형 텍스트: `<textarea class="template-input-textarea" placeholder="상세 내용을 입력하세요"></textarea>`
        - 빈 <td></td> 태그만 두지 말고, 반드시 그 안에 입력 태그를 포함하세요.
-    5. 코드 블록(```html ... ```) 같은 마크다운 기호 없이, 웹 에디터에 바로 렌더링 가능한 순수 HTML 문자열만 반환하세요.
+    6. 코드 블록(```html ... ```) 같은 마크다운 기호 없이, 웹 에디터에 바로 렌더링 가능한 순수 HTML 문자열만 반환하세요.
     """
 
     user_prompt = f"""
