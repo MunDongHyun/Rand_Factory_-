@@ -8,7 +8,6 @@ import EmailingView from './EmailingView';
 import ArticleDetailView from './ArticleDetailView';
 import HeroBanner from './HeroBanner';
 
-
 const SECTION_THEMES = ['blue', 'green', 'brown'];
 
 const CATEGORY_EN = {
@@ -30,7 +29,6 @@ function Dashboard({ user, onLogout }) {
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
 
   // --- 검색 및 모달 관련 상태 ---
   const [searchQuery, setSearchQuery] = useState(''); // AI 생성을 위해 보관할 검색어
@@ -120,15 +118,15 @@ function Dashboard({ user, onLogout }) {
     setModalStatus('searching');
     setSelectedCategory(null);
 
-  try {
+    try {
       const res = await api.get('/articles', { params: { keyword: query } });
       const foundArticles = res.data.articles;
 
       if (foundArticles && foundArticles.length > 0) {
         setSections([{
-          category: `🔍 "${query}" 연관 아티클`,
+          category: ` "${query}" 연관 아티클`,
           theme: 'blue',
-          items: foundArticles.slice(0, 5) 
+          items: foundArticles.slice(0, 5)
         }]);
         setIsModalOpen(false);
       } else {
@@ -136,25 +134,14 @@ function Dashboard({ user, onLogout }) {
       }
     } catch (err) {
       console.error(err);
-      setModalStatus('not_found');
-    }
-  };
-
-  const handleGenerate = async () => {
-    setModalStatus('generating');
-    try {
-      const res = await api.post('/articles/generate', { keyword: searchQuery });
-      const newArticle = res.data.article;
-
-      setSections(originalSections);
-      setSearchQuery('');
-
-      setSelectedArticle(newArticle);
-      setView('articleDetail');
-      setIsModalOpen(false);
-    } catch (err) {
-      alert('아티클 생성에 실패했습니다. 다시 시도해주세요.');
-      setIsModalOpen(false);
+      // 👇 추가/수정됨: 백엔드에서 400 에러(부적절한 단어)가 내려오면 처리
+      if (err.response && err.response.status === 400) {
+        setModalStatus('inappropriate'); //
+        setSearchQuery(''); // 검색어 상태 초기화
+        setSections(originalSections); // 원래 아티클 목록으로 복원
+      } else {
+        setModalStatus('not_found');
+      }
     }
   };
 
@@ -228,21 +215,15 @@ function Dashboard({ user, onLogout }) {
     window.history.pushState({ view: 'articles', t: Date.now() + 1 }, '');
 
     const onPop = () => {
-      // EmailingView 상세 화면에서 뒤로가기는 EmailingView가 자체 처리
-      if (emailingDetailRef.current) {
-        return;
-      }
-      // LearnerCurriculumView 상세 화면에서 뒤로가기는 커리큘럼 목록 복귀로 자체 처리
-      if (curriculumDetailRef.current) {
-        return;
-      }
-      // 요약문(✉)에서 외부 진입한 이메일링이면 뒤로가기 시 요약문으로 복귀
+      if (emailingDetailRef.current) return;
+      if (curriculumDetailRef.current) return;
+
       if (viewRef.current === 'emailing' && cameFromArticleDetailRef.current) {
         cameFromArticleDetailRef.current = false;
         setView('articleDetail');
         return;
       }
-      // articleDetail 에서 뒤로가기: 진입 직전 view 가 articles 가 아니면 그 view 로 복귀
+
       if (
         viewRef.current === 'articleDetail' &&
         previousViewRef.current &&
@@ -254,27 +235,27 @@ function Dashboard({ user, onLogout }) {
         setView(prev);
         return;
       }
+
       if (viewRef.current === 'articles') {
         window.history.pushState({ view: 'articles', t: Date.now() }, '');
       } else {
         setView('articles');
         setSelectedArticle(null);
-
         setSections(originalSections);
         setSearchQuery('');
-
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     };
 
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
-  }, [originalSections]); // originalSections가 설정된 후 참조할 수 있도록 의존성 추가
+  }, [originalSections]);
 
   const ArticleListView = () => {
-    if (loading) return <p style={{ padding: '20px' }}>아티클 불러오는 중...</p>;
-    if (error) return <p style={{ padding: '20px', color: '#c33' }}>{error}</p>;
-    if (sections.length === 0) return <p style={{ padding: '20px' }}>표시할 아티클이 없습니다.</p>;
+    // 👇 수정됨: 인라인 스타일 전부 CSS 클래스로 변경
+    if (loading) return <p className="dashboardLoading">아티클 불러오는 중...</p>;
+    if (error) return <p className="dashboardError">{error}</p>;
+    if (sections.length === 0) return <p className="dashboardEmpty">표시할 아티클이 없습니다.</p>;
 
     const displaySections = selectedCategory
       ? sections.filter(s => s.category === selectedCategory)
@@ -290,7 +271,6 @@ function Dashboard({ user, onLogout }) {
             className={`catTabTop ${!selectedCategory ? 'active' : ''}`}
             onClick={() => {
               setSelectedCategory(null);
-              // 👇 추가: 탭 이동 시 검색 결과 초기화 및 원본 데이터 복구
               setSections(originalSections);
               setSearchQuery('');
             }}
@@ -304,7 +284,6 @@ function Dashboard({ user, onLogout }) {
               className={`catTabTop ${selectedCategory === s.category ? 'active' : ''}`}
               onClick={() => {
                 setSelectedCategory(s.category);
-                // 👇 추가: 탭 이동 시 검색 결과 초기화 및 원본 데이터 복구
                 setSections(originalSections);
                 setSearchQuery('');
               }}
@@ -320,7 +299,6 @@ function Dashboard({ user, onLogout }) {
               <div className="catWatermark">{CATEGORY_EN[section.category] || 'ARTICLE'}</div>
               <div className="catEllipse" />
             </div>
-
 
             <div className="articleGrid">
               {section.items.map((item, index) => (
@@ -373,9 +351,9 @@ function Dashboard({ user, onLogout }) {
         onSearch={handleSearch}
         onReset={resetDashboard}
         isModalOpen={isModalOpen || isSubModalOpen}
+      />
 
-        />
-        {isModalOpen && <isModalOpenModal onClose={() => setIsModalOpen(false)} />}
+      {isModalOpen && <isModalOpenModal onClose={() => setIsModalOpen(false)} />}
 
       {user?.user_role === 'm' && user?.user_invite_code && (
         <div className="managerInviteNotice">
@@ -393,7 +371,6 @@ function Dashboard({ user, onLogout }) {
 
       {view === 'articles' && <HeroBanner onCreateCurriculum={() => setView('curriculum')} onOpenArticle={openArticleDetail} />}
 
-
       <main className="dashMain">
         {view === 'articles' && <ArticleListView />}
         {view === 'articleDetail' && (
@@ -407,7 +384,7 @@ function Dashboard({ user, onLogout }) {
         {view === 'curriculum' && (
           user?.user_role === 'j'
             ? <LearnerCurriculumView curriculumDetailRef={curriculumDetailRef} />
-            : <CurriculumView onOpenArticle={openArticleDetail} onModalToggle={setIsSubModalOpen}/>
+            : <CurriculumView onOpenArticle={openArticleDetail} onModalToggle={setIsSubModalOpen} />
         )}
 
         {view === 'emailing' && (
@@ -420,51 +397,47 @@ function Dashboard({ user, onLogout }) {
         )}
       </main>
 
-
       {isModalOpen && (
-        <div className="modalOverlay" style={modalOverlayStyle}>
-          <div className="modalContent" style={modalContentStyle}>
+        <div className="modalOverlay">
+          <div className="modalContent">
             {modalStatus === 'searching' && (
-              <div style={{ textAlign: 'center' }}>
+              <div className="modalSearchWrapper">
                 <h3>🔍 아티클을 찾고 있습니다...</h3>
-                <p style={{ color: '#666', marginTop: '10px' }}>잠시만 기다려주세요.</p>
+                <p className="modalSearchDesc">잠시만 기다려주세요.</p>
               </div>
             )}
 
             {modalStatus === 'not_found' && (
-              <div style={{ textAlign: 'center', padding: '20px' }}>
-                <h3 style={{ color: '#d9534f', marginBottom: '15px' }}>검색 결과 없음</h3>
+              <div className="modalNotFoundWrapper">
+                <h3 className="modalNotFoundTitle">검색 결과 없음</h3>
 
-                <p style={{ color: '#555', fontSize: '1.1rem', lineHeight: '1.6' }}>
-                  <strong style={{ color: '#000' }}>"{searchQuery}"</strong>와(과) 연관된 전문 아티클이 존재하지 않습니다.<br />
+                <p className="modalNotFoundDesc">
+                  <strong className="modalNotFoundKeyword">"{searchQuery}"</strong>와(과) 연관된 전문 아티클이 존재하지 않습니다.<br />
                   다른 키워드나 문장으로 검색해 보시겠어요?
                 </p>
 
-                <div style={{ marginTop: '30px' }}>
+                <div className="modalNotFoundBtnWrapper">
                   <button
                     onClick={() => setIsModalOpen(false)}
-                    style={{
-                      padding: '10px 40px',
-                      background: '#333',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '5px',
-                      cursor: 'pointer',
-                      fontWeight: 'bold'
-                    }}
+                    className="modalNotFoundBtn"
                   >
                     확인
                   </button>
                 </div>
               </div>
             )}
-
-            {modalStatus === 'generating' && (
-              <div style={{ textAlign: 'center' }}>
-                <h3>✨ AI가 아티클 요약문을 생성 중입니다...</h3>
-                <p style={{ color: '#666', marginTop: '15px', lineHeight: '1.5' }}>
-                  문서를 분석하고 인사이트를 추출하는데<br />약 1~2분 정도 소요될 수 있습니다.
+            {modalStatus === 'inappropriate' && (
+              <div className="modalNotFoundWrapper">
+                <h3 className="modalNotFoundTitle" style={{ color: '#e53e3e' }}>⚠️ 검색 오류</h3>
+                <p className="modalNotFoundDesc">
+                  적절하지 못한 단어로 검색을 하셨습니다.<br />
+                  검색어를 다시 입력해주세요.
                 </p>
+                <div className="modalNotFoundBtnWrapper">
+                  <button onClick={() => setIsModalOpen(false)} className="modalNotFoundBtn">
+                    확인
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -473,14 +446,5 @@ function Dashboard({ user, onLogout }) {
     </div>
   );
 }
-
-const modalOverlayStyle = {
-  position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-  backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
-};
-const modalContentStyle = {
-  background: '#fff', padding: '40px', borderRadius: '12px', maxWidth: '450px', width: '90%',
-  boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
-};
 
 export default Dashboard;
