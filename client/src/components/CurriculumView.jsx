@@ -3,7 +3,9 @@ import { createPortal } from 'react-dom';
 import api from '../lib/api';
 import { sanitizeHtml } from '../lib/sanitize';
 import { downloadAttachment, formatBytes } from '../lib/attachments';
-import curri_nulll from '../public/download_img.png';
+import curri_nulll from '../public/curri_null.png';
+import download_img from '../public/download_img.png';
+import delete_img from '../public/delete_img.png';
 import '../styles/Curriculum.css';
 
 import rodingRafaGif from '../public/roding_rafa.gif';
@@ -55,23 +57,19 @@ const TiptapMenuBar = ({ editor }) => {
       <button type="button" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={editor.isActive('heading', { level: 2 }) ? 'is-active' : ''}>H2</button>
       <button type="button" onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} className={editor.isActive('heading', { level: 3 }) ? 'is-active' : ''}>H3</button>
       <span className="confirmDivider" style={{ margin: '0 4px', height: '16px', display: 'inline-block', verticalAlign: 'middle' }}></span>
-
       <button type="button" onClick={() => editor.chain().focus().toggleBold().run()} className={editor.isActive('bold') ? 'is-active' : ''}><b>B</b></button>
       <button type="button" onClick={() => editor.chain().focus().toggleUnderline().run()} className={editor.isActive('underline') ? 'is-active' : ''}><u>U</u></button>
       <input type="color" onInput={event => editor.chain().focus().setColor(event.target.value).run()} value={editor.getAttributes('textStyle').color || '#000000'} title="글자 색상" style={{ width: '24px', height: '24px', padding: 0, cursor: 'pointer' }} />
       <button type="button" onClick={() => editor.chain().focus().toggleHighlight().run()} className={editor.isActive('highlight') ? 'is-active' : ''}>형광펜</button>
       <span className="confirmDivider" style={{ margin: '0 4px', height: '16px', display: 'inline-block', verticalAlign: 'middle' }}></span>
-
       <button type="button" onClick={() => editor.chain().focus().setTextAlign('left').run()} className={editor.isActive({ textAlign: 'left' }) ? 'is-active' : ''}>왼쪽</button>
       <button type="button" onClick={() => editor.chain().focus().setTextAlign('center').run()} className={editor.isActive({ textAlign: 'center' }) ? 'is-active' : ''}>가운데</button>
       <span className="confirmDivider" style={{ margin: '0 4px', height: '16px', display: 'inline-block', verticalAlign: 'middle' }}></span>
-
       <button type="button" onClick={() => editor.chain().focus().toggleBulletList().run()} className={editor.isActive('bulletList') ? 'is-active' : ''}>리스트</button>
       <button type="button" onClick={() => editor.chain().focus().toggleOrderedList().run()} className={editor.isActive('orderedList') ? 'is-active' : ''}>숫자 리스트</button>
       <button type="button" onClick={setLink} className={editor.isActive('link') ? 'is-active' : ''}>[링크]</button>
       <button type="button" onClick={addImage}>[이미지]</button>
       <span className="confirmDivider" style={{ margin: '0 4px', height: '16px', display: 'inline-block', verticalAlign: 'middle' }}></span>
-
       <div style={{ display: 'flex', gap: '2px', background: '#ffebee', padding: '2px 4px', borderRadius: '4px' }}>
         <button type="button" onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>표 삽입</button>
         <button type="button" onClick={() => editor.chain().focus().addColumnBefore().run()}>+열 앞</button>
@@ -143,7 +141,8 @@ const buildGeneratePayload = (form) => ({
 });
 
 function CurriculumView({ onOpenArticle, onModalToggle }) {
-  const [downloadModalOpen, setDownloadModalOpen] = useState(false);
+  const [manageModalOpen, setManageModalOpen] = useState(false);
+  const [manageStep, setManageStep] = useState('select');
   const [modalOpen, setModalOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [curriculums, setCurriculums] = useState([]);
@@ -173,13 +172,13 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
   const [feedbackSavingId, setFeedbackSavingId] = useState(null);
   const [expandedSubmissionId, setExpandedSubmissionId] = useState(null);
 
-  const [viewMode, setViewMode] = useState('curriculum'); 
+  const [viewMode, setViewMode] = useState('curriculum');
   const [selectedLearnerId, setSelectedLearnerId] = useState(null);
   const [selectedWeek, setSelectedWeek] = useState(null);
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
 
   const [templateModal, setTemplateModal] = useState({ open: false, week: null, assignmentIdx: null, title: '', content: '', fullscreen: false, generating: false });
-  
+
   const [templateMessageIndex, setTemplateMessageIndex] = useState(0);
   const TEMPLATE_MESSAGES = [
     "과제 양식을 새롭게 구상 중입니다...",
@@ -224,6 +223,19 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
   useEffect(() => {
     api.get('/users/learners').then((res) => setLearners(Array.isArray(res.data) ? res.data : [])).catch(() => setLearners([]));
   }, []);
+
+  useEffect(() => {
+    const anyModalOpen = manageModalOpen || modalOpen || confirmOpen || assignModalOpen || templateModal.open;
+    if (anyModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [manageModalOpen, modalOpen, confirmOpen, assignModalOpen, templateModal.open]);
+
 
   useEffect(() => {
     if (!selectedId) { setSubmissions([]); return; }
@@ -284,10 +296,20 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
     } catch (error) { alert('DOCX 다운로드 중 오류가 발생했습니다.'); }
   };
 
+  const handleDeleteCurriculum = async () => {
+    if (!selectedCurriculum) return;
+    try {
+      await api.delete(`/curricula/${selectedCurriculum.cur_id}`);
+      setManageModalOpen(false);
+      await loadCurriculums();
+    } catch (err) {
+      alert(err.response?.data?.detail || '삭제에 실패했습니다.');
+    }
+  };
 
   const closeModal = () => {
     if (generating || saving) return;
-    setModalOpen(false); setConfirmOpen(false); setPreview(null); setFormError(null); setPreviewExpandedWeek(null); setCreateAssignedIds([]); 
+    setModalOpen(false); setConfirmOpen(false); setPreview(null); setFormError(null); setPreviewExpandedWeek(null); setCreateAssignedIds([]);
   };
 
   const handleChange = (event) => {
@@ -300,20 +322,19 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
     const payload = buildGeneratePayload(form);
     if (!payload.cur_title) { setFormError('과정명을 입력해 주세요.'); return; }
     if (!payload.cur_duration_weeks || payload.cur_duration_weeks < 1) { setFormError('기간은 1주 이상으로 입력해 주세요.'); return; }
-    
+
     setGenerating(true);
     setCurrentMessageIndex(0);
     const timer = setInterval(() => {
       setCurrentMessageIndex(prev => {
-        if (prev < 3) return prev + 1; 
+        if (prev < 3) return prev + 1;
         clearInterval(timer);
         return prev;
       });
-    }, 4000); 
+    }, 4000);
 
     try {
       const res = await api.post('/curricula/generate', payload);
-      
       clearInterval(timer);
       setCurrentMessageIndex(4);
       setTimeout(() => {
@@ -321,8 +342,7 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
         setPreview(res.data);
         if (res.data?.cur_week_plan?.length > 0) setPreviewExpandedWeek(res.data.cur_week_plan[0].week);
         setConfirmOpen(true);
-      }, 2000); 
-
+      }, 2000);
     } catch (err) {
       clearInterval(timer);
       setGenerating(false);
@@ -367,7 +387,6 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
     const weekPlan = normalizeWeekPlan(selectedCurriculum.cur_week_plan).map((step) => ({ ...step }));
     const targetWeek = weekPlan.find((s) => s.week === templateModal.week);
     if (!targetWeek || !Array.isArray(targetWeek.assignments)) { alert('대상 과제를 찾을 수 없습니다.'); return; }
-
     targetWeek.assignments = targetWeek.assignments.map((a, i) =>
       i === templateModal.assignmentIdx ? { ...a, template_content: templateModal.content } : a
     );
@@ -391,7 +410,6 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
     const assignment = targetWeek.assignments[templateModal.assignmentIdx];
 
     setTemplateModal(prev => ({ ...prev, generating: true }));
-    
     setTemplateMessageIndex(0);
     const timer = setInterval(() => {
       setTemplateMessageIndex(prev => {
@@ -399,7 +417,7 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
         clearInterval(timer);
         return prev;
       });
-    }, 3500); 
+    }, 3500);
 
     try {
       const res = await api.post('/curricula/generate-template', {
@@ -409,13 +427,11 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
         step_by_step_guide: assignment.step_by_step_guide || [],
         expected_output_format: assignment.expected_output_format || assignment.submission || '지정되지 않음'
       });
-      
       clearInterval(timer);
       setTemplateMessageIndex(4);
       setTimeout(() => {
         setTemplateModal(prev => ({ ...prev, content: res.data.template_content, generating: false }));
       }, 1500);
-      
     } catch (err) {
       clearInterval(timer);
       alert('AI 템플릿 재생성에 실패했습니다.');
@@ -565,7 +581,6 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
           </div>
 
           <div className="curriculumLayout">
-
             <aside className="curriculumSidebar">
               <p className="curriculumSidebarTitle">생성한 커리큘럼</p>
               <div className="curriculumSidebarDivider" />
@@ -576,7 +591,20 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
                     className={`curriculumSidebarItem ${selectedId === c.cur_id ? 'active' : ''}`}
                     onClick={() => { setSelectedId(c.cur_id); setDetailExpandedWeek(null); setViewMode('curriculum'); }}
                   >
-                    {c.cur_title}
+                    <span className='curriculumSidebarItemTitle'>{c.cur_title}</span>
+                    <button
+                      type="button"
+                      className="sidebarMenuBtn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedId(c.cur_id);
+                        setManageStep('select');
+                        setManageModalOpen(true);
+                      }}
+                    >
+                      ⋮
+                    </button>
+
                   </li>
                 ))}
               </ul>
@@ -584,7 +612,6 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
             </aside>
 
             <div className="curriculumLeft">
-
               {viewMode === 'curriculum' && (
                 <>
                   <div className="extracted-detail-header">
@@ -593,10 +620,8 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
                         <h3 className="curriculumDetailTitle">{selectedCurriculum.cur_title}</h3>
                       </div>
                       <p className="curriculumDetailDesc">{selectedCurriculum.cur_learning_goal || ''}</p>
-                      <img src={curri_nulll} alt="다운로드" className="downloadIcon" onClick={() => setDownloadModalOpen(true)} />
                     </div>
                   </div>
-
                   <div className="curriculumSteps">
                     {normalizeWeekPlan(selectedCurriculum.cur_week_plan).map((step) => (
                       <div
@@ -655,7 +680,6 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
             </div>
 
             <div className="curriculumRight">
-
               {viewMode === 'curriculum' && (() => {
                 const weekData = normalizeWeekPlan(selectedCurriculum.cur_week_plan).find(s => s.week === selectedWeek);
                 if (!weekData) return (
@@ -811,157 +835,209 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
                 );
               })()}
             </div>
-
           </div>
         </div>
-      )}
+      )
+      }
 
       <LoadingModal generating={generating} currentMessageIndex={currentMessageIndex} />
 
-      {modalOpen && createPortal(
-        <>
-          <div className="chatModalOverlay" style={{ zIndex: 99998 }} onClick={closeModal} />
-          <div className="chatModalContainer" style={{ zIndex: 99999 }}>
-            <aside className="chatSidebar">
-              <p className="chatSidebarTitle">생성한 커리큘럼</p>
-              <div className="chatSidebarDivider" />
-              <ul className="chatSidebarList">
-                {curriculums.length === 0 && <li>아직 없음</li>}
-                {curriculums.map((c) => <li key={c.cur_id}>{c.cur_title}</li>)}
-              </ul>
-            </aside>
-            <div className="chatMain">
-              <button className="chatModalClose" onClick={closeModal} disabled={generating || saving}>×</button>
-              <p className="chatMainTitle">AI로 커리큘럼 초안을 생성하세요</p>
-              <form className="curriculumGenerateForm" onSubmit={handleGenerate}>
-                <label className="curriculumField"><span>과정명</span><input name="cur_title" value={form.cur_title} onChange={handleChange} placeholder="예: 마케팅 신입 4주 온보딩" /></label>
-                <div className="curriculumFieldGrid">
-                  <label className="curriculumField"><span>대상 직무</span><input name="cur_target_job" value={form.cur_target_job} onChange={handleChange} placeholder="예: 마케터" /></label>
-                  <label className="curriculumField"><span>산업</span><input name="cur_target_industry" value={form.cur_target_industry} onChange={handleChange} placeholder="예: IT" /></label>
-                </div>
-                <label className="curriculumField"><span>기간</span><input name="cur_duration_weeks" type="number" min="1" max="52" value={form.cur_duration_weeks} onChange={handleChange} /></label>
-                <label className="curriculumField"><span>학습 목표</span><textarea name="cur_learning_goal" value={form.cur_learning_goal} onChange={handleChange} rows="3" placeholder="예: 디지털 마케팅 기초 역량 확보" /></label>
-                <label className="curriculumField"><span>필수 포함 내용</span><textarea name="required_content" value={form.required_content} onChange={handleChange} rows="3" placeholder="예: GA4 분석, SEO 기본, 콘텐츠 마케팅 전략" /></label>
-                {formError && <p className="curriculumFormError">{formError}</p>}
-                <button className="curriculumGenerateBtn" type="submit" disabled={generating}>{generating ? 'AI 생성 중...' : 'AI 커리큘럼 생성'}</button>
-              </form>
-            </div>
-          </div>
-        </>,
-        document.body
-      )}
-
-      {assignModalOpen && selectedCurriculum && createPortal(
-        <>
-          <div className="confirmOverlay" style={{ zIndex: 99998 }} onClick={() => !assignSaving && setAssignModalOpen(false)} />
-          <div className="confirmModal assignModal" style={{ zIndex: 99999 }}>
-            <div className="confirmHeader"><div className="confirmHeaderRight"><p className="confirmHeaderLabel">{selectedCurriculum.cur_title}</p><h3 className="confirmTitle">학습자 배정 변경</h3><div className="confirmDivider" /></div></div>
-            <div className="assignSection">
-              {learners.length === 0 ? <p className="assignEmpty">같은 회사의 등록된 학습자가 없습니다.</p> : (
-                <div className="assignCheckList">
-                  {learners.map((l) => {
-                    const checked = assignSelected.includes(l.user_id);
-                    return (<label key={l.user_id} className={`assignCheckItem ${checked ? 'checked' : ''}`}><input type="checkbox" checked={checked} onChange={(e) => setAssignSelected((prev) => e.target.checked ? [...prev, l.user_id] : prev.filter((id) => id !== l.user_id))} /><span className="assignName">{l.user_name}</span><span className="assignEmail">{l.user_email}</span></label>);
-                  })}
-                </div>
-              )}
-            </div>
-            <div className="confirmBtns"><button className="confirmBtnBack" onClick={() => setAssignModalOpen(false)} disabled={assignSaving}>취소</button><button className="confirmBtnCreate" onClick={handleAssignSave} disabled={assignSaving}>{assignSaving ? '저장 중...' : '저장'}</button></div>
-          </div>
-        </>,
-        document.body
-      )}
-
-      {confirmOpen && preview && createPortal(
-        <>
-          <div className="confirmOverlay" style={{ zIndex: 99998 }} onClick={() => !saving && setConfirmOpen(false)} />
-          <div className="confirmModal" style={{ zIndex: 99999 }}>
-            <div className="confirmHeader"><div className="confirmHeaderRight"><p className="confirmHeaderLabel">{preview.cur_target_job || '직무 미지정'} | {preview.cur_duration_weeks}주차</p><h3 className="confirmTitle">이 커리큘럼을 저장할까요?</h3><div className="confirmDivider" /></div></div>
-            <div className="confirmGoalBox"><p className="confirmGoalLabel">교육 목표 :</p><p className="confirmGoalText">{preview.cur_learning_goal || '교육 목표가 입력되지 않았습니다.'}</p></div>
-            <p className="confirmProgramName">{preview.cur_title}</p>
-            <div className="confirmStepList">
-              {previewWeeks.map((step) => renderAccordionItem(step, previewExpandedWeek, (week) => setPreviewExpandedWeek(prev => prev === week ? null : week)))}
-            </div>
-            <div className="assignSection">
-              <p className="assignSectionTitle">학습자 배정 (선택)</p><p className="assignSectionHint">선택한 학습자들이 자신의 화면에서 이 커리큘럼을 볼 수 있습니다. 나중에 변경 가능합니다.</p>
-              {learners.length === 0 ? <p className="assignEmpty">같은 회사의 등록된 학습자가 없습니다.</p> : (
-                <div className="assignCheckList">
-                  {learners.map((l) => {
-                    const checked = createAssignedIds.includes(l.user_id);
-                    return (<label key={l.user_id} className={`assignCheckItem ${checked ? 'checked' : ''}`}><input type="checkbox" checked={checked} onChange={(e) => setCreateAssignedIds((prev) => e.target.checked ? [...prev, l.user_id] : prev.filter((id) => id !== l.user_id))} /><span className="assignName">{l.user_name}</span><span className="assignEmail">{l.user_email}</span></label>);
-                  })}
-                </div>
-              )}
-            </div>
-            {formError && <p className="curriculumFormError">{formError}</p>}
-            <div className="confirmBtns"><button className="confirmBtnBack" onClick={() => setConfirmOpen(false)} disabled={saving}>돌아가기</button><button className="confirmBtnCreate" onClick={handleSave} disabled={saving}>{saving ? '저장 중...' : '생성'}</button></div>
-          </div>
-        </>,
-        document.body
-      )}
-
-      {templateModal.open && createPortal(
-        <>
-          <div className="confirmOverlay" style={{ zIndex: 99998 }} onClick={() => setTemplateModal({ ...templateModal, open: false })} />
-
-          <div className={`confirmModal templateModal ${templateModal.fullscreen ? 'fullscreen' : ''}`} style={{ zIndex: 99999, display: 'flex', flexDirection: 'column', height: '90vh', overflow: 'hidden' }}>
-
-            <div className="modalTopBar" style={{ flexShrink: 0 }}>
-              <h3 className="sectionTitle">과제 양식(템플릿) 배포</h3>
-              <div className="modalHeaderActions">
-                <button type="button" className="template-action-btn admin ai-regenerate-btn" onClick={handleRegenerateTemplate} disabled={templateModal.generating}>
-                  {templateModal.generating ? 'AI 작성 중...' : 'AI 템플릿 재작성'}
-                </button>
-                <button type="button" className="fullscreenBtn" onClick={() => setTemplateModal(prev => ({ ...prev, fullscreen: !prev.fullscreen }))}>
-                  {templateModal.fullscreen ? '축소' : '전체보기'}
-                </button>
+      {/* 모달: 커리큘럼 생성 */}
+      {
+        modalOpen && createPortal(
+          <>
+            <div className="chatModalOverlay" style={{ zIndex: 99998 }} onClick={closeModal} />
+            <div className="chatModalContainer" style={{ zIndex: 99999 }}>
+              <div className="chatMain">
+                <button className="chatModalClose" onClick={closeModal} disabled={generating || saving}>×</button>
+                <p className="chatMainTitle">AI로 커리큘럼 초안을 생성하세요</p>
+                <form className="curriculumGenerateForm" onSubmit={handleGenerate}>
+                  <label className="curriculumField"><span>과정명</span><input name="cur_title" value={form.cur_title} onChange={handleChange} placeholder="예: 마케팅 신입 4주 온보딩" /></label>
+                  <div className="curriculumFieldGrid">
+                    <label className="curriculumField"><span>대상 직무</span><input name="cur_target_job" value={form.cur_target_job} onChange={handleChange} placeholder="예: 마케터" /></label>
+                    <label className="curriculumField"><span>산업</span><input name="cur_target_industry" value={form.cur_target_industry} onChange={handleChange} placeholder="예: IT" /></label>
+                  </div>
+                  <label className="curriculumField"><span>기간</span><input name="cur_duration_weeks" type="number" min="1" max="52" value={form.cur_duration_weeks} onChange={handleChange} /></label>
+                  <label className="curriculumField"><span>학습 목표</span><textarea name="cur_learning_goal" value={form.cur_learning_goal} onChange={handleChange} rows="3" placeholder="예: 디지털 마케팅 기초 역량 확보" /></label>
+                  <label className="curriculumField"><span>필수 포함 내용</span><textarea name="required_content" value={form.required_content} onChange={handleChange} rows="3" placeholder="예: GA4 분석, SEO 기본, 콘텐츠 마케팅 전략" /></label>
+                  {formError && <p className="curriculumFormError">{formError}</p>}
+                  <button className="curriculumGenerateBtn" type="submit" disabled={generating}>{generating ? 'AI 생성 중...' : 'AI 커리큘럼 생성'}</button>
+                </form>
               </div>
             </div>
+          </>,
+          document.body
+        )
+      }
 
-            <p className="assignSectionHint" style={{ whiteSpace: 'pre-wrap', flexShrink: 0 }}>
-              {`학습자에게 전달될 '${templateModal.title}'의 작성 양식 가이드를 작성해주세요.\n표나 양식을 지정해주면 학습자가 쉽게 채워넣을 수 있습니다.`}
-            </p>
-
-            <div className="templateEditorWrapper" style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', border: '1px solid #ccc', borderRadius: '4px', overflow: 'hidden', minHeight: 0 }}>
-              
-              {templateModal.generating && (
-                <div className="template-loading-overlay">
-                  <img src={rodingRafaGif} alt="AI 로딩" className="template-loading-gif" />
-                  <p className="template-loading-text">{TEMPLATE_MESSAGES[templateMessageIndex]}</p>
-                  <div className="template-loading-bar">
-                    <div className="template-loading-bar-fill" style={{ width: `${((templateMessageIndex + 1) / TEMPLATE_MESSAGES.length) * 100}%` }} />
+      {/* 모달: 학습자 배정 변경 */}
+      {
+        assignModalOpen && selectedCurriculum && createPortal(
+          <>
+            <div className="confirmOverlay" style={{ zIndex: 99998 }} onClick={() => !assignSaving && setAssignModalOpen(false)} />
+            <div className="confirmModal assignModal" style={{ zIndex: 99999 }}>
+              <div className="confirmHeader"><div className="confirmHeaderRight"><p className="confirmHeaderLabel">{selectedCurriculum.cur_title}</p><h3 className="confirmTitle">학습자 배정 변경</h3><div className="confirmDivider" /></div></div>
+              <div className="assignSection">
+                {learners.length === 0 ? <p className="assignEmpty">같은 회사의 등록된 학습자가 없습니다.</p> : (
+                  <div className="assignCheckList">
+                    {learners.map((l) => {
+                      const checked = assignSelected.includes(l.user_id);
+                      return (<label key={l.user_id} className={`assignCheckItem ${checked ? 'checked' : ''}`}><input type="checkbox" checked={checked} onChange={(e) => setAssignSelected((prev) => e.target.checked ? [...prev, l.user_id] : prev.filter((id) => id !== l.user_id))} /><span className="assignName">{l.user_name}</span><span className="assignEmail">{l.user_email}</span></label>);
+                    })}
                   </div>
+                )}
+              </div>
+              <div className="confirmBtns"><button className="confirmBtnBack" onClick={() => setAssignModalOpen(false)} disabled={assignSaving}>취소</button><button className="confirmBtnCreate" onClick={handleAssignSave} disabled={assignSaving}>{assignSaving ? '저장 중...' : '저장'}</button></div>
+            </div>
+          </>,
+          document.body
+        )
+      }
+
+      {/* 모달: 커리큘럼 저장 확인 */}
+      {
+        confirmOpen && preview && createPortal(
+          <>
+            <div className="confirmOverlay" style={{ zIndex: 99998 }} onClick={() => !saving && setConfirmOpen(false)} />
+            <div className="confirmModal" style={{ zIndex: 99999 }}>
+              <div className="confirmHeader"><div className="confirmHeaderRight"><p className="confirmHeaderLabel">{preview.cur_target_job || '직무 미지정'} | {preview.cur_duration_weeks}주차</p><h3 className="confirmTitle">이 커리큘럼을 저장할까요?</h3><div className="confirmDivider" /></div></div>
+              <div className="confirmGoalBox"><p className="confirmGoalLabel">교육 목표 :</p><p className="confirmGoalText">{preview.cur_learning_goal || '교육 목표가 입력되지 않았습니다.'}</p></div>
+              <p className="confirmProgramName">{preview.cur_title}</p>
+              <div className="confirmStepList">
+                {previewWeeks.map((step) => renderAccordionItem(step, previewExpandedWeek, (week) => setPreviewExpandedWeek(prev => prev === week ? null : week)))}
+              </div>
+              <div className="assignSection">
+                <p className="assignSectionTitle">학습자 배정 (선택)</p><p className="assignSectionHint">선택한 학습자들이 자신의 화면에서 이 커리큘럼을 볼 수 있습니다. 나중에 변경 가능합니다.</p>
+                {learners.length === 0 ? <p className="assignEmpty">같은 회사의 등록된 학습자가 없습니다.</p> : (
+                  <div className="assignCheckList">
+                    {learners.map((l) => {
+                      const checked = createAssignedIds.includes(l.user_id);
+                      return (<label key={l.user_id} className={`assignCheckItem ${checked ? 'checked' : ''}`}><input type="checkbox" checked={checked} onChange={(e) => setCreateAssignedIds((prev) => e.target.checked ? [...prev, l.user_id] : prev.filter((id) => id !== l.user_id))} /><span className="assignName">{l.user_name}</span><span className="assignEmail">{l.user_email}</span></label>);
+                    })}
+                  </div>
+                )}
+              </div>
+              {formError && <p className="curriculumFormError">{formError}</p>}
+              <div className="confirmBtns"><button className="confirmBtnBack" onClick={() => setConfirmOpen(false)} disabled={saving}>돌아가기</button><button className="confirmBtnCreate" onClick={handleSave} disabled={saving}>{saving ? '저장 중...' : '생성'}</button></div>
+            </div>
+          </>,
+          document.body
+        )
+      }
+
+      {/* 모달: 템플릿 양식 배포 (관리자용) */}
+      {
+        templateModal.open && createPortal(
+          <>
+            <div className="confirmOverlay" style={{ zIndex: 99998 }} onClick={() => setTemplateModal({ ...templateModal, open: false })} />
+            <div className={`confirmModal templateModal ${templateModal.fullscreen ? 'fullscreen' : ''}`} style={{ zIndex: 99999, display: 'flex', flexDirection: 'column', height: '90vh', overflow: 'hidden' }}>
+              <div className="modalTopBar" style={{ flexShrink: 0 }}>
+                <h3 className="sectionTitle">과제 양식(템플릿) 배포</h3>
+                <div className="modalHeaderActions">
+                  <button type="button" className="template-action-btn admin ai-regenerate-btn" onClick={handleRegenerateTemplate} disabled={templateModal.generating}>
+                    {templateModal.generating ? 'AI 작성 중...' : 'AI 템플릿 재작성'}
+                  </button>
+                  <button type="button" className="fullscreenBtn" onClick={() => setTemplateModal(prev => ({ ...prev, fullscreen: !prev.fullscreen }))}>
+                    {templateModal.fullscreen ? '축소' : '전체보기'}
+                  </button>
                 </div>
+              </div>
+              <p className="assignSectionHint" style={{ whiteSpace: 'pre-wrap', flexShrink: 0 }}>
+                {`학습자에게 전달될 '${templateModal.title}'의 작성 양식 가이드를 작성해주세요.\n표나 양식을 지정해주면 학습자가 쉽게 채워넣을 수 있습니다.`}
+              </p>
+              <div className="templateEditorWrapper" style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', border: '1px solid #ccc', borderRadius: '4px', overflow: 'hidden', minHeight: 0 }}>
+                {templateModal.generating && (
+                  <div className="template-loading-overlay">
+                    <img src={rodingRafaGif} alt="AI 로딩" className="template-loading-gif" />
+                    <p className="template-loading-text">{TEMPLATE_MESSAGES[templateMessageIndex]}</p>
+                    <div className="template-loading-bar">
+                      <div className="template-loading-bar-fill" style={{ width: `${((templateMessageIndex + 1) / TEMPLATE_MESSAGES.length) * 100}%` }} />
+                    </div>
+                  </div>
+                )}
+                <TiptapEditor
+                  value={templateModal.content}
+                  onChange={(newContent) => setTemplateModal({ ...templateModal, content: newContent })}
+                />
+              </div>
+              <div className="confirmBtns" style={{ flexShrink: 0, paddingTop: '16px' }}>
+                <button type="button" className="confirmBtnBack" onClick={() => setTemplateModal({ ...templateModal, open: false })} disabled={templateModal.saving}>취소</button>
+                <button type="button" className="confirmBtnCreate" onClick={saveTemplate} disabled={templateModal.saving}>{templateModal.saving ? '배포 중...' : '템플릿 배포'}</button>
+              </div>
+            </div>
+          </>,
+          document.body
+        )
+      }
+
+      {/* 모달: 관리 (다운로드 / 삭제) */}
+      {
+        manageModalOpen && createPortal(
+          <>
+            <div className="downloadOverlay" style={{ zIndex: 99998 }} onClick={() => setManageModalOpen(false)} />
+            <div className="downloadModal" style={{ zIndex: 99999 }}>
+
+              {manageStep === 'select' && (
+                <>
+                  <p className="downloadModalTitle">관리</p>
+                  <button type="button" className="downloadModalBtn"
+                    onClick={() => setManageStep('download')}>
+                    <img src={download_img} className="downloadIcon" />
+                    <span>다운로드</span>
+                  </button>
+                  <button type="button" className="downloadModalBtn"
+                    onClick={() => setManageStep('delete')}>
+                    <img src={delete_img} className="deleteIcon" />
+                    삭제
+                  </button>
+                </>
               )}
 
-              <TiptapEditor
-                value={templateModal.content}
-                onChange={(newContent) => setTemplateModal({ ...templateModal, content: newContent })}
-              />
-            </div>
+              {manageStep === 'download' && (
+                <>
+                  <p className="downloadModalTitle">다운로드 형식 선택</p>
+                  <button type="button" className="downloadModalBtn"
+                    onClick={() => { handleDownloadDocx(); setManageModalOpen(false); }}>
+                    DOCX 다운로드
+                  </button>
+                  <button type="button" className="downloadModalBtn"
+                    onClick={() => { handleDownloadPdf(); setManageModalOpen(false); }}>
+                    PDF 다운로드
+                  </button>
+                  <button type="button" className="downloadModalBtn"
+                    onClick={() => { handleDownloadTxt(); setManageModalOpen(false); }}>
+                    TXT 다운로드
+                  </button>
+                  <button type="button" className="downloadModalBtn back"
+                    onClick={() => setManageStep('select')}>
+                    ← 뒤로
+                  </button>
+                </>
+              )}
 
-            <div className="confirmBtns" style={{ flexShrink: 0, paddingTop: '16px' }}>
-              <button type="button" className="confirmBtnBack" onClick={() => setTemplateModal({ ...templateModal, open: false })} disabled={templateModal.saving}>취소</button>
-              <button type="button" className="confirmBtnCreate" onClick={saveTemplate} disabled={templateModal.saving}>{templateModal.saving ? '배포 중...' : '템플릿 배포'}</button>
-            </div>
-          </div>
-        </>,
-        document.body
-      )}
+              {manageStep === 'delete' && (
+                <>
+                  <p className="downloadModalTitle">커리큘럼 삭제</p>
+                  <p style={{ fontSize: '14px', color: '#555', marginBottom: '12px' }}>
+                    "{selectedCurriculum?.cur_title}"을(를) 삭제할까요?
+                  </p>
+                  <button type="button" className="downloadModalBtn delete"
+                    onClick={handleDeleteCurriculum}>
+                    삭제 확인
+                  </button>
+                  <button type="button" className="downloadModalBtn back"
+                    onClick={() => setManageStep('select')}>
+                    ← 뒤로
+                  </button>
+                </>
+              )}
 
-      {downloadModalOpen && createPortal(
-        <>
-          <div className="downloadOverlay" style={{ zIndex: 99998 }} onClick={() => setDownloadModalOpen(false)} />
-          <div className="downloadModal" style={{ zIndex: 99999 }}>
-            <p className="downloadModalTitle">다운로드 형식 선택</p>
-            <button type="button" className="downloadModalBtn" onClick={() => { handleDownloadDocx(); setDownloadModalOpen(false); }}>DOCX 다운로드</button>
-            <button type="button" className="downloadModalBtn" onClick={() => { handleDownloadPdf(); setDownloadModalOpen(false); }}>PDF 다운로드</button>
-            <button type="button" className="downloadModalBtn" onClick={() => { handleDownloadTxt(); setDownloadModalOpen(false); }}>TXT 다운로드</button>
-          </div>
-        </>,
-        document.body
-      )}
-    </div>
+            </div>
+          </>,
+          document.body
+        )
+      }
+    </div >
   );
 }
 

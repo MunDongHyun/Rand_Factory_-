@@ -1,3 +1,6 @@
+from datetime import datetime, timezone, timedelta
+
+
 from fastapi import APIRouter, Depends, HTTPException, status, Body
 from fastapi.responses import StreamingResponse
 from sqlalchemy import func
@@ -548,3 +551,23 @@ def generate_template_api(
         return TemplateGenerateResponse(template_content=html_content)
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"템플릿 AI 생성 실패: {exc}")
+    
+
+
+@router.delete("/{cur_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_curriculum(
+    cur_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    curriculum = (
+        db.query(Curriculum)
+        .filter(Curriculum.cur_id == cur_id, Curriculum.cur_deleted_at.is_(None))
+        .first()
+    )
+    if not curriculum or (current_user.user_role != "a" and curriculum.cur_creator_id != current_user.user_id):
+        raise HTTPException(status_code=404, detail="커리큘럼을 찾을 수 없습니다")
+
+    KST = timezone(timedelta(hours=9))
+    curriculum.cur_deleted_at = datetime.now(KST)
+    db.commit()
