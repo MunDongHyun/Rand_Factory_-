@@ -944,7 +944,7 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
                   </button>
                 </div>
               </div>
-              <p className="assignSectionHint" style={{ whiteSpace: 'pre-wrap', flexShrink: 0 }}>
+              <p className="assignSectionHint">
                 {`학습자에게 전달될 '${templateModal.title}'의 작성 양식 가이드를 작성해주세요.\n표나 양식을 지정해주면 학습자가 쉽게 채워넣을 수 있습니다.`}
               </p>
               <div className="templateEditorWrapper" style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', border: '1px solid #ccc', borderRadius: '4px', overflow: 'hidden', minHeight: 0 }}>
