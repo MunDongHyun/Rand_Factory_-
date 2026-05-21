@@ -4,6 +4,7 @@ import api from '../lib/api';
 import { sanitizeHtml } from '../lib/sanitize';
 import { downloadAttachment, formatBytes } from '../lib/attachments';
 import '../styles/LearnerCurriculum.css';
+import '../styles/Curriculum.css';
 
 // --- 유틸 함수 ---
 const normalizeWeekPlan = (plan) => {
@@ -40,22 +41,26 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
 
   const [submissions, setSubmissions] = useState([]);
 
+
   const [selectedId, setSelectedId] = useState(null);
+
   const [expandedWeek, setExpandedWeek] = useState(null);
 
-  const [modalState, setModalState] = useState(null);
-  const [viewSubmissionModal, setViewSubmissionModal] = useState(null);
+  const [activeTask, setActiveTask] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   const [submitFiles, setSubmitFiles] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+
+  const [editorFullscreen, setEditorFullscreen] = useState(false);
 
   const submitEditorRef = useRef(null);
 
   const loadSubmissions = () => {
     return api.get('/task-submissions/my')
       .then((res) => setSubmissions(Array.isArray(res.data) ? res.data : []))
-      .catch(() => {});
+      .catch(() => { });
   };
 
   useEffect(() => {
@@ -68,30 +73,23 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
     ]).finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-    if (curriculumDetailRef) curriculumDetailRef.current = Boolean(selectedId);
-    const onPop = () => {
-      if (!selectedId) return;
-      setSelectedId(null);
-      setExpandedWeek(null);
-      if (curriculumDetailRef) curriculumDetailRef.current = false;
-    };
-    window.addEventListener('popstate', onPop);
-    return () => {
-      window.removeEventListener('popstate', onPop);
-      if (curriculumDetailRef) curriculumDetailRef.current = false;
-    };
-  }, [selectedId, curriculumDetailRef]);
 
-  const selected = curriculums.find((c) => c.cur_id === selectedId) || null;
+  const selectedCurriculum = curriculums.find((c) => c.cur_id === selectedId) || null;
 
-  const getLatestSubmission = (curId, week) => {
-    const matches = submissions.filter((s) => s.task_curriculum_id === curId && s.task_week_number === week);
+
+
+  const getLatestSubmission = (curId, week, assignmentIdx) => {
+    const matches = submissions.filter((s) => {
+      if (s.task_curriculum_id !== curId || s.task_week_number !== week) return false;
+      if (s.task_submitted_content && typeof s.task_submitted_content === 'object') {
+        return Number(s.task_submitted_content.assignmentIdx) === Number(assignmentIdx);
+      }
+      return false;
+    });
     if (matches.length === 0) return null;
     return matches.reduce((latest, s) => {
-      if (!latest) return s;
       return new Date(s.task_submitted_at || 0) > new Date(latest.task_submitted_at || 0) ? s : latest;
-    }, null);
+    });
   };
 
   const submittedWeekCount = (curId) => {
@@ -99,69 +97,60 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
     return set.size;
   };
 
-  const handleSelect = (curId) => {
-    setSelectedId(curId);
-    setExpandedWeek(null);
-    window.history.pushState({ view: 'curriculum', curriculumDetail: true, curId }, '');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
 
-  const handleBack = () => {
-    setSelectedId(null);
-    setExpandedWeek(null);
-  };
+  const weekPlan = normalizeWeekPlan(selectedCurriculum?.cur_week_plan);
+  const totalWeeks = weekPlan.length || selectedCurriculum?.cur_duration_weeks || 0;
+  const submittedCount = submittedWeekCount(selectedId);
+  const overallProgress = totalWeeks > 0 ? Math.round((submittedCount / totalWeeks) * 100) : 0;
+  const currentSubmission = activeTask
+    ? getLatestSubmission(selectedId, activeTask.week, activeTask.assignmentIdx)
+    : null;
+
 
   const toggleWeek = (week) => {
     setExpandedWeek((prev) => (prev === week ? null : week));
   };
 
-  const openSubmitModal = (curId, week) => {
-    const targetCurriculum = curriculums.find((c) => c.cur_id === curId) || selected;
-    const targetWeek = normalizeWeekPlan(targetCurriculum?.cur_week_plan).find((s) => s.week === week);
-    const templateAssignments = (targetWeek && Array.isArray(targetWeek.assignments))
-      ? targetWeek.assignments.filter((a) => a && a.template_content)
-      : [];
+  const handleAssignmentClick = (week, assignmentIdx, assignmentData) => {
+    setActiveTask({ week, assignmentIdx, assignmentData });
+    const sub = getLatestSubmission(selectedId, week, assignmentIdx);
 
-    const initialContent = templateAssignments.length > 0
-      ? templateAssignments.map((a) => {
-          const title = a.title ? `<h3>${escapeHtml(a.title)}</h3>` : '';
-          return `${title}${a.template_content}`;
-        }).join('<hr>')
-      : '';
-
-    setModalState({ curId, week, fullscreen: false, templateHtml: initialContent });
-    setSubmitFiles([]);
-    setSubmitError(null);
-  };
-
-  const toggleSubmitFullscreen = () =>
-    setModalState((prev) => (prev ? { ...prev, fullscreen: !prev.fullscreen } : prev));
-
-  const closeSubmitModal = () => {
-    if (submitting) return;
-    setModalState(null);
+    if (!sub || sub.task_status === 'resubmit_requested') {
+      setIsEditing(true);
+    } else {
+      setIsEditing(false);
+    }
     setSubmitFiles([]);
     setSubmitError(null);
   };
 
   useEffect(() => {
-    if (modalState && submitEditorRef.current) {
+    if (isEditing && activeTask && submitEditorRef.current) {
       const container = submitEditorRef.current;
+      const templateHtml = activeTask.assignmentData.template_content || '';
       let injectedCount = 0;
 
       container.querySelectorAll('td').forEach((td) => {
         if (td.textContent.trim() === '' && !td.querySelector('img')) {
           td.setAttribute('contenteditable', 'true');
-          td.classList.add('learner-editable-cell');
-          td.innerHTML = '<span class="placeholder-text">클릭하여 내용 입력</span>';
+          td.style.border = "2px dashed #90cdf4";
+          td.style.padding = "10px";
+          td.style.cursor = "text";
+          td.style.minHeight = "40px";
+          td.style.transition = "all 0.2s";
+
+          td.innerHTML = '<span class="placeholder-text" style="color:#a0aec0;font-style:italic;pointer-events:none;">클릭하여 내용 입력</span>';
           td.onfocus = function () {
             if (this.querySelector('.placeholder-text')) this.innerHTML = '';
-            this.classList.add('focused-cell');
+            this.style.border = "2px solid #3182ce";
+            this.style.outline = "none";
+            this.style.backgroundColor = "#ebf8ff";
           };
           td.onblur = function () {
             if (this.textContent.trim() === '')
-              this.innerHTML = '<span class="placeholder-text">클릭하여 내용 입력</span>';
-            this.classList.remove('focused-cell');
+              this.innerHTML = '<span class="placeholder-text" style="color:#a0aec0;font-style:italic;pointer-events:none;">클릭하여 내용 입력</span>';
+            this.style.border = "2px dashed #90cdf4";
+            this.style.backgroundColor = "transparent";
           };
           injectedCount++;
         }
@@ -171,80 +160,104 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
         if (p.closest('td')) return;
         if (p.textContent.trim() === '' && !p.querySelector('img')) {
           p.setAttribute('contenteditable', 'true');
-          p.classList.add('learner-editable-p');
-          p.innerHTML = '<span class="placeholder-text">답변을 입력해주세요...</span>';
+          p.style.border = "1px dashed #cbd5e0";
+          p.style.padding = "12px";
+          p.style.borderRadius = "6px";
+          p.style.cursor = "text";
+          p.style.minHeight = "40px";
+          p.style.transition = "all 0.2s";
+
+          p.innerHTML = '<span class="placeholder-text" style="color:#a0aec0;font-style:italic;pointer-events:none;">답변을 입력해주세요...</span>';
           p.onfocus = function () {
             if (this.querySelector('.placeholder-text')) this.innerHTML = '';
-            this.classList.add('focused-p');
+            this.style.border = "1px solid #3182ce";
+            this.style.outline = "none";
+            this.style.backgroundColor = "#f7fafc";
           };
           p.onblur = function () {
             if (this.textContent.trim() === '')
-              this.innerHTML = '<span class="placeholder-text">답변을 입력해주세요...</span>';
-            this.classList.remove('focused-p');
+              this.innerHTML = '<span class="placeholder-text" style="color:#a0aec0;font-style:italic;pointer-events:none;">답변을 입력해주세요...</span>';
+            this.style.border = "1px dashed #cbd5e0";
+            this.style.backgroundColor = "transparent";
           };
           injectedCount++;
         }
       });
 
-      if (injectedCount === 0 && modalState.templateHtml !== '') {
+      if (injectedCount === 0 && templateHtml !== '') {
         const fallbackDiv = document.createElement('div');
-        fallbackDiv.className = 'learner-fallback-container';
-        fallbackDiv.innerHTML = '<h4>📝 답변 작성</h4>';
+        fallbackDiv.style.marginTop = "24px";
+        fallbackDiv.style.paddingTop = "24px";
+        fallbackDiv.style.borderTop = "2px dashed #e2e8f0";
+        fallbackDiv.innerHTML = '<h4 style="margin-top:0; font-size:16px; color:#2d3748; font-weight:700;">📝 답변 작성</h4>';
+
         const editableDiv = document.createElement('div');
         editableDiv.setAttribute('contenteditable', 'true');
-        editableDiv.className = 'learner-editable-fallback';
-        editableDiv.innerHTML = '<span class="placeholder-text">여기에 내용을 자유롭게 작성해주세요...</span>';
+        editableDiv.style.border = "2px dashed #90cdf4";
+        editableDiv.style.padding = "16px";
+        editableDiv.style.borderRadius = "8px";
+        editableDiv.style.minHeight = "150px";
+        editableDiv.style.cursor = "text";
+        editableDiv.style.transition = "all 0.2s";
+
+        editableDiv.innerHTML = '<span class="placeholder-text" style="color:#a0aec0;font-style:italic;pointer-events:none;">여기에 내용을 자유롭게 작성해주세요...</span>';
         editableDiv.onfocus = function () {
           if (this.querySelector('.placeholder-text')) this.innerHTML = '';
-          this.classList.add('focused-fallback');
+          this.style.border = "2px solid #3182ce";
+          this.style.outline = "none";
+          this.style.backgroundColor = "#ebf8ff";
         };
         editableDiv.onblur = function () {
           if (this.textContent.trim() === '')
-            this.innerHTML = '<span class="placeholder-text">여기에 내용을 자유롭게 작성해주세요...</span>';
-          this.classList.remove('focused-fallback');
+            this.innerHTML = '<span class="placeholder-text" style="color:#a0aec0;font-style:italic;pointer-events:none;">여기에 내용을 자유롭게 작성해주세요...</span>';
+          this.style.border = "2px dashed #90cdf4";
+          this.style.backgroundColor = "transparent";
         };
         fallbackDiv.appendChild(editableDiv);
         container.appendChild(fallbackDiv);
       }
 
-      if (modalState.templateHtml === '') {
+      if (templateHtml === '') {
         const editableDiv = document.createElement('div');
         editableDiv.setAttribute('contenteditable', 'true');
-        editableDiv.className = 'learner-editable-fallback empty-template';
-        editableDiv.innerHTML =
-          '<span class="placeholder-text">등록된 템플릿이 없습니다. 자유롭게 과제 내용을 작성해주세요.</span>';
+        editableDiv.style.border = "2px dashed #90cdf4";
+        editableDiv.style.padding = "20px";
+        editableDiv.style.borderRadius = "8px";
+        editableDiv.style.minHeight = "200px";
+        editableDiv.style.cursor = "text";
+        editableDiv.style.transition = "all 0.2s";
+
+        editableDiv.innerHTML = '<span class="placeholder-text" style="color:#a0aec0;font-style:italic;pointer-events:none;">등록된 템플릿이 없습니다. 자유롭게 과제 내용을 작성해주세요.</span>';
         editableDiv.onfocus = function () {
           if (this.querySelector('.placeholder-text')) this.innerHTML = '';
-          this.classList.add('focused-fallback');
+          this.style.border = "2px solid #3182ce";
+          this.style.outline = "none";
+          this.style.backgroundColor = "#ebf8ff";
         };
         editableDiv.onblur = function () {
           if (this.textContent.trim() === '')
-            this.innerHTML =
-              '<span class="placeholder-text">등록된 템플릿이 없습니다. 자유롭게 과제 내용을 작성해주세요.</span>';
-          this.classList.remove('focused-fallback');
+            this.innerHTML = '<span class="placeholder-text" style="color:#a0aec0;font-style:italic;pointer-events:none;">등록된 템플릿이 없습니다. 자유롭게 과제 내용을 작성해주세요.</span>';
+          this.style.border = "2px dashed #90cdf4";
+          this.style.backgroundColor = "transparent";
         };
         container.appendChild(editableDiv);
       }
     }
-  }, [modalState?.templateHtml]);
+  }, [isEditing, activeTask]);
 
   const handleFileSelect = (e) => {
     setSubmitFiles((prev) => [...prev, ...Array.from(e.target.files || [])]);
     e.target.value = '';
   };
-
   const handleFileRemove = (idx) => setSubmitFiles((prev) => prev.filter((_, i) => i !== idx));
 
   const handleAttachmentDownload = async (submissionId, attachment) => {
-    try {
-      await downloadAttachment(submissionId, attachment);
-    } catch (err) {
-      toast.error(err.response?.data?.detail || '첨부파일 다운로드에 실패했습니다.');
-    }
+    try { await downloadAttachment(submissionId, attachment); }
+    catch (err) { toast.error(err.response?.data?.detail || '첨부파일 다운로드에 실패했습니다.'); }
   };
 
   const handleSubmit = async () => {
-    if (!modalState || !submitEditorRef.current) return;
+    if (!activeTask || !submitEditorRef.current) return;
 
     const htmlCopy = submitEditorRef.current.cloneNode(true);
     let hasContent = false;
@@ -253,10 +266,6 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
       if (el.querySelector('.placeholder-text')) el.innerHTML = '';
       if (el.textContent.trim() !== '') hasContent = true;
       el.removeAttribute('contenteditable');
-      el.classList.remove(
-        'learner-editable-cell', 'learner-editable-p', 'learner-editable-fallback',
-        'focused-cell', 'focused-p', 'focused-fallback'
-      );
       el.removeAttribute('style');
     });
 
@@ -270,9 +279,12 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
 
     try {
       const res = await api.post('/task-submissions', {
-        task_curriculum_id: modalState.curId,
-        task_week_number: modalState.week,
-        task_submitted_content: { text: htmlCopy.innerHTML.trim() },
+        task_curriculum_id: selectedId,
+        task_week_number: activeTask.week,
+        task_submitted_content: {
+          text: htmlCopy.innerHTML.trim(),
+          assignmentIdx: activeTask.assignmentIdx
+        },
       });
       const submissionId = res.data?.task_submission_id;
 
@@ -290,9 +302,10 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
       }
 
       await loadSubmissions();
-      if (failures.length > 0)
-        toast.warn(`제출은 완료됐지만 일부 첨부 업로드에 실패했습니다:\n${failures.join('\n')}`);
-      closeSubmitModal();
+      setIsEditing(false);
+      if (failures.length > 0) toast.warn(`제출은 완료됐지만 일부 첨부 업로드에 실패했습니다:\n${failures.join('\n')}`);
+      else toast.success("성공적으로 제출되었습니다.");
+
     } catch (err) {
       setSubmitError(err.response?.data?.detail || '제출에 실패했습니다.');
     } finally {
@@ -300,453 +313,356 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
     }
   };
 
-  // ── 커리큘럼 목록 뷰 ──
-  if (!selected) {
-    return (
-      <div className="curriculumPageContainer">
-        <h2 className="sectionTitle">내 학습 커리큘럼</h2>
-        {loading && <p className="learnerInlineHint">커리큘럼을 불러오는 중...</p>}
-        {error && <p className="learnerInlineError">{error}</p>}
-        {!loading && !error && curriculums.length === 0 && (
-          <p className="learnerInlineMuted">
-            배정된 커리큘럼이 아직 없습니다. 매니저가 커리큘럼을 배정해주면 여기에 표시됩니다.
-          </p>
-        )}
-        <div className="learnerCurriculumGrid">
-          {curriculums.map((c) => {
-            const weeks = normalizeWeekPlan(c.cur_week_plan).length || c.cur_duration_weeks || 0;
-            const submitted = submittedWeekCount(c.cur_id);
-            const progress = weeks > 0 ? Math.round((submitted / weeks) * 100) : 0;
-            return (
-              <div key={c.cur_id} className="learnerCurriculumCard" onClick={() => handleSelect(c.cur_id)}>
-                <div className="learnerCurriculumCardHeader">
-                  <p className="learnerCurriculumCardSubtitle">
-                    {c.cur_target_industry || '-'} · {c.cur_target_job || '-'}
-                  </p>
-                  <h3 className="learnerCurriculumCardTitle">{c.cur_title}</h3>
-                </div>
-                <div className="learnerCurriculumCardMeta">
-                  <span className="learnerCurriculumCardBadge">{weeks}주 과정</span>
-                  {c.cur_status === 'active' && (
-                    <span className="learnerCurriculumCardBadge active">진행 중</span>
-                  )}
-                  <span className="learnerCurriculumCardBadge">제출 {submitted}/{weeks}</span>
-                </div>
-                <div className="learnerProgressBar">
-                  <div className="learnerProgressFill" style={{ width: `${progress}%` }} />
-                </div>
-                {c.cur_learning_goal && (
-                  <p className="learnerCurriculumCardGoal">🎯 {c.cur_learning_goal}</p>
-                )}
-                <div className="learnerCurriculumCardFooter">주차별 학습 보기 →</div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
 
-  // ── 커리큘럼 상세 뷰 ──
-  const weekPlan = normalizeWeekPlan(selected.cur_week_plan);
-  const totalWeeks = weekPlan.length || selected.cur_duration_weeks;
-  const submittedCount = submittedWeekCount(selected.cur_id);
-  const progress = totalWeeks > 0 ? Math.round((submittedCount / totalWeeks) * 100) : 0;
+
+
+
 
   return (
     <div className="curriculumPageContainer">
-      <button className="authorBackBtn" onClick={handleBack}>← 커리큘럼 목록으로</button>
+      <h2 className="sectionTitle">내 학습 커리큘럼</h2>
+      {loading && <p className="curriculumStatusMsg">커리큘럼을 불러오는 중...</p>}
+      {error && <p className="curriculumStatusMsg error">{error}</p>}
+      {!loading && !error && curriculums.length === 0 && (
+        <p className="curriculumStatusMsg">배정된 커리큘럼이 없습니다.</p>
+      )}
 
-      <div className="learnerDetailHeader">
-        <p className="learnerDetailSubtitle">
-          {selected.cur_target_industry || '-'} · {selected.cur_target_job || '-'} · {totalWeeks}주 과정
-        </p>
-        <h2 className="learnerDetailTitle">{selected.cur_title}</h2>
-        {selected.cur_learning_goal && (
-          <p className="learnerDetailGoal">🎯 {selected.cur_learning_goal}</p>
-        )}
-        <div className="learnerDetailProgress">
-          <div className="learnerProgressBar">
-            <div className="learnerProgressFill" style={{ width: `${progress}%` }} />
-          </div>
-          <span className="learnerDetailProgressText">
-            {submittedCount} / {totalWeeks} 주차 제출 ({progress}%)
-          </span>
-        </div>
-      </div>
+      {!loading && !error && curriculums.length > 0 && (
+        <div className="curriculumWrapper">
+          <div className="curriculumLayout">
 
-      {/* 주차 스텝퍼 */}
-      <div className="learnerWeekStepper">
-        {weekPlan.map((step) => {
-          const sub = getLatestSubmission(selected.cur_id, step.week);
-          const isActive = expandedWeek === step.week;
-          const stateClass = sub ? `submitted ${sub.task_status || ''}` : '';
-          return (
-            <button
-              key={step.week}
-              className={`learnerWeekStep ${isActive ? 'active' : ''} ${stateClass}`}
-              onClick={() => toggleWeek(step.week)}
-            >
-              <span className="learnerWeekStepNum">{step.week}</span>
-              <span className="learnerWeekStepLabel">주차</span>
-              {sub && <span className="learnerWeekStepDot" />}
-            </button>
-          );
-        })}
-      </div>
+            {/* 사이드바 */}
+            <aside className="curriculumSidebar">
+              <p className="curriculumSidebarTitle">내 커리큘럼</p>
+              <div className="curriculumSidebarDivider" />
+              <ul className="curriculumSidebarList">
+                {curriculums.map((c) => (
+                  <li
+                    key={c.cur_id}
+                    className={`curriculumSidebarItem ${selectedId === c.cur_id ? 'active' : ''}`}
+                    onClick={() => {
+                      setSelectedId(c.cur_id);
+                      setExpandedWeek(null);
+                      setActiveTask(null);
+                    }}
+                  >
+                    {c.cur_title}
+                  </li>
+                ))}
+              </ul>
+            </aside>
 
-      {/* 주차 카드 목록 */}
-      <div className="learnerWeekList">
-        {weekPlan.length === 0 && (
-          <p className="learnerInlineMuted">주차별 계획이 아직 없습니다.</p>
-        )}
-        {weekPlan.map((step) => {
-          const isExpanded = expandedWeek === step.week;
-          const tasks = step.tasks || step.task;
-          const sub = getLatestSubmission(selected.cur_id, step.week);
-          const canResubmit = !sub || sub.task_status === 'resubmit_requested';
-
-          return (
-            <div key={step.week} className="learnerWeekCard">
-              <div className="learnerWeekCardHeader" onClick={() => toggleWeek(step.week)}>
-                <div>
-                  <span className="learnerWeekCardWeek">{step.week}주차</span>
-                  <span className="learnerWeekCardTheme">{step.theme || '주제 미지정'}</span>
-                </div>
-                <div className="learnerWeekCardHeaderRight">
-                  {sub && (
-                    <span className={`learnerWeekStatusBadge ${sub.task_status || ''}`}>
-                      {STATUS_LABEL[sub.task_status] || '제출됨'}
-                    </span>
-                  )}
-                  <span className="learnerWeekCardToggle">{isExpanded ? '▲' : '▼'}</span>
-                </div>
-              </div>
-
-              {isExpanded && (
-                <div className="learnerWeekCardBody">
-                  {step.learning_objective && (
-                    <section className="learnerWeekSection">
-                      <h4 className="learnerWeekSectionTitle">🎯 이번 주차 학습 목표</h4>
-                      <p className="learnerWeekSectionText">{step.learning_objective}</p>
-                    </section>
-                  )}
-                  {tasks && (
-                    <section className="learnerWeekSection">
-                      <h4 className="learnerWeekSectionTitle">📚 실습 과제</h4>
-                      {Array.isArray(tasks) ? (
-                        <ul className="learnerWeekSectionList">
-                          {tasks.map((t, i) => <li key={i}>{t}</li>)}
-                        </ul>
-                      ) : (
-                        <p className="learnerWeekSectionText">{tasks}</p>
-                      )}
-                    </section>
-                  )}
-                  {Array.isArray(step.recommended_articles) && step.recommended_articles.length > 0 && (
-                    <section className="learnerWeekSection">
-                      <h4 className="learnerWeekSectionTitle">📖 추천 자료</h4>
-                      {step.recommended_articles.map((article, i) => {
-                        const targetUrl =
-                          article.url?.trim()
-                            ? article.url
-                            : `https://www.google.com/search?q=${encodeURIComponent(article.title || '')}`;
-                        return (
-                          <div key={i} className="learnerWeekArticle">
-                            <a
-                              href={targetUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="learnerWeekArticleLink"
-                            >
-                              {article.url?.trim() ? '🔗 ' : '🔍 '}{article.title}
-                            </a>
-                            {article.why_relevant && (
-                              <p className="learnerWeekArticleReason">- {article.why_relevant}</p>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </section>
-                  )}
-
-                  {sub && (
-                    <section className="learnerWeekSubmission">
-                      <h4 className="learnerWeekSectionTitle">📝 내 제출</h4>
-                      <p className="learnerWeekSubmissionMeta">
-                        제출일: {formatDateTime(sub.task_submitted_at)}
-                      </p>
-                      <button className="btn-view-submission" onClick={() => setViewSubmissionModal(sub)}>
-                        제출한 내용 보기
-                      </button>
-                      {sub.task_manager_feedback ? (
-                        <div className="learnerWeekFeedback">
-                          <h5 className="learnerWeekFeedbackTitle">🗨 매니저 피드백</h5>
-                          <p className="learnerWeekFeedbackMeta">{formatDateTime(sub.task_feedback_at)}</p>
-                          <p className="learnerWeekFeedbackBody">{sub.task_manager_feedback}</p>
-                        </div>
-                      ) : (
-                        <p className="learnerWeekFeedbackPending">아직 매니저 피드백이 없습니다.</p>
-                      )}
-                    </section>
-                  )}
-
-                  <div className="learnerWeekFooter">
-                    {step.estimated_hours && (
-                      <span className="learnerWeekBadge">⏱ 예상 {step.estimated_hours}시간</span>
-                    )}
-                    <button
-                      className="learnerWeekSubmitBtn"
-                      onClick={() => openSubmitModal(selected.cur_id, step.week)}
-                      disabled={!canResubmit}
-                      title={
-                        canResubmit
-                          ? '과제 제출'
-                          : '이미 제출 완료 (재제출 요청 시 다시 활성화됩니다)'
-                      }
-                    >
-                      {sub ? (canResubmit ? '재제출' : '제출 완료') : '과제제출'}
-                    </button>
+            <div className="curriculumLeft">
+              {selectedCurriculum ? (
+                <>
+                  <div className="extracted-detail-header">
+                    <div className="curriculumTitleGroup">
+                      <h3 className="curriculumDetailTitle">{selectedCurriculum.cur_title}</h3>
+                      <p className="curriculumDetailDesc">{selectedCurriculum.cur_learning_goal || ''}</p>
+                    </div>
                   </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ flex: 1, height: '6px', background: 'var(--line)', borderRadius: '3px', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', background: 'var(--primary)', width: `${overallProgress}%`, transition: 'width 0.3s ease' }} />
+                    </div>
+                    <span style={{ fontSize: '13px', color: 'var(--ink)', fontWeight: '600', whiteSpace: 'nowrap' }}>
+                      {overallProgress}%
+                    </span>
+                  </div>
+
+                  <div className="curriculumSteps">
+                    {weekPlan.map((step) => {
+                      const isExpanded = expandedWeek === step.week;
+                      return (
+                        <div
+                          key={step.week}
+                          className={`extracted-accordion-item ${isExpanded ? 'active' : ''}`}
+                        >
+                          <div className={`extracted-accordion-header ${isExpanded ? 'expanded' : ''}`}
+                            onClick={() => toggleWeek(step.week)}>
+                            <span className="extracted-week-label">{step.week}주차</span>
+                            <span className="extracted-theme-label">{step.theme || '주제 미지정'}</span>
+                            <span className="extracted-toggle-label">{isExpanded ? '▲' : '▼'}</span>
+                          </div>
+
+
+                          {isExpanded && (
+                            <div className="extracted-accordion-body" onClick={(e) => e.stopPropagation()}>
+
+                              {step.learning_objective && (
+                                <div className="extracted-section-margin">
+                                  <h4 className="extracted-objective-title">학습 목표</h4>
+                                  <p className="extracted-objective-text">{step.learning_objective}</p>
+                                </div>
+                              )}
+
+                              {Array.isArray(step.recommended_articles) && step.recommended_articles.length > 0 && (
+                                <div className="extracted-section-margin">
+                                  <h4 className="extracted-task-title">추천 자료</h4>
+                                  {step.recommended_articles.map((article, i) => {
+                                    const hasValidUrl = article.url && article.url.trim() !== '';
+                                    return (
+                                      <div key={i} className="extracted-ref-item">
+                                        {hasValidUrl
+                                          ? <a href={article.url} target="_blank" rel="noopener noreferrer" className="extracted-ref-link">🔗 {article.title}</a>
+                                          : <span className="extracted-ref-doc">📁 {article.title}</span>}
+                                        {(article.reason_for_reading || article.why_relevant) && (
+                                          <p className="extracted-ref-reason">✓ {article.reason_for_reading || article.why_relevant}</p>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+
+                              {Array.isArray(step.assignments) && step.assignments.length > 0 && (
+                                <div className="extracted-section-margin">
+                                  <h4 className="extracted-task-title">제출 과제</h4>
+                                  {step.assignments.map((a, idx) => {
+                                    const sub = getLatestSubmission(selectedId, step.week, idx);
+                                    const isActive = activeTask?.week === step.week && activeTask?.assignmentIdx === idx;
+                                    return (
+                                      <div
+                                        key={idx}
+                                        className={`extracted-assignment-card ${isActive ? 'active' : ''}`}
+                                        onClick={() => handleAssignmentClick(step.week, idx, a)}
+                                        style={{
+                                          cursor: 'pointer',
+                                          border: isActive ? '1px solid var(--primary)' : '1px solid rgba(58, 74, 92, 0.18)',
+                                          background: isActive ? '#EAF3F8' : 'var(--card)',
+                                        }}
+                                      >
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                          <strong className="extracted-assignment-name">{a.title || `과제 ${idx + 1}`}</strong>
+                                          {sub && (
+                                            <span className={`submissionStatusBadge ${sub.task_status}`}>
+                                              {STATUS_LABEL[sub.task_status] || '제출 완료'}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                <div className="curriculumRightEmpty">
+                  <p>왼쪽에서 커리큘럼을 선택하세요.</p>
                 </div>
               )}
             </div>
-          );
-        })}
-      </div>
 
-      {/* ── 모달 1: 제출한 과제 확인 ── */}
-      {viewSubmissionModal && (
-        <>
-          <div className="confirmOverlay" onClick={() => setViewSubmissionModal(null)} />
-          <div className="submit-modal">
-            {/* 헤더 */}
-            <div style={{
-              flexShrink: 0,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '20px 30px',
-              borderBottom: '1px solid #e2e8f0',
-            }}>
-              <h3 className="sectionTitle" style={{ margin: 0 }}>제출한 과제 내용 확인</h3>
-              <button
-                onClick={() => setViewSubmissionModal(null)}
-                style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '18px', color: '#718096' }}
-              >✕</button>
-            </div>
+            {/* 우측: 과제 상세 */}
+            <div className="curriculumRight">
+              {!activeTask ? (
+                <div className="curriculumRightEmpty">
+                  <p>왼쪽 주차 목록에서 과제를 선택하면 상세 내용이 표시됩니다.</p>
+                </div>
+              ) : (
+                <div className="curriculumRightContent">
 
-            {/* 바디 */}
-            <div style={{ flex: '1 1 0%', overflowY: 'auto', padding: '24px 30px', minHeight: 0 }}>
-              <div
-                className="learner-rendered-content learner-custom-form"
-                style={{ border: 'none', minHeight: 'unset' }}
-                dangerouslySetInnerHTML={{
-                  __html: viewSubmissionModal.task_submitted_content?.text || '(내용 없음)',
-                }}
-              />
-              {Array.isArray(viewSubmissionModal.task_submitted_content?.attachments) &&
-                viewSubmissionModal.task_submitted_content.attachments.length > 0 && (
-                  <div style={{ marginTop: '20px' }}>
-                    <h5 style={{ fontSize: '13px', fontWeight: '700', color: '#4a5568', margin: '0 0 8px 0' }}>
-                      📎 첨부파일
-                    </h5>
-                    <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                      {viewSubmissionModal.task_submitted_content.attachments.map((a, i) => (
-                        <li
-                          key={i}
-                          style={{
-                            display: 'flex', alignItems: 'center',
-                            background: '#f8fafc', border: '1px solid #e2e8f0',
-                            padding: '8px 12px', borderRadius: '6px', marginBottom: '6px',
-                          }}
-                        >
+                  {/* 헤더: 제목 + 전체보기 버튼 */}
+                  <div style={{
+                    marginBottom: '24px',
+                    paddingBottom: '16px',
+                    borderBottom: '1px solid #e2e8f0',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    position: 'sticky',
+                    top: 0,
+                    background: 'var(--card)',
+                    zIndex: 1,
+                  }}>
+                    <div>
+                      <span style={{ fontSize: '13px', color: '#718096', fontWeight: '600' }}>
+                        {activeTask.week}주차 과제
+                      </span>
+                      <h3 className="curriculumDetailTitle" style={{ marginTop: '4px', fontSize: '22px' }}>
+                        {activeTask.assignmentData.title}
+                      </h3>
+                    </div>
+                    {isEditing && (
+                      <button
+                        type="button"
+                        className="fullscreenBtn"
+                        onClick={() => setEditorFullscreen(prev => !prev)}
+                      >
+                        {editorFullscreen ? '축소' : '전체보기'}
+                      </button>
+                    )}
+                  </div>
+                  {/* 작성 모드 */}
+                  {isEditing ? (
+                    <div className={editorFullscreen ? 'editorFullscreenWrap' : ''}>
+
+                      {editorFullscreen && (
+                        <div style={{
+                          marginBottom: '24px',
+                          paddingBottom: '16px',
+                          borderBottom: '1px solid #e2e8f0',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start'
+                        }}>
+                          <div>
+                            <span style={{ fontSize: '13px', color: '#718096', fontWeight: '600' }}>
+                              {activeTask.week}주차 과제 (전체화면 모드)
+                            </span>
+                            <h3 className="curriculumDetailTitle" style={{ marginTop: '4px', fontSize: '22px' }}>
+                              {activeTask.assignmentData.title}
+                            </h3>
+                          </div>
                           <button
                             type="button"
-                            onClick={() => handleAttachmentDownload(viewSubmissionModal.task_submission_id, a)}
-                            style={{ border: 'none', background: 'none', color: '#2b6cb0', cursor: 'pointer', flex: 1, textAlign: 'left', fontWeight: '500' }}
+                            className="fullscreenBtn"
+                            onClick={() => setEditorFullscreen(false)}
                           >
-                            {a.filename || a.stored_name}
+                            축소
                           </button>
-                          <span style={{ fontSize: '11px', color: '#718096' }}>{formatBytes(a.size)}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-            </div>
+                        </div>
+                      )}
 
-            {/* 푸터 */}
-            <div style={{
-              flexShrink: 0, padding: '16px 30px',
-              borderTop: '1px solid #e2e8f0',
-              display: 'flex', justifyContent: 'flex-end',
-            }}>
-              <button type="button" className="confirmBtnBack" onClick={() => setViewSubmissionModal(null)}>
-                닫기
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+                 
+                      {!editorFullscreen && (
+                        <p style={{ fontSize: '13px', color: '#718096', marginBottom: '12px' }}>
+                          마우스로 표의 푸른 점선 빈칸을 클릭하여 내용을 채워주세요.
+                        </p>
+                      )}
+                      {editorFullscreen && (
+                        <p style={{ fontSize: '13px', color: '#718096', marginBottom: '12px' }}>
+                          마우스로 표의 푸른 점선 빈칸을 클릭하여 내용을 채워주세요.
+                        </p>
+                      )}
 
-      {/* ── 모달 2: 과제 제출 작성 ── */}
-      {modalState && (
-        <>
-          <div className="confirmOverlay" onClick={closeSubmitModal} />
-          <div className={`submit-modal ${modalState.fullscreen ? 'fullscreen' : ''}`}>
-            {/* 헤더 */}
-            <div style={{
-              flexShrink: 0,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '20px 30px',
-              borderBottom: '1px solid #e2e8f0',
-            }}>
-              <h3 className="sectionTitle" style={{ margin: 0 }}>
-                {modalState.week}주차 과제 작성 및 제출
-              </h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <button
-                  type="button"
-                  onClick={toggleSubmitFullscreen}
-                  disabled={submitting}
-                  style={{
-                    fontSize: '12px', fontWeight: '600',
-                    color: '#2b6cb0', background: '#ebf8ff',
-                    border: '1px solid #bee3f8', borderRadius: '4px',
-                    padding: '5px 12px', cursor: 'pointer',
-                  }}
-                >
-                  {modalState.fullscreen ? '✕ 축소' : '⛶ 전체보기'}
-                </button>
-                <button
-                  onClick={closeSubmitModal}
-                  disabled={submitting}
-                  style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '18px', color: '#718096' }}
-                >✕</button>
-              </div>
-            </div>
-
-            {/* 힌트 텍스트 */}
-            <p style={{
-              flexShrink: 0,
-              margin: '10px 30px',
-              fontSize: '13px',
-              color: '#718096',
-              whiteSpace: 'pre-wrap',
-            }}>
-              마우스로 표의 푸른 점선 빈칸을 클릭하여 과제 내용을 빠짐없이 채워주세요.
-            </p>
-
-            {/* 바디 (스크롤 영역) */}
-            <div style={{
-              flex: '1 1 0%',
-              overflowY: 'auto',
-              padding: '0 30px 20px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-              minHeight: 0,
-            }}>
-              {/* 에디터 */}
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '260px' }}>
-                <div
-                  className="learner-custom-form"
-                  contentEditable={false}
-                  ref={submitEditorRef}
-                  dangerouslySetInnerHTML={{ __html: modalState.templateHtml }}
-                  style={{
-                    flex: 1,
-                    border: '1px solid #cbd5e0',
-                    borderRadius: '6px',
-                    padding: '24px',
-                    overflowY: 'auto',
-                    background: '#fff',
-                  }}
-                />
-              </div>
-
-              {/* 첨부파일 */}
-              <div style={{ flexShrink: 0 }}>
-                <h4 style={{
-                  fontSize: '11px', fontWeight: '700', color: '#718096',
-                  textTransform: 'uppercase', margin: '0 0 8px 0',
-                }}>
-                  📎 첨부파일 추가
-                </h4>
-                <label style={{ display: 'inline-flex', cursor: 'pointer' }}>
-                  <input type="file" multiple onChange={handleFileSelect} disabled={submitting} style={{ display: 'none' }} />
-                  <span style={{
-                    fontSize: '12px', fontWeight: '600', color: '#2b6cb0',
-                    background: '#ebf8ff', border: '1px dashed #63b3ed',
-                    padding: '6px 14px', borderRadius: '4px',
-                  }}>
-                    + 파일 선택
-                  </span>
-                </label>
-                {submitFiles.length > 0 && (
-                  <ul style={{ listStyle: 'none', padding: 0, margin: '10px 0 0 0' }}>
-                    {submitFiles.map((f, i) => (
-                      <li
-                        key={i}
+                      <div
+                        contentEditable={false}
+                        ref={submitEditorRef}
+                        dangerouslySetInnerHTML={{ __html: activeTask.assignmentData.template_content || '' }}
                         style={{
-                          display: 'flex', alignItems: 'center',
-                          background: '#f8fafc', border: '1px solid #e2e8f0',
-                          padding: '6px 12px', borderRadius: '4px', marginBottom: '4px',
+                          minHeight: '400px',
+                          border: '1px solid #cbd5e0',
+                          borderRadius: '8px',
+                          padding: '24px',
+                          background: '#fff',
+                          color: '#2d3748',
+                          lineHeight: 1.6,
+                          fontSize: '15px',
                         }}
-                      >
-                        <span style={{ flex: 1, fontSize: '13px', color: '#2d3748', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {f.name}
-                        </span>
-                        <span style={{ fontSize: '11px', color: '#718096', marginRight: '10px' }}>
-                          {formatBytes(f.size)}
-                        </span>
+                      />
+
+                      <div style={{ marginTop: '16px', padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e0' }}>
+                        <h4 style={{ fontSize: '12px', fontWeight: '700', color: '#4a5568', margin: '0 0 10px 0' }}>📎 첨부파일 추가</h4>
+                        <label style={{ display: 'inline-flex', cursor: 'pointer' }}>
+                          <input type="file" multiple onChange={handleFileSelect} disabled={submitting} style={{ display: 'none' }} />
+                          <span style={{ fontSize: '13px', fontWeight: '600', color: '#3182ce', background: '#fff', border: '1px solid #3182ce', padding: '6px 14px', borderRadius: '6px' }}>
+                            + 파일 선택
+                          </span>
+                        </label>
+                        {submitFiles.length > 0 && (
+                          <ul style={{ listStyle: 'none', padding: 0, margin: '12px 0 0 0' }}>
+                            {submitFiles.map((f, i) => (
+                              <li key={i} style={{ display: 'flex', alignItems: 'center', background: '#fff', border: '1px solid #e2e8f0', padding: '8px 12px', borderRadius: '6px', marginBottom: '6px' }}>
+                                <span style={{ flex: 1, fontSize: '13px', color: '#2d3748' }}>{f.name}</span>
+                                <span style={{ fontSize: '12px', color: '#a0aec0', marginRight: '12px' }}>{formatBytes(f.size)}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleFileRemove(i)}
+                                  disabled={submitting}
+                                  style={{ border: 'none', background: '#fff5f5', color: '#e53e3e', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+                                >
+                                  삭제
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+
+                      {submitError && (
+                        <p style={{ color: '#e53e3e', background: '#fff5f5', padding: '12px', borderRadius: '6px', fontSize: '13px', marginTop: '12px' }}>
+                          {submitError}
+                        </p>
+                      )}
+
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
                         <button
-                          type="button"
-                          onClick={() => handleFileRemove(i)}
+                          onClick={handleSubmit}
                           disabled={submitting}
-                          style={{
-                            border: 'none', background: '#fed7d7', color: '#c53030',
-                            padding: '3px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px',
-                          }}
+                          style={{ background: 'var(--ink)', border: 'none', color: '#fff', padding: '12px 32px', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '15px', transition: 'background 0.2s' }}
                         >
-                          삭제
+                          {submitting ? '제출 중...' : '최종 과제 제출'}
                         </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
+                      </div>
 
-            {/* 에러 */}
-            {submitError && (
-              <p style={{
-                margin: '0 30px', color: '#e53e3e', background: '#fff5f5',
-                padding: '8px 12px', borderRadius: '4px', fontSize: '13px', flexShrink: 0,
-              }}>
-                {submitError}
-              </p>
-            )}
+                    </div>
+                  ) : (
+                    <div className="managerSubmissionItemBody" style={{ padding: 0, border: 'none', background: 'transparent' }}>
+                      <div className="managerSubmissionContent" style={{ marginBottom: '24px' }}>
+                        <p className="managerSubmissionContentLabel" style={{ fontSize: '15px', fontWeight: '700', marginBottom: '12px' }}>내가 제출한 내용</p>
+                        <div
+                          className="managerSubmissionContentBody"
+                          style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '24px', minHeight: '200px' }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(currentSubmission?.task_submitted_content?.text) || '(내용 없음)' }}
+                        />
+                      </div>
 
-            {/* 푸터 */}
-            <div style={{
-              flexShrink: 0, padding: '16px 30px',
-              borderTop: '1px solid #e2e8f0',
-              display: 'flex', justifyContent: 'flex-end', gap: '10px',
-              background: '#fff',
-            }}>
-              <button type="button" className="confirmBtnBack" onClick={closeSubmitModal} disabled={submitting}>
-                취소
-              </button>
-              <button type="button" className="confirmBtnCreate" onClick={handleSubmit} disabled={submitting}>
-                {submitting ? '제출 중...' : '최종 과제 제출'}
-              </button>
+                      {Array.isArray(currentSubmission?.task_submitted_content?.attachments) && currentSubmission.task_submitted_content.attachments.length > 0 && (
+                        <div className="managerSubmissionAttachments" style={{ marginBottom: '24px' }}>
+                          <p className="managerSubmissionContentLabel" style={{ fontSize: '13px', color: '#718096', marginBottom: '8px' }}>📎 첨부파일</p>
+                          <ul className="managerSubmissionAttachmentList">
+                            {currentSubmission.task_submitted_content.attachments.map((a, i) => (
+                              <li key={i} className="managerSubmissionAttachmentItem" style={{ border: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                                <button type="button" className="managerSubmissionAttachmentLink" onClick={() => handleAttachmentDownload(currentSubmission.task_submission_id, a)} style={{ fontWeight: '600' }}>
+                                  {a.filename || a.stored_name}
+                                </button>
+                                <span className="managerSubmissionAttachmentSize">{formatBytes(a.size)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {currentSubmission?.task_manager_feedback && (
+                        <div className="managerSubmissionExistingFeedback" style={{ background: '#ebf8ff', padding: '20px', borderRadius: '8px', borderLeft: '4px solid #3182ce', marginBottom: '24px' }}>
+                          <p className="managerSubmissionContentLabel" style={{ color: '#2b6cb0', fontWeight: '700', marginBottom: '8px' }}>
+                            매니저 피드백
+                            <span style={{ fontSize: '12px', color: '#718096', fontWeight: '400', marginLeft: '8px' }}>
+                              {formatDateTime(currentSubmission.task_feedback_at)}
+                            </span>
+                          </p>
+                          <div style={{ fontSize: '14px', color: '#2d3748', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                            {currentSubmission.task_manager_feedback}
+                          </div>
+                        </div>
+                      )}
+
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px dashed #e2e8f0', paddingTop: '20px' }}>
+                        <button
+                          onClick={() => setIsEditing(true)}
+                          style={{ background: '#fff', border: '1px solid #cbd5e0', color: '#4a5568', padding: '10px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}
+                        >
+                          과제 수정 / 재제출하기
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+
+                </div>
+              )}
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
