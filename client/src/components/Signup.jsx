@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'react-toastify';
 import api from '../lib/api';
 import '../styles/Signup.css';
 
@@ -139,6 +140,7 @@ const Signup = ({ onBack, onComplete }) => {
 
     try {
       await api.post('/users/signup', payload);
+      toast.success('가입이 완료되었습니다. 로그인해주세요.');
       onComplete();
     } catch (err) {
       setError(err.response?.data?.detail || '가입 처리에 실패했습니다. 다시 시도해주세요.');

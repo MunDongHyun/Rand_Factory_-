@@ -37,7 +37,7 @@ function Dashboard({ user, onLogout }) {
   const [error, setError] = useState(null);
 
   // --- 검색 및 모달 관련 상태 ---
-  const [searchQuery, setSearchQuery] = useState(''); // AI 생성을 위해 보관할 검색어
+  const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubModalOpen, setIsSubModalOpen] = useState(false);
   const [modalStatus, setModalStatus] = useState('searching');
@@ -180,14 +180,13 @@ function Dashboard({ user, onLogout }) {
       }
     } catch (err) {
       console.error(err);
-      // 백엔드에서 400 에러(부적절한 단어)가 내려오면 전용 모달 상태로 분기
+      // 400(부적절한 단어)은 전용 모달, 그 외 네트워크/서버 오류는 error 모달로 분기
       if (err.response && err.response.status === 400) {
         setModalStatus('inappropriate');
         setSearchQuery('');
         setSections(originalSections);
       } else {
-        toast.error('검색 중 오류가 발생했습니다.');
-        setModalStatus('not_found');
+        setModalStatus('error');
       }
     }
   };
@@ -413,20 +412,6 @@ function Dashboard({ user, onLogout }) {
 
       {isModalOpen && <isModalOpenModal onClose={() => setIsModalOpen(false)} />}
 
-      {user?.user_role === 'm' && user?.user_invite_code && (
-        <div className="managerInviteNotice">
-          <span className="managerInviteNotice__label">내 회사 초대 코드</span>
-          <code className="managerInviteNotice__code">{user.user_invite_code}</code>
-          <button
-            type="button"
-            className="managerInviteNotice__copy"
-            onClick={() => navigator.clipboard?.writeText(user.user_invite_code)}
-          >
-            복사
-          </button>
-        </div>
-      )}
-
       {view === 'articles' && (
         <HeroBanner
           showCreateCta={canCreateCurriculum}
@@ -506,6 +491,20 @@ function Dashboard({ user, onLogout }) {
                 <p className="modalNotFoundDesc">
                   적절하지 못한 단어로 검색을 하셨습니다.<br />
                   검색어를 다시 입력해주세요.
+                </p>
+                <div className="modalNotFoundBtnWrapper">
+                  <button onClick={() => setIsModalOpen(false)} className="modalNotFoundBtn">
+                    확인
+                  </button>
+                </div>
+              </div>
+            )}
+            {modalStatus === 'error' && (
+              <div className="modalNotFoundWrapper">
+                <h3 className="modalNotFoundTitle">검색 중 오류가 발생했습니다</h3>
+                <p className="modalNotFoundDesc">
+                  잠시 후 다시 시도해주세요.<br />
+                  문제가 계속되면 새로고침해보세요.
                 </p>
                 <div className="modalNotFoundBtnWrapper">
                   <button onClick={() => setIsModalOpen(false)} className="modalNotFoundBtn">

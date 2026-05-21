@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { toast } from 'react-toastify';
 import '../styles/Dashboard.css';
 import searchIcon from '../public/search_icon.png';
 
@@ -9,9 +10,23 @@ const ROLE_LABELS = {
   a: '관리자',
 };
 
+// 하이픈은 그대로 두고 영숫자만 • 로 마스킹 (예: 9F3K-PXQ7-M2NJ → ••••-••••-••••)
+const maskInviteCode = (code) => (code ? code.replace(/[^-]/g, '•') : '');
+
 function Header({ user, canUseCurriculum = true, currentView, onViewChange, onLogout, onScrollToTop, onScrollToArticle, onSearch, onReset, isModalOpen}) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [inputValue, setInputValue] = useState(''); 
+  const [inputValue, setInputValue] = useState('');
+  const [codeVisible, setCodeVisible] = useState(false);
+
+  const handleCopyInviteCode = async () => {
+    if (!user?.user_invite_code) return;
+    try {
+      await navigator.clipboard.writeText(user.user_invite_code);
+      toast.success('초대 코드를 복사했습니다.');
+    } catch {
+      toast.error('복사에 실패했습니다.');
+    }
+  };
 
   if (isModalOpen) return null;
 
@@ -96,6 +111,34 @@ function Header({ user, canUseCurriculum = true, currentView, onViewChange, onLo
               {ROLE_LABELS[user.user_role] || '회원'}
               {user.user_company ? ` · ${user.user_company}` : ''}
             </div>
+            {user.user_role === 'm' && user.user_invite_code && (
+              <div className="drawerInviteSection">
+                <div className="drawerInviteLabel">내 회사 초대 코드</div>
+                <div className="drawerInviteRow">
+                  <code className="drawerInviteCode">
+                    {codeVisible ? user.user_invite_code : maskInviteCode(user.user_invite_code)}
+                  </code>
+                  <button
+                    type="button"
+                    className="drawerInviteAction"
+                    onClick={() => setCodeVisible((v) => !v)}
+                    aria-label={codeVisible ? '코드 숨기기' : '코드 보기'}
+                    title={codeVisible ? '코드 숨기기' : '코드 보기'}
+                  >
+                    {codeVisible ? '🙈' : '👁'}
+                  </button>
+                  <button
+                    type="button"
+                    className="drawerInviteAction"
+                    onClick={handleCopyInviteCode}
+                    aria-label="초대 코드 복사"
+                    title="초대 코드 복사"
+                  >
+                    📋
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
         <ul className="drawerMenu">

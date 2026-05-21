@@ -2,6 +2,38 @@
 
 ---
 
+## 2026-05-21 - Claude (사용자 입장 점검 후속: 매니저 초대 코드 이동 + 검색 오류/가입 토스트)
+
+### 매니저 초대 코드 → 햄버거 드로어 사용자 정보 박스 안
+- 배경: 메인 대시보드 상단에 영구 노출되던 초대 코드 박스가 화면 공유 시 노출 위험. 사용자 정보 박스가 더 자연스러운 컨텍스트
+- `Header.jsx` — `drawerUserInfo` 내부에 초대 코드 섹션 추가 (`m` 역할 + `user_invite_code` 있을 때만)
+  - `maskInviteCode` 유틸: 영숫자만 `•`로, 하이픈은 그대로 유지 (예: `••••-••••-••••`)
+  - `codeVisible` 상태 + 👁/🙈 토글, 📋 복사 (복사 성공 시 toast.success)
+- `Dashboard.jsx` — 메인 상단의 `managerInviteNotice` 블록 제거
+- `Dashboard.css` — `.drawerInviteSection`/`.drawerInviteLabel`/`.drawerInviteCode`/`.drawerInviteAction` 추가
+
+### 검색 오류 시 토스트+모달 중복 → 'error' 모달 상태로 분리
+- 기존: 네트워크/서버 오류 catch에서 `toast.error('검색 중 오류') + setModalStatus('not_found')` 동시 실행 → "결과 없음? 오류?" 혼란
+- 변경: 400(부적절 단어)는 그대로 `'inappropriate'`, 그 외는 새로 추가한 `'error'` 모달로 분기. 토스트 제거
+- `Dashboard.jsx` — handleSearch catch 분기 + 모달 'error' JSX 분기 ("검색 중 오류가 발생했습니다 / 잠시 후 다시 시도해주세요")
+
+### 회원가입 완료 토스트
+- 기존: 가입 성공 시 별도 피드백 없이 `onComplete()`로 Intro 복귀 → "가입 됐어?" 확신 부족
+- 변경: `Signup.jsx` 에서 `toast.success('가입이 완료되었습니다. 로그인해주세요.')` 후 onComplete
+- App level ToastContainer가 받아서 Intro 화면에서도 3초 노출
+
+### handleGenerate 흔적 주석 제거
+- `Dashboard.jsx:40` — `// AI 생성을 위해 보관할 검색어` 주석 제거 (handleGenerate 함수는 이전 merge에서 이미 제거됨)
+
+### 검증
+- 프론트 `npm run build` 통과 (4.89s)
+- 백엔드 변경 없음
+
+### 메모
+- 의존성 변경 없음. 팀원 풀 후 추가 설치 작업 없음
+
+---
+
 ## 2026-05-21 - Claude (origin/dev 머지: rag 검색 고도화 + 커리큘럼 이미지)
 
 ### 들어온 커밋
