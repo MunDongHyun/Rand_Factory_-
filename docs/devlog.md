@@ -2,6 +2,38 @@
 
 ---
 
+## 2026-05-21 - Claude (origin/dev 머지: rag 검색 고도화 + 커리큘럼 이미지)
+
+### 들어온 커밋
+- `ef0aa27` rag 검색창 고도화 + 필터링 + 대시보드 모달창 메시지 바리에이션
+- `673b37e` 커리큘럼 및 이미지 수정
+
+### 충돌 해결
+- `client/src/components/Dashboard.jsx` `handleSearch` catch 블록
+  - 팀 변경: 400 에러(부적절한 단어)는 `setModalStatus('inappropriate')`로 분기
+  - 내 변경: 모든 catch에 `toast.error`
+  - 머지 방향: 400은 팀의 inappropriate 모달, 그 외는 `toast.error` + `setModalStatus('not_found')`
+- `client/src/components/Dashboard.jsx` `handleGenerate` 함수
+  - 팀이 origin/dev에서 제거함 (모달도 `'generating'` 상태 JSX가 함께 사라짐)
+  - 내 토스트 작업과 충돌해 conflict marker에 끼었지만 팀 결정 따라 함수 제거
+- `client/src/components/CurriculumView.jsx`
+  - 한 곳에서 토스트가 alert로 되돌아 있던 부분 → toast 유지
+  - 새로 들어온 `handleDeleteCurriculum`의 alert도 `toast.error`로 통일 (마이그레이션 일관성)
+
+### 자동 머지된 파일
+- `Dashboard.css`, `Curriculum.css`, `App.jsx`, `Header.jsx`, `HeroBanner.jsx`, `ArticleDetailView.jsx`, `LearnerCurriculumView.jsx`, `MasterDashboard.jsx`
+- `server/app/main.py`, `models/__init__.py`, `schemas/__init__.py`, `routers/curriculum.py`, `services/rag_service.py`
+- `docs/devlog.md` (각자 다른 위치에 항목 추가)
+
+### 검증
+- 백엔드 `compileall` + `import app.main` 통과 (routes 53)
+- 프론트 `npm run build` 통과 (4.72s)
+
+### 메모
+- 푸시는 안 함. 로컬에 3 commits ahead 상태 (이전 UX + 북마크 + 머지 commit)
+
+---
+
 ## 2026-05-21 - Claude (아티클 북마크 기능 추가)
 
 ### 배경
