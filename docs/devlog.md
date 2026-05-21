@@ -2,6 +2,37 @@
 
 ---
 
+## 2026-05-21 - Claude (발표 전 UX 다듬기 + 권한 회귀 복구)
+
+### 토스트 알림 도입
+- `client/package.json` — `react-toastify` 추가
+- `client/src/App.jsx` — `<ToastContainer>` 마운트 (우상단, 3초 자동 닫힘)
+- alert 17곳 → `toast.success/error/warn` 교체
+  - CurriculumView 11, MasterDashboard 3, LearnerCurriculumView 2, Dashboard 1
+- Dashboard 검색 실패 catch(`Dashboard.jsx:138`)에 `toast.error` 추가
+- 조회수 증가 실패(`Dashboard.jsx:205`)는 백그라운드 호출이라 `console.error`만 유지
+
+### 학습자/일반회원 권한 회귀 복구
+- 배경: 디자이너 디자인 작업 중 `canUseCurriculum`/`canCreateCurriculum` 플래그가 함께 날아간 듯
+- `Dashboard.jsx` — 두 플래그 부활, 세션 복원 가드, Header/HeroBanner/CurriculumView 가드 적용
+- `Header.jsx` — 사이드 드로어 "커리큘럼 관리" 메뉴를 `canUseCurriculum && (...)` 조건 렌더
+- `HeroBanner.jsx` — `.floatingCtaHidden` CSS 클래스가 정의되지 않은 죽은 클래스였음. 조건부 렌더(`{showCreateCta && <div>...</div>}`)로 교체
+
+### 햄버거 드로어 사용자 정보
+- `Header.jsx` — 닫기 버튼 아래 사용자 정보 블록 추가 (이름 + 역할·회사)
+- `ROLE_LABELS` 상수로 c/j/m/a → 한글 매핑
+- `Dashboard.css` — `.drawerUserInfo`/`.drawerUserName`/`.drawerUserMeta` 3개 클래스 (기존 토큰 재사용)
+
+### 검증
+- `cd client && npm run build` 통과 (4.73s)
+- alert 검색 결과 0건 (`Grep alert\(` → no matches)
+- 백엔드 변경 없음
+
+### 메모
+- 푸시는 안 함 (사용자 요청). 로컬 커밋만 남기고 다음 푸시 사이클에 같이 올림
+
+---
+
 ## 2026-05-20 - Claude (챗봇 백엔드 제거 + CLAUDE.md 정리)
 
 ### 배경

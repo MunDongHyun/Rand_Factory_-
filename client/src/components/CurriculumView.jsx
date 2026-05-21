@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { toast } from 'react-toastify';
 import api from '../lib/api';
 import { sanitizeHtml } from '../lib/sanitize';
 import { downloadAttachment, formatBytes } from '../lib/attachments';
@@ -233,18 +234,18 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
   }, [selectedId]);
 
   const handleAttachmentDownload = async (submissionId, attachment) => {
-    try { await downloadAttachment(submissionId, attachment); } catch (err) { alert(err.response?.data?.detail || '첨부파일 다운로드에 실패했습니다.'); }
+    try { await downloadAttachment(submissionId, attachment); } catch (err) { toast.error(err.response?.data?.detail || '첨부파일 다운로드에 실패했습니다.'); }
   };
 
   const handleFeedbackSave = async (submissionId, status = 'feedback_given') => {
     const text = (feedbackDraft[submissionId] || '').trim();
-    if (!text) { alert('피드백 내용을 입력하세요.'); return; }
+    if (!text) { toast.warn('피드백 내용을 입력하세요.'); return; }
     setFeedbackSavingId(submissionId);
     try {
       const res = await api.patch(`/task-submissions/${submissionId}/feedback`, { task_manager_feedback: text, task_status: status });
       setSubmissions((prev) => prev.map((s) => s.task_submission_id === submissionId ? { ...s, ...res.data } : s));
       setFeedbackDraft((prev) => ({ ...prev, [submissionId]: '' }));
-    } catch (err) { alert(err.response?.data?.detail || '피드백 저장에 실패했습니다.'); } finally { setFeedbackSavingId(null); }
+    } catch (err) { toast.error(err.response?.data?.detail || '피드백 저장에 실패했습니다.'); } finally { setFeedbackSavingId(null); }
   };
 
   const formatDateTime = (value) => {
@@ -261,7 +262,7 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement('a'); link.href = url; link.setAttribute('download', `${selectedCurriculum.cur_title}.txt`);
       document.body.appendChild(link); link.click(); link.remove();
-    } catch (error) { alert('TXT 다운로드 중 오류가 발생했습니다.'); }
+    } catch (error) { toast.error('TXT 다운로드 중 오류가 발생했습니다.'); }
   };
 
   const handleDownloadPdf = async () => {
@@ -271,7 +272,7 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement('a'); link.href = url; link.setAttribute('download', `${selectedCurriculum.cur_title}.pdf`);
       document.body.appendChild(link); link.click(); link.remove();
-    } catch (error) { alert('PDF 다운로드 중 오류가 발생했습니다.'); }
+    } catch (error) { toast.error('PDF 다운로드 중 오류가 발생했습니다.'); }
   };
 
   const handleDownloadDocx = async () => {
@@ -281,7 +282,7 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement('a'); link.href = url; link.setAttribute('download', `${selectedCurriculum.cur_title}.docx`);
       document.body.appendChild(link); link.click(); link.remove();
-    } catch (error) { alert('DOCX 다운로드 중 오류가 발생했습니다.'); }
+    } catch (error) { toast.error('DOCX 다운로드 중 오류가 발생했습니다.'); }
   };
 
 
@@ -359,14 +360,14 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
       const res = await api.patch(`/curricula/${selectedCurriculum.cur_id}`, { cur_assigned_learner_ids: assignSelected });
       setCurriculums((prev) => prev.map((c) => (c.cur_id === res.data.cur_id ? res.data : c)));
       setAssignModalOpen(false);
-    } catch (err) { alert(err.response?.data?.detail || '배정 변경에 실패했습니다.'); } finally { setAssignSaving(false); }
+    } catch (err) { toast.error(err.response?.data?.detail || '배정 변경에 실패했습니다.'); } finally { setAssignSaving(false); }
   };
 
   const saveTemplate = async () => {
     if (!selectedCurriculum) return;
     const weekPlan = normalizeWeekPlan(selectedCurriculum.cur_week_plan).map((step) => ({ ...step }));
     const targetWeek = weekPlan.find((s) => s.week === templateModal.week);
-    if (!targetWeek || !Array.isArray(targetWeek.assignments)) { alert('대상 과제를 찾을 수 없습니다.'); return; }
+    if (!targetWeek || !Array.isArray(targetWeek.assignments)) { toast.error('대상 과제를 찾을 수 없습니다.'); return; }
 
     targetWeek.assignments = targetWeek.assignments.map((a, i) =>
       i === templateModal.assignmentIdx ? { ...a, template_content: templateModal.content } : a
@@ -375,10 +376,10 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
     try {
       const res = await api.patch(`/curricula/${selectedCurriculum.cur_id}`, { cur_week_plan: weekPlan });
       setCurriculums((prev) => prev.map((c) => (c.cur_id === res.data.cur_id ? res.data : c)));
-      alert('학습자들에게 과제 템플릿이 배포되었습니다.');
+      toast.success('학습자들에게 과제 템플릿이 배포되었습니다.');
       setTemplateModal({ open: false, week: null, assignmentIdx: null, title: '', content: '', generating: false, fullscreen: false });
     } catch (err) {
-      alert(err.response?.data?.detail || '템플릿 배포에 실패했습니다.');
+      toast.error(err.response?.data?.detail || '템플릿 배포에 실패했습니다.');
       setTemplateModal((prev) => ({ ...prev, saving: false }));
     }
   };
@@ -418,7 +419,7 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
       
     } catch (err) {
       clearInterval(timer);
-      alert('AI 템플릿 재생성에 실패했습니다.');
+      toast.error('AI 템플릿 재생성에 실패했습니다.');
       setTemplateModal(prev => ({ ...prev, generating: false }));
     }
   };

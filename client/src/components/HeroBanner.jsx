@@ -109,12 +109,14 @@ export default function HeroBanner({ showCreateCta = true, onCreateCurriculum, o
             </div>
 
             {/* 플로팅 CTA */}
-            <div className={`floatingCta ${showCreateCta ? '' : 'floatingCtaHidden'}`}>
-                <button className="floatingCtaBtn" onClick={onCreateCurriculum}>
-                    <span className="floatingCtaIcon">✦</span>
-                    커리큘럼 생성하기
-                </button>
-            </div>
+            {showCreateCta && (
+                <div className="floatingCta">
+                    <button className="floatingCtaBtn" onClick={onCreateCurriculum}>
+                        <span className="floatingCtaIcon">✦</span>
+                        커리큘럼 생성하기
+                    </button>
+                </div>
+            )}
         </>
     );
 }

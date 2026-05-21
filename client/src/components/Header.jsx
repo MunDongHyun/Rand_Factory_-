@@ -2,7 +2,14 @@ import { useState } from 'react';
 import '../styles/Dashboard.css';
 import searchIcon from '../public/search_icon.png';
 
-function Header({ canUseCurriculum = true, onViewChange, onLogout, onScrollToTop, onScrollToArticle, onSearch, onReset, isModalOpen}) {
+const ROLE_LABELS = {
+  c: '일반회원',
+  j: '학습자',
+  m: '매니저',
+  a: '관리자',
+};
+
+function Header({ user, canUseCurriculum = true, onViewChange, onLogout, onScrollToTop, onScrollToArticle, onSearch, onReset, isModalOpen}) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [inputValue, setInputValue] = useState(''); 
 
@@ -73,6 +80,15 @@ function Header({ canUseCurriculum = true, onViewChange, onLogout, onScrollToTop
 
       <nav className={`sideDrawer ${menuOpen ? 'open' : ''}`}>
         <button className="drawerClose" onClick={() => setMenuOpen(false)}>✕</button>
+        {user && (
+          <div className="drawerUserInfo">
+            <div className="drawerUserName">{user.user_name}</div>
+            <div className="drawerUserMeta">
+              {ROLE_LABELS[user.user_role] || '회원'}
+              {user.user_company ? ` · ${user.user_company}` : ''}
+            </div>
+          </div>
+        )}
         <ul className="drawerMenu">
           <li onClick={() => { 
             onViewChange('articles'); 
@@ -80,11 +96,13 @@ function Header({ canUseCurriculum = true, onViewChange, onLogout, onScrollToTop
             setTimeout(() => onScrollToTop(), 100); 
           }}>아티클 페이지</li>
           
-          <li onClick={() => { 
-            onViewChange('curriculum'); 
-            setMenuOpen(false); 
-          }}>커리큘럼 관리</li>
-            
+          {canUseCurriculum && (
+            <li onClick={() => {
+              onViewChange('curriculum');
+              setMenuOpen(false);
+            }}>커리큘럼 관리</li>
+          )}
+
           <li onClick={() => { 
             onViewChange('emailing'); 
             setMenuOpen(false); 

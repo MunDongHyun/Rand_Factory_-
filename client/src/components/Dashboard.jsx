@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { toast } from 'react-toastify';
 import api from '../lib/api';
 import Header from './Header';
 import '../styles/Dashboard.css';
@@ -24,6 +25,9 @@ const CATEGORY_EN = {
 };
 
 function Dashboard({ user, onLogout }) {
+  const canUseCurriculum = ['j', 'm', 'a'].includes(user?.user_role);
+  const canCreateCurriculum = ['m', 'a'].includes(user?.user_role);
+
   const [view, setView] = useState('articles');
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [pendingAuthorNumb, setPendingAuthorNumb] = useState(null);
@@ -95,6 +99,10 @@ function Dashboard({ user, onLogout }) {
           sessionStorage.removeItem('dash:articleId');
         });
     } else if (savedView === 'curriculum' || savedView === 'emailing') {
+      if (savedView === 'curriculum' && !canUseCurriculum) {
+        sessionStorage.removeItem('dash:view');
+        return;
+      }
       setView(savedView);
     }
   }, []);
@@ -136,6 +144,7 @@ function Dashboard({ user, onLogout }) {
       }
     } catch (err) {
       console.error(err);
+      toast.error('검색 중 오류가 발생했습니다.');
       setModalStatus('not_found');
     }
   };
@@ -153,7 +162,7 @@ function Dashboard({ user, onLogout }) {
       setView('articleDetail');
       setIsModalOpen(false);
     } catch (err) {
-      alert('아티클 생성에 실패했습니다. 다시 시도해주세요.');
+      toast.error('아티클 생성에 실패했습니다. 다시 시도해주세요.');
       setIsModalOpen(false);
     }
   };
@@ -364,6 +373,8 @@ function Dashboard({ user, onLogout }) {
   return (
     <div className="dashContainer">
       <Header
+        user={user}
+        canUseCurriculum={canUseCurriculum}
         onViewChange={(v) => {
           setView(v);
           setSelectedArticle(null);
@@ -391,7 +402,13 @@ function Dashboard({ user, onLogout }) {
         </div>
       )}
 
-      {view === 'articles' && <HeroBanner onCreateCurriculum={() => setView('curriculum')} onOpenArticle={openArticleDetail} />}
+      {view === 'articles' && (
+        <HeroBanner
+          showCreateCta={canCreateCurriculum}
+          onCreateCurriculum={() => setView('curriculum')}
+          onOpenArticle={openArticleDetail}
+        />
+      )}
 
 
       <main className="dashMain">
@@ -404,7 +421,7 @@ function Dashboard({ user, onLogout }) {
           />
         )}
 
-        {view === 'curriculum' && (
+        {view === 'curriculum' && canUseCurriculum && (
           user?.user_role === 'j'
             ? <LearnerCurriculumView curriculumDetailRef={curriculumDetailRef} />
             : <CurriculumView onOpenArticle={openArticleDetail} onModalToggle={setIsSubModalOpen}/>

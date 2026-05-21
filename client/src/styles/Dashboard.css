@@ -195,6 +195,28 @@
   color: var(--ink);
 }
 
+/* 드로어 상단 사용자 정보 */
+.drawerUserInfo {
+  padding: 0 4px 24px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--bg-alt);
+}
+
+.drawerUserName {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+.drawerUserMeta {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+
 /* 메뉴 리스트 */
 .drawerMenu {
   list-style: none;

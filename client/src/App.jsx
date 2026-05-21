@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import './styles/theme.css'
 import api from './lib/api';
 import { getToken, clearToken } from './lib/auth';
@@ -92,6 +94,13 @@ function App() {
           onLogout={handleLogout}
         />
       )}
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        newestOnTop
+        pauseOnFocusLoss={false}
+        theme="light"
+      />
     </div>
   );
 }
