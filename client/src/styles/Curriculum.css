@@ -90,17 +90,18 @@
 
 .curriculumSidebarTitle {
   font-family: 'Pretendard', sans-serif;
-  font-weight: 700;
-  font-size: 28px;
+  font-weight: 500;
+  font-size: 24px;
   line-height: 29px;
   color: var(--card);
-  margin: 0 0 16px 0;
+  margin: 0;
 }
 
 .curriculumSidebarDivider {
   width: 248px;
   height: 1px;
   background: var(--line);
+  margin-top: 16px;
   margin-bottom: 16px;
 }
 
@@ -130,7 +131,14 @@
   white-space: normal;
   overflow: visible;
   text-overflow: clip;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
 
+.curriculumSidebarItemTitle {
+  flex: 1;
+  min-width: 0;
 }
 
 .curriculumSidebarItem:hover {
@@ -138,11 +146,18 @@
   color: var(--card);
 }
 
+.curriculumSidebarItem:hover .sidebarMenuBtn {
+  opacity: 1;
+}
+
+.sidebarMenuBtn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
 .curriculumSidebarItem.active {
   background: rgba(217, 217, 217, 0.28);
   color: var(--card);
 }
-
 
 .curriculumSidebarAddBtn {
   margin-top: auto;
@@ -165,6 +180,33 @@
   background: rgba(255, 255, 255, 0.1);
 }
 
+.curriculumSidebarTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.sidebarMenuBtn {
+  background: transparent;
+  border: none;
+  color: var(--card);
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 4px;
+  line-height: 1;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.sidebarMenuBtn:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.1);
+}
+
 /* =============================================
    메인 영역: 사이드바 오른쪽 전체
    ============================================= */
@@ -178,8 +220,6 @@
 /* =============================================
    배정 학습자 바
    ============================================= */
-
-
 .learnerViewHeader {
   padding-bottom: 12px;
   border-bottom: 1px solid var(--line);
@@ -227,7 +267,6 @@
   display: none;
 }
 
-
 .assignedLearnerChip {
   display: flex;
   align-items: center;
@@ -267,7 +306,6 @@
   background: var(--line);
   color: var(--ink);
 }
-
 
 .assignedLearnersEditBtn {
   flex-shrink: 0;
@@ -309,7 +347,6 @@
   min-height: 0;
 }
 
-
 .curriculumLeft {
   flex: 3;
   min-width: 0;
@@ -349,10 +386,8 @@
   flex-direction: column;
 }
 
-
-
 /* =============================================
-   상세 헤더: 타이틀 + 다운로드 아이콘
+   상세 헤더: 타이틀 + 관리 버튼
    ============================================= */
 .extracted-detail-header {
   display: flex;
@@ -391,12 +426,33 @@
   margin: 0;
 }
 
+
+
+/* =============================================
+   다운로드 아이콘 (모달 내부 버튼 안에서만 사용)
+   ============================================= */
 .downloadIcon {
-  width: 50px;
-  height: 50px;
-  cursor: pointer;
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
-  margin-left: auto;
+  pointer-events: none;
+  vertical-align: middle;
+  margin-right: -5px ;
+  margin-left: 0px;
+}
+
+
+/* =============================================
+   삭제 아이콘 (모달 내부 버튼 안에서만 사용)
+   ============================================= */
+.deleteIcon {
+  width: 25px;
+  height: 25px;
+  flex-shrink: 0;
+  pointer-events: none;
+  vertical-align: middle;
+  margin-right: -5px ;
+  margin-left: -10px;
 }
 
 /* =============================================
@@ -455,13 +511,11 @@
   flex: 1;
 }
 
-
 .extracted-toggle-label {
   font-size: 14px;
   color: var(--primary);
   flex-shrink: 0;
 }
-
 
 .extracted-accordion-body {
   padding: 16px 20px;
@@ -475,7 +529,6 @@
   overflow-y: auto;
 }
 
-/* 우측 컨텐츠 아코디언/제출/피드백 바디 덮어쓰기 */
 .curriculumRightContent .right-pane-accordion-body {
   border: none;
   background: transparent;
@@ -493,7 +546,6 @@
   box-shadow: none;
   border-top: none;
 }
-
 
 .extracted-section-margin {
   margin-bottom: 4px;
@@ -736,7 +788,7 @@
 }
 
 /* =============================================
-   다운로드 모달
+   관리 모달 (다운로드 / 삭제)
    ============================================= */
 .downloadOverlay {
   position: fixed;
@@ -770,6 +822,10 @@
 }
 
 .downloadModalBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   padding: 10px 0;
   background: var(--card);
   border: 1px solid var(--ink);
@@ -786,11 +842,32 @@
   background: var(--bg);
 }
 
+/* 뒤로 버튼 */
+.downloadModalBtn.back {
+  border-color: #ccc;
+  color: #888;
+  font-size: 13px;
+}
+
+.downloadModalBtn.back:hover {
+  background: var(--bg);
+  color: #555;
+}
+
+/* 삭제 확인 버튼 */
+.downloadModalBtn.delete {
+  border-color: #e57373;
+  color: #d32f2f;
+  font-weight: 600;
+}
+
+.downloadModalBtn.delete:hover {
+  background: #fff0f0;
+}
+
 /* =============================================
    제출된 과제 섹션 
    ============================================= */
-
-
 .managerSubmissionHeader {
   display: flex;
   align-items: center;
@@ -917,7 +994,6 @@
   border-color: #F5C6CB;
 }
 
-
 .extracted-accordion-item.active .extracted-accordion-header {
   background: var(--bg-alt);
 }
@@ -965,7 +1041,6 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  /* let the body take remaining space and scroll internally so outer box size doesn't change */
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
@@ -999,7 +1074,6 @@
   line-height: 1.55;
 }
 
-/* 첨부파일 */
 .managerSubmissionAttachments {
   display: flex;
   flex-direction: column;
@@ -1048,7 +1122,6 @@
   flex-shrink: 0;
 }
 
-/* 피드백 폼 */
 .managerFeedbackForm {
   display: flex;
   flex-direction: column;
@@ -1146,56 +1219,19 @@
   transform: translate(-50%, -50%);
   z-index: 99999;
   display: flex;
-  width: 860px;
+  width: 600px;
   max-height: 90vh;
   border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 8px 32px rgba(58, 74, 92, 0.22);
 }
 
-.chatSidebar {
-  width: 260px;
-  flex-shrink: 0;
-  background: var(--ink);
-  padding: 28px 20px;
-}
 
-.chatSidebarTitle {
-  font-family: 'Pretendard', sans-serif;
-  font-weight: 700;
-  font-size: 18px;
-  color: var(--card);
-  margin: 0 0 12px 0;
-}
-
-.chatSidebarDivider {
-  width: 100%;
-  height: 1px;
-  background: rgba(255, 255, 255, 0.4);
-  margin-bottom: 14px;
-}
-
-.chatSidebarList {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.chatSidebarList li {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.75);
-  padding: 8px 10px;
-  border-radius: 4px;
-}
 
 .chatMain {
   flex: 1;
   background: var(--card);
-  padding: 32px 28px;
+  padding: 50px 28px;
   overflow-y: auto;
   position: relative;
 }
@@ -1326,18 +1362,16 @@
   width: 480px;
 }
 
-/* 템플릿 모달 */
 .confirmModal.templateModal {
   width: 860px;
-  height: 90vh; /* 인라인 속성에서 가져옴 */
+  height: 90vh;
   max-height: 92vh;
   transition: width 0.25s ease, height 0.25s ease;
-  overflow: hidden; /* 인라인 속성에서 가져옴 */
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
-/* 전체보기 상태 */
 .confirmModal.templateModal.fullscreen {
   inset: 0 !important;
   transform: none !important;
@@ -1348,7 +1382,7 @@
   overflow-y: scroll !important;
   margin: 0 !important;
   padding: 32px 40px;
-  z-index: 100000; /* 오버레이보다 높게 최상단으로 설정 */
+  z-index: 100000;
   display: flex;
   flex-direction: column;
 }
@@ -1358,7 +1392,6 @@
   flex: 1;
 }
 
-/* 모달 상단 바 */
 .modalTopBar {
   display: flex;
   align-items: center;
@@ -1373,7 +1406,6 @@
   gap: 8px;
 }
 
-/* AI 재작성 버튼 */
 .ai-regenerate-btn {
   padding: 6px 14px;
   background: var(--bg-alt);
@@ -1397,7 +1429,6 @@
   cursor: not-allowed;
 }
 
-/* 전체보기 버튼 */
 .fullscreenBtn {
   padding: 6px 14px;
   background: var(--bg);
@@ -1416,11 +1447,10 @@
   color: var(--ink);
 }
 
-/* Tiptap 에디터 래퍼 */
 .templateEditorWrapper {
   position: relative;
   flex: 1;
-  border: 1px solid var(--line); /* 기존 인라인의 #ccc 대신 테마 변수 활용 */
+  border: 1px solid var(--line);
   border-radius: 4px;
   min-height: 0;
   overflow-y: hidden;
@@ -1429,7 +1459,6 @@
   flex-direction: column;
 }
 
-/* Tiptap 툴바 */
 .tiptap-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -1498,7 +1527,6 @@
   font-weight: bold !important;
 }
 
-/* Tiptap 에디터 본문 */
 .tiptap-editor-container {
   display: flex;
   flex-direction: column;
@@ -1513,7 +1541,6 @@
   background: var(--card);
 }
 
-/* 에디터 내부 기본 스타일 */
 .tiptap-content-area .ProseMirror {
   outline: none;
   min-height: 200px;
@@ -1541,7 +1568,6 @@
   font-weight: 600;
 }
 
-/* AI 로딩 오버레이 */
 .tiptap-loading-overlay {
   position: absolute;
   inset: 0;
@@ -1720,19 +1746,12 @@
   gap: 8px;
 }
 
-.assignSectionTitle {
-  font-family: 'Pretendard', sans-serif;
-  font-weight: 700;
-  font-size: 15px;
-  color: var(--ink);
-  margin: 0;
-}
 
 .assignSectionHint {
   font-family: 'Pretendard', sans-serif;
   font-size: 14px;
   color: var(--ink-muted);
-  margin-bottom: 18px;
+  margin: -40px 0 18px 14px;
   white-space: pre-wrap;
   flex-shrink: 0;
 }
@@ -1793,7 +1812,6 @@
   margin: 12px 0 !important;
 }
 
-
 .tiptap-content-area li,
 .ProseMirror li {
   margin-bottom: 6px;
@@ -1806,7 +1824,9 @@
   display: inline-block;
 }
 
-/* 🚀 추가: 로딩 모달 스타일 */
+/* =============================================
+   로딩 모달
+   ============================================= */
 .loadingModalOverlay {
   position: fixed;
   inset: 0;
@@ -1815,7 +1835,6 @@
   justify-content: center;
   align-items: center;
   z-index: 100000;
-  /* 모든 모달 위에 뜨도록 설정 */
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.3s ease, visibility 0.3s ease;
@@ -1862,15 +1881,17 @@
 
 .loadingModalBarFill {
   height: 100%;
-  background: var(--primary); /* 앱의 기본 테마 색상 사용 */
+  background: var(--primary);
   transition: width 0.3s ease;
 }
 
+/* =============================================
+   템플릿 로딩 오버레이
+   ============================================= */
 .template-loading-overlay {
   position: absolute;
   inset: 0;
   background: rgba(255, 255, 255, 0.85);
-  /* 에디터 내용이 살짝 비치는 반투명 흰색 */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1905,6 +1926,5 @@
 .template-loading-bar-fill {
   height: 100%;
   background: #4A7C59;
-  /* 앱 기본 테마(초록색 계열) 사용 */
   transition: width 0.4s ease;
 }
