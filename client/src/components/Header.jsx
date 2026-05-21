@@ -9,7 +9,7 @@ const ROLE_LABELS = {
   a: '관리자',
 };
 
-function Header({ user, canUseCurriculum = true, onViewChange, onLogout, onScrollToTop, onScrollToArticle, onSearch, onReset, isModalOpen}) {
+function Header({ user, canUseCurriculum = true, currentView, onViewChange, onLogout, onScrollToTop, onScrollToArticle, onSearch, onReset, isModalOpen}) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [inputValue, setInputValue] = useState(''); 
 
@@ -68,6 +68,15 @@ function Header({ user, canUseCurriculum = true, onViewChange, onLogout, onScrol
           </div>
 
           <div className="headerIcons">
+            <button
+              type="button"
+              className={`headerBookmarkBtn ${currentView === 'bookmarks' ? 'active' : ''}`}
+              onClick={() => onViewChange('bookmarks')}
+              aria-label="내 북마크"
+              title="내 북마크"
+            >
+              ★
+            </button>
             <button className="hamburgerBtn" onClick={() => setMenuOpen(true)}>
               <span /><span /><span />
             </button>
@@ -103,9 +112,14 @@ function Header({ user, canUseCurriculum = true, onViewChange, onLogout, onScrol
             }}>커리큘럼 관리</li>
           )}
 
-          <li onClick={() => { 
-            onViewChange('emailing'); 
-            setMenuOpen(false); 
+          <li onClick={() => {
+            onViewChange('bookmarks');
+            setMenuOpen(false);
+          }}>내 북마크</li>
+
+          <li onClick={() => {
+            onViewChange('emailing');
+            setMenuOpen(false);
           }}>저자 이메일링</li>
 
           <li className="drawerLogout" onClick={() => { 

@@ -2,6 +2,46 @@
 
 ---
 
+## 2026-05-21 - Claude (아티클 북마크 기능 추가)
+
+### 배경
+- 발표 전 UX 강화 차 아티클 북마크 기능 추가 요청
+- 팀이 직접 SQL로 `bookmarks` 테이블 생성 (article 전용, BIGINT FK)
+
+### 백엔드
+- `server/app/models/bookmark.py` — `Bookmark` 모델 (user_id, article_id, created_at, `uq_user_article` 제약 + `idx_bookmark_user` 인덱스)
+- `server/app/schemas/bookmark.py` — `BookmarkCreate`, `BookmarkArticleItem`, `MyBookmarksResponse`
+- `server/app/routers/bookmark.py` — 3 endpoint
+  - `GET /api/bookmarks/me` — 사용자 북마크 (썸네일/카테고리 hydrated, `created_at desc`)
+  - `POST /api/bookmarks` body `{article_id}` — idempotent 추가
+  - `DELETE /api/bookmarks/{article_id}` — idempotent 제거
+- 권한: 로그인한 모든 사용자 (c/j/m/a). `get_current_user`만 의존
+- `main.py` + `models/__init__.py` + `schemas/__init__.py` 등록
+
+### 프론트엔드
+- `client/src/lib/bookmarks.js` — API 헬퍼
+- `Dashboard.jsx` — 북마크 ID Set 상태 (mount 시 fetch), optimistic toggle (실패 시 자동 롤백 + `toast.error`)
+- 아티클 카드: 우상단 ★/☆ 버튼 (active 시 `#f5a623`)
+- `ArticleDetailView.jsx` — 제목 옆 큰 ★/☆ 버튼
+- `MyBookmarksView.jsx` (신규) — 북마크 그리드 + 빈 상태
+- `Header.jsx` — 헤더 우상단(햄버거 옆) ★ 아이콘 + 드로어 "내 북마크" 메뉴 (이중 진입점). `currentView === 'bookmarks'`일 때 헤더 ★ 노란색 highlight
+- `Dashboard.css` — `.bookmarkBtn`, `.headerBookmarkBtn`, `.bookmarkPage`, `.bookmarkGrid` 등 신규 클래스
+
+### 설계 변경 메모: polymorphic → article-only
+- 초기 설계: `bookmark_target_type` + `bookmark_target_id`로 article + author 둘 다 지원
+- 실제 팀에서 생성한 테이블이 `article_id` 단일 컬럼 → 아티클 전용으로 단순화
+- 저자 북마크는 V2로 미룸 (필요 시 별도 테이블 또는 polymorphic 컬럼 추가)
+
+### 검증
+- 백엔드 `python -m compileall -q app` 통과
+- 백엔드 `from app.main import app` import 통과 (routes 52)
+- 프론트 `npm run build` 통과 (4.83s)
+
+### 메모
+- 푸시는 안 함 (사용자 요청). 로컬 커밋만 남기고 다음 사이클에 같이 올림
+
+---
+
 ## 2026-05-21 - Claude (발표 전 UX 다듬기 + 권한 회귀 복구)
 
 ### 토스트 알림 도입

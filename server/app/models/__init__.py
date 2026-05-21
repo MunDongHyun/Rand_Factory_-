@@ -1,6 +1,7 @@
 from app.models.ai_summaries import AiSummary
 from app.models.article import Article
 from app.models.author import Author, article_authors_mapping
+from app.models.bookmark import Bookmark
 from app.models.curriculum import Curriculum
 from app.models.task_submission import TaskSubmission, TaskSubmissionAttachment
 from app.models.user import User
@@ -10,6 +11,7 @@ __all__ = [
     "AiSummary",
     "Article",
     "Author",
+    "Bookmark",
     "Curriculum",
     "TaskSubmission",
     "TaskSubmissionAttachment",

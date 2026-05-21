@@ -118,6 +118,31 @@
 }
 
 /* 햄버거 버튼 */
+.headerBookmarkBtn {
+  width: 36px;
+  height: 36px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--ink-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: color 0.2s ease, transform 0.15s ease;
+}
+
+.headerBookmarkBtn:hover {
+  color: var(--primary);
+  transform: scale(1.08);
+}
+
+.headerBookmarkBtn.active {
+  color: #f5a623;
+}
+
 .hamburgerBtn {
   display: flex;
   flex-direction: column;
@@ -193,6 +218,91 @@
 
 .drawerClose:hover {
   color: var(--ink);
+}
+
+/* 북마크 버튼 (카드 상단 우상단) */
+.bookmarkBtn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--ink-muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  padding: 0;
+}
+
+.bookmarkBtn:hover {
+  background: #fff;
+  transform: scale(1.06);
+}
+
+.bookmarkBtn.active {
+  color: #f5a623;
+}
+
+/* 상세 페이지의 큰 북마크 버튼 */
+.bookmarkBtnLg {
+  position: static;
+  width: 44px;
+  height: 44px;
+  font-size: 26px;
+  flex-shrink: 0;
+}
+
+/* 아티클 상세: 제목 + 북마크 버튼 한 줄 */
+.articleDetailTitleRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+/* 내 북마크 페이지 */
+.bookmarkPage {
+  padding: 32px;
+}
+
+.bookmarkPageTitle {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 24px;
+  color: var(--ink);
+}
+
+.bookmarkEmpty {
+  font-size: 16px;
+  color: var(--ink-muted);
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.bookmarkListStatus {
+  padding: 40px 20px;
+  font-size: 14px;
+  color: var(--ink-muted);
+}
+
+.bookmarkListStatus.error {
+  color: #c33;
+}
+
+.bookmarkGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
 }
 
 /* 드로어 상단 사용자 정보 */

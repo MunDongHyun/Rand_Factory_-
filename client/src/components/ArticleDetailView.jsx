@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../lib/api';
 import "../styles/ArticleDetailView.css"
 
-function ArticleDetailView({ article, onBack, onOpenEmailing }) {
+function ArticleDetailView({ article, onBack, onOpenEmailing, isBookmarked = false, onToggleBookmark }) {
   const [summary, setSummary] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState(null);
@@ -84,7 +84,20 @@ function ArticleDetailView({ article, onBack, onOpenEmailing }) {
           </div>
         )}
 
-        <h1 className="articleDetailTitle">{displayArticle.article_title}</h1>
+        <div className="articleDetailTitleRow">
+          <h1 className="articleDetailTitle">{displayArticle.article_title}</h1>
+          {onToggleBookmark && (
+            <button
+              type="button"
+              className={`bookmarkBtn bookmarkBtnLg ${isBookmarked ? 'active' : ''}`}
+              onClick={onToggleBookmark}
+              aria-label={isBookmarked ? '북마크 해제' : '북마크 추가'}
+              title={isBookmarked ? '북마크 해제' : '북마크 추가'}
+            >
+              {isBookmarked ? '★' : '☆'}
+            </button>
+          )}
+        </div>
         <div className="articleDetailMeta">
           <span>{displayArticle.article_source}</span>
           {Array.isArray(displayArticle.authors) && displayArticle.authors.length > 0 ? (
