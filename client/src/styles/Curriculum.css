@@ -366,6 +366,7 @@
   flex-direction: column;
   background: var(--card);
   min-height: 0;
+  overflow-y: auto;
 }
 
 .curriculumRightEmpty {
