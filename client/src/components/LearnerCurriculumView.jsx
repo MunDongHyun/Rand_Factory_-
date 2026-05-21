@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { toast } from 'react-toastify';
 import api from '../lib/api';
 import { sanitizeHtml } from '../lib/sanitize';
 import { downloadAttachment, formatBytes } from '../lib/attachments';
@@ -238,7 +239,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
     try {
       await downloadAttachment(submissionId, attachment);
     } catch (err) {
-      alert(err.response?.data?.detail || '첨부파일 다운로드에 실패했습니다.');
+      toast.error(err.response?.data?.detail || '첨부파일 다운로드에 실패했습니다.');
     }
   };
 
@@ -290,7 +291,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
 
       await loadSubmissions();
       if (failures.length > 0)
-        alert(`제출은 완료됐지만 일부 첨부 업로드에 실패했습니다:\n${failures.join('\n')}`);
+        toast.warn(`제출은 완료됐지만 일부 첨부 업로드에 실패했습니다:\n${failures.join('\n')}`);
       closeSubmitModal();
     } catch (err) {
       setSubmitError(err.response?.data?.detail || '제출에 실패했습니다.');

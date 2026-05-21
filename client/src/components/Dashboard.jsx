@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
+import { toast } from 'react-toastify';
 import api from '../lib/api';
+import { fetchMyBookmarks, addBookmark, removeBookmark } from '../lib/bookmarks';
 import Header from './Header';
 import '../styles/Dashboard.css';
 import CurriculumView from './CurriculumView';
@@ -7,6 +9,7 @@ import LearnerCurriculumView from './LearnerCurriculumView';
 import EmailingView from './EmailingView';
 import ArticleDetailView from './ArticleDetailView';
 import HeroBanner from './HeroBanner';
+import MyBookmarksView from './MyBookmarksView';
 
 const SECTION_THEMES = ['blue', 'green', 'brown'];
 
@@ -23,6 +26,9 @@ const CATEGORY_EN = {
 };
 
 function Dashboard({ user, onLogout }) {
+  const canUseCurriculum = ['j', 'm', 'a'].includes(user?.user_role);
+  const canCreateCurriculum = ['m', 'a'].includes(user?.user_role);
+
   const [view, setView] = useState('articles');
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [pendingAuthorNumb, setPendingAuthorNumb] = useState(null);
@@ -76,6 +82,42 @@ function Dashboard({ user, onLogout }) {
     fetchArticles();
   }, []);
 
+  // --- 북마크 상태: 사용자의 북마크한 article_id 셋 ---
+  const [bookmarkedIds, setBookmarkedIds] = useState(() => new Set());
+
+  useEffect(() => {
+    fetchMyBookmarks()
+      .then(({ articles }) => {
+        setBookmarkedIds(new Set(articles.map((a) => a.article_id)));
+      })
+      .catch(() => {
+        // 토큰 만료/네트워크 오류는 조용히 무시 (다른 영역도 영향받으면 별도 처리됨)
+      });
+  }, []);
+
+  const toggleBookmark = async (articleId) => {
+    if (!articleId) return;
+    const wasBookmarked = bookmarkedIds.has(articleId);
+    setBookmarkedIds((prev) => {
+      const next = new Set(prev);
+      if (wasBookmarked) next.delete(articleId);
+      else next.add(articleId);
+      return next;
+    });
+    try {
+      if (wasBookmarked) await removeBookmark(articleId);
+      else await addBookmark(articleId);
+    } catch (err) {
+      setBookmarkedIds((prev) => {
+        const next = new Set(prev);
+        if (wasBookmarked) next.add(articleId);
+        else next.delete(articleId);
+        return next;
+      });
+      toast.error(err.response?.data?.detail || '북마크 처리에 실패했습니다.');
+    }
+  };
+
   // 새로고침 시 view 복원: sessionStorage 에 저장된 view/articleId 가 있으면 그대로 진입
   useEffect(() => {
     const savedView = sessionStorage.getItem('dash:view');
@@ -92,7 +134,11 @@ function Dashboard({ user, onLogout }) {
           sessionStorage.removeItem('dash:view');
           sessionStorage.removeItem('dash:articleId');
         });
-    } else if (savedView === 'curriculum' || savedView === 'emailing') {
+    } else if (savedView === 'curriculum' || savedView === 'emailing' || savedView === 'bookmarks') {
+      if (savedView === 'curriculum' && !canUseCurriculum) {
+        sessionStorage.removeItem('dash:view');
+        return;
+      }
       setView(savedView);
     }
   }, []);
@@ -134,12 +180,13 @@ function Dashboard({ user, onLogout }) {
       }
     } catch (err) {
       console.error(err);
-      // 👇 추가/수정됨: 백엔드에서 400 에러(부적절한 단어)가 내려오면 처리
+      // 백엔드에서 400 에러(부적절한 단어)가 내려오면 전용 모달 상태로 분기
       if (err.response && err.response.status === 400) {
-        setModalStatus('inappropriate'); //
-        setSearchQuery(''); // 검색어 상태 초기화
-        setSections(originalSections); // 원래 아티클 목록으로 복원
+        setModalStatus('inappropriate');
+        setSearchQuery('');
+        setSections(originalSections);
       } else {
+        toast.error('검색 중 오류가 발생했습니다.');
         setModalStatus('not_found');
       }
     }
@@ -311,6 +358,14 @@ function Dashboard({ user, onLogout }) {
                     <div className="cardTop">
                       {item.article_thumbnail_url && <img src={item.article_thumbnail_url} alt="" loading="lazy" />}
                       <span className="cardTag"># {item.article_category || '기타'}</span>
+                      <button
+                        type="button"
+                        className={`bookmarkBtn ${bookmarkedIds.has(item.article_id) ? 'active' : ''}`}
+                        onClick={(e) => { e.stopPropagation(); toggleBookmark(item.article_id); }}
+                        aria-label={bookmarkedIds.has(item.article_id) ? '북마크 해제' : '북마크 추가'}
+                      >
+                        {bookmarkedIds.has(item.article_id) ? '★' : '☆'}
+                      </button>
                     </div>
                     <div className="cardBottom">
                       <div className="cardTextGroup">
@@ -342,6 +397,9 @@ function Dashboard({ user, onLogout }) {
   return (
     <div className="dashContainer">
       <Header
+        user={user}
+        canUseCurriculum={canUseCurriculum}
+        currentView={view}
         onViewChange={(v) => {
           setView(v);
           setSelectedArticle(null);
@@ -369,7 +427,13 @@ function Dashboard({ user, onLogout }) {
         </div>
       )}
 
-      {view === 'articles' && <HeroBanner onCreateCurriculum={() => setView('curriculum')} onOpenArticle={openArticleDetail} />}
+      {view === 'articles' && (
+        <HeroBanner
+          showCreateCta={canCreateCurriculum}
+          onCreateCurriculum={() => setView('curriculum')}
+          onOpenArticle={openArticleDetail}
+        />
+      )}
 
       <main className="dashMain">
         {view === 'articles' && <ArticleListView />}
@@ -378,13 +442,23 @@ function Dashboard({ user, onLogout }) {
             article={selectedArticle}
             onBack={() => window.history.back()}
             onOpenEmailing={openEmailingForAuthor}
+            isBookmarked={selectedArticle ? bookmarkedIds.has(selectedArticle.article_id) : false}
+            onToggleBookmark={() => selectedArticle && toggleBookmark(selectedArticle.article_id)}
           />
         )}
 
-        {view === 'curriculum' && (
+        {view === 'curriculum' && canUseCurriculum && (
           user?.user_role === 'j'
             ? <LearnerCurriculumView curriculumDetailRef={curriculumDetailRef} />
             : <CurriculumView onOpenArticle={openArticleDetail} onModalToggle={setIsSubModalOpen} />
+        )}
+
+        {view === 'bookmarks' && (
+          <MyBookmarksView
+            bookmarkedIds={bookmarkedIds}
+            onToggleBookmark={toggleBookmark}
+            onOpenArticle={openArticleDetail}
+          />
         )}
 
         {view === 'emailing' && (

@@ -2,6 +2,109 @@
 
 ---
 
+## 2026-05-21 - Claude (origin/dev 머지: rag 검색 고도화 + 커리큘럼 이미지)
+
+### 들어온 커밋
+- `ef0aa27` rag 검색창 고도화 + 필터링 + 대시보드 모달창 메시지 바리에이션
+- `673b37e` 커리큘럼 및 이미지 수정
+
+### 충돌 해결
+- `client/src/components/Dashboard.jsx` `handleSearch` catch 블록
+  - 팀 변경: 400 에러(부적절한 단어)는 `setModalStatus('inappropriate')`로 분기
+  - 내 변경: 모든 catch에 `toast.error`
+  - 머지 방향: 400은 팀의 inappropriate 모달, 그 외는 `toast.error` + `setModalStatus('not_found')`
+- `client/src/components/Dashboard.jsx` `handleGenerate` 함수
+  - 팀이 origin/dev에서 제거함 (모달도 `'generating'` 상태 JSX가 함께 사라짐)
+  - 내 토스트 작업과 충돌해 conflict marker에 끼었지만 팀 결정 따라 함수 제거
+- `client/src/components/CurriculumView.jsx`
+  - 한 곳에서 토스트가 alert로 되돌아 있던 부분 → toast 유지
+  - 새로 들어온 `handleDeleteCurriculum`의 alert도 `toast.error`로 통일 (마이그레이션 일관성)
+
+### 자동 머지된 파일
+- `Dashboard.css`, `Curriculum.css`, `App.jsx`, `Header.jsx`, `HeroBanner.jsx`, `ArticleDetailView.jsx`, `LearnerCurriculumView.jsx`, `MasterDashboard.jsx`
+- `server/app/main.py`, `models/__init__.py`, `schemas/__init__.py`, `routers/curriculum.py`, `services/rag_service.py`
+- `docs/devlog.md` (각자 다른 위치에 항목 추가)
+
+### 검증
+- 백엔드 `compileall` + `import app.main` 통과 (routes 53)
+- 프론트 `npm run build` 통과 (4.72s)
+
+### 메모
+- 푸시는 안 함. 로컬에 3 commits ahead 상태 (이전 UX + 북마크 + 머지 commit)
+
+---
+
+## 2026-05-21 - Claude (아티클 북마크 기능 추가)
+
+### 배경
+- 발표 전 UX 강화 차 아티클 북마크 기능 추가 요청
+- 팀이 직접 SQL로 `bookmarks` 테이블 생성 (article 전용, BIGINT FK)
+
+### 백엔드
+- `server/app/models/bookmark.py` — `Bookmark` 모델 (user_id, article_id, created_at, `uq_user_article` 제약 + `idx_bookmark_user` 인덱스)
+- `server/app/schemas/bookmark.py` — `BookmarkCreate`, `BookmarkArticleItem`, `MyBookmarksResponse`
+- `server/app/routers/bookmark.py` — 3 endpoint
+  - `GET /api/bookmarks/me` — 사용자 북마크 (썸네일/카테고리 hydrated, `created_at desc`)
+  - `POST /api/bookmarks` body `{article_id}` — idempotent 추가
+  - `DELETE /api/bookmarks/{article_id}` — idempotent 제거
+- 권한: 로그인한 모든 사용자 (c/j/m/a). `get_current_user`만 의존
+- `main.py` + `models/__init__.py` + `schemas/__init__.py` 등록
+
+### 프론트엔드
+- `client/src/lib/bookmarks.js` — API 헬퍼
+- `Dashboard.jsx` — 북마크 ID Set 상태 (mount 시 fetch), optimistic toggle (실패 시 자동 롤백 + `toast.error`)
+- 아티클 카드: 우상단 ★/☆ 버튼 (active 시 `#f5a623`)
+- `ArticleDetailView.jsx` — 제목 옆 큰 ★/☆ 버튼
+- `MyBookmarksView.jsx` (신규) — 북마크 그리드 + 빈 상태
+- `Header.jsx` — 헤더 우상단(햄버거 옆) ★ 아이콘 + 드로어 "내 북마크" 메뉴 (이중 진입점). `currentView === 'bookmarks'`일 때 헤더 ★ 노란색 highlight
+- `Dashboard.css` — `.bookmarkBtn`, `.headerBookmarkBtn`, `.bookmarkPage`, `.bookmarkGrid` 등 신규 클래스
+
+### 설계 변경 메모: polymorphic → article-only
+- 초기 설계: `bookmark_target_type` + `bookmark_target_id`로 article + author 둘 다 지원
+- 실제 팀에서 생성한 테이블이 `article_id` 단일 컬럼 → 아티클 전용으로 단순화
+- 저자 북마크는 V2로 미룸 (필요 시 별도 테이블 또는 polymorphic 컬럼 추가)
+
+### 검증
+- 백엔드 `python -m compileall -q app` 통과
+- 백엔드 `from app.main import app` import 통과 (routes 52)
+- 프론트 `npm run build` 통과 (4.83s)
+
+### 메모
+- 푸시는 안 함 (사용자 요청). 로컬 커밋만 남기고 다음 사이클에 같이 올림
+
+---
+
+## 2026-05-21 - Claude (발표 전 UX 다듬기 + 권한 회귀 복구)
+
+### 토스트 알림 도입
+- `client/package.json` — `react-toastify` 추가
+- `client/src/App.jsx` — `<ToastContainer>` 마운트 (우상단, 3초 자동 닫힘)
+- alert 17곳 → `toast.success/error/warn` 교체
+  - CurriculumView 11, MasterDashboard 3, LearnerCurriculumView 2, Dashboard 1
+- Dashboard 검색 실패 catch(`Dashboard.jsx:138`)에 `toast.error` 추가
+- 조회수 증가 실패(`Dashboard.jsx:205`)는 백그라운드 호출이라 `console.error`만 유지
+
+### 학습자/일반회원 권한 회귀 복구
+- 배경: 디자이너 디자인 작업 중 `canUseCurriculum`/`canCreateCurriculum` 플래그가 함께 날아간 듯
+- `Dashboard.jsx` — 두 플래그 부활, 세션 복원 가드, Header/HeroBanner/CurriculumView 가드 적용
+- `Header.jsx` — 사이드 드로어 "커리큘럼 관리" 메뉴를 `canUseCurriculum && (...)` 조건 렌더
+- `HeroBanner.jsx` — `.floatingCtaHidden` CSS 클래스가 정의되지 않은 죽은 클래스였음. 조건부 렌더(`{showCreateCta && <div>...</div>}`)로 교체
+
+### 햄버거 드로어 사용자 정보
+- `Header.jsx` — 닫기 버튼 아래 사용자 정보 블록 추가 (이름 + 역할·회사)
+- `ROLE_LABELS` 상수로 c/j/m/a → 한글 매핑
+- `Dashboard.css` — `.drawerUserInfo`/`.drawerUserName`/`.drawerUserMeta` 3개 클래스 (기존 토큰 재사용)
+
+### 검증
+- `cd client && npm run build` 통과 (4.73s)
+- alert 검색 결과 0건 (`Grep alert\(` → no matches)
+- 백엔드 변경 없음
+
+### 메모
+- 푸시는 안 함 (사용자 요청). 로컬 커밋만 남기고 다음 푸시 사이클에 같이 올림
+
+---
+
 ## 2026-05-20 - Claude (챗봇 백엔드 제거 + CLAUDE.md 정리)
 
 ### 배경

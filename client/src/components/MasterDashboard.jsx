@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Doughnut, Line } from 'react-chartjs-2';
+import { toast } from 'react-toastify';
 import '../lib/chart';
 import api from '../lib/api';
 import ReportTemplate from './ReportTemplate';
@@ -299,7 +300,7 @@ function MasterDashboard({ user, onLogout }) {
       setDetailMember(res.data);
       setMembers((prev) => prev.map((m) => (m.user_id === res.data.user_id ? res.data : m)));
     } catch (err) {
-      alert(err.response?.data?.detail || '역할 변경에 실패했습니다.');
+      toast.error(err.response?.data?.detail || '역할 변경에 실패했습니다.');
     } finally {
       setActionSaving(false);
     }
@@ -314,7 +315,7 @@ function MasterDashboard({ user, onLogout }) {
       setMembers((prev) => prev.map((m) => (m.user_id === res.data.user_id ? res.data : m)));
       setConfirmDialog(null);
     } catch (err) {
-      alert(err.response?.data?.detail || '처리에 실패했습니다.');
+      toast.error(err.response?.data?.detail || '처리에 실패했습니다.');
     } finally {
       setActionSaving(false);
     }
@@ -387,7 +388,7 @@ function MasterDashboard({ user, onLogout }) {
         })
         .save();
     } catch (err) {
-      alert(err.response?.data?.detail || err.message || 'PDF 생성에 실패했습니다.');
+      toast.error(err.response?.data?.detail || err.message || 'PDF 생성에 실패했습니다.');
     } finally {
       setReportData(null);
       setReportGenerating(false);
