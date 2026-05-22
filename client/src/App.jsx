@@ -85,6 +85,7 @@ function App() {
       {screen === 'dashboard' && (
         <Dashboard
           user={user}
+          onUserUpdate={setUser}
           onLogout={handleLogout}
         />
       )}

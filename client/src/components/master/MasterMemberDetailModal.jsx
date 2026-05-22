@@ -90,6 +90,7 @@ function MasterMemberDetailModal({
               {[
                 { value: 'a', label: '관리자' },
                 { value: 'm', label: '매니저' },
+                { value: 'c', label: '일반회원' },
                 { value: 'j', label: '학습자' },
               ].map((opt) => {
                 const isActive = detailMember.user_role === opt.value;

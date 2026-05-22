@@ -2,6 +2,107 @@
 
 ---
 
+## 2026-05-22 - Claude (마스터 페이지: c-role 누락 보완 + 아티클 등록 UI 추가)
+
+### 배경
+- 마스터 페이지(admin 전용) 점검 결과 두 가지 누락 발견:
+  1. `c` (일반 회원) 역할이 UI 곳곳에 처리 안 됨 — 회원 목록에서 "학습자"로 잘못 표기, 필터 옵션 없음, 역할 변경 버튼 없음, 정렬 시 끝으로 밀림
+  2. admin 본분인 "아티클 등록" 화면 자체가 부재 (백엔드 `POST /api/articles` 는 존재했으나 호출할 UI 가 없었음)
+
+### 수정 1) c-role 누락 보완 (4곳)
+- `client/src/components/master/MasterMemberPanel.jsx`
+  - `statusFor()` 에 `c → '일반회원'` 분기 추가
+  - 역할 필터 select 에 `<option value="c">일반회원</option>` 추가
+- `client/src/components/master/MasterMemberDetailModal.jsx`
+  - 역할 변경 버튼 배열에 `{value: 'c', label: '일반회원'}` 추가 (a/m/c/j 4개로 확장)
+- `client/src/components/MasterDashboard.jsx`
+  - `ROLE_ORDER` 에 `c: 3` 추가 (a/m/j 뒤로 정렬)
+
+### 수정 2) 아티클 등록 UI 추가
+- 신규 컴포넌트 `client/src/components/master/MasterArticleCreateModal.jsx`
+  - 사이드 패널 (회원관리 패널과 동일 패턴)
+  - 폼 필드: 출처(DBR/HBR 토글) / 제목 / 저자 / 발행일 / 카테고리(datalist 자동완성) / 원문 URL / 본문(선택, 입력 시 RAG 인제스트)
+  - 카테고리 옵션은 `GET /articles/categories` 에서 자동 로드
+  - 필수 필드 검증 후 `POST /articles` 호출
+  - 성공 시 토스트 + 폼 초기화 + 패널 닫힘
+- `client/src/components/MasterDashboard.jsx`
+  - 헤더에 "아티클 등록" 버튼 추가 (회원관리 버튼 왼쪽)
+  - `articleCreateOpen` state + 모달 렌더
+- `client/src/styles/MasterDashboard.css`
+  - `.masterArticlePanel`, `.masterArticleForm`, `.masterArticleField`, `.masterArticleSourceBtn`, `.masterArticleSubmitBtn` 등 추가
+  - 회원관리 패널과 동일한 어두운 톤 + 슬라이드인 애니메이션 재사용
+
+### 백엔드 정합성 보완
+- `server/app/schemas/article.py` `ArticleCreate`
+  - 기존: author/published_date/category/source_url 가 Optional 이었음 (스키마 ↔ 모델 NOT NULL 불일치)
+  - 변경: 모두 필수 (스키마와 DB 정합성 일치, 클라이언트가 빈 값 보내면 422 로 친절하게 거부)
+- 새 endpoint 없음, 마이그레이션 없음
+
+### 한계 / 후속
+- 썸네일 업로드는 이번 사이클 제외 (별도 thumbnail_service 흐름 분석 필요)
+- 아티클 수정/삭제 UI 없음 — 추후 사이클
+- 회사 초대 코드 재발급 (1회 제한) 액션은 다음 작업
+
+### 검증
+- 프론트 `npm run build` 통과 (4.93s)
+- 백엔드 `python -m compileall -q app` 통과
+- 실 사용: admin 계정 → 회원관리에서 일반회원 표시/필터/역할변경 동작, "아티클 등록" 패널에서 폼 작성 후 등록 → 메인 대시보드에 즉시 반영 확인 필요
+
+### 메모
+- 의존성/마이그레이션 변경 없음
+
+---
+
+## 2026-05-22 - Claude (일반 회원 c → 매니저 m 승급 구독 팝업 추가 / 결제 시뮬레이션)
+
+### 배경
+- 발표용 정책상 결제 게이트웨이는 미구현이고 admin 이 DB 직접 수정으로 매니저 승급을 시뮬레이션해 옴
+- 발표 시나리오에서 "일반 회원 → 결제 → 매니저 승급 → 학습자 초대" 사이클을 라이브로 보여주기 위해 UI 한 흐름 추가
+- 실제 PG 연동 없이 즉시 승급 처리
+
+### 백엔드
+- `server/app/routers/user.py` 에 `POST /api/users/me/upgrade` 추가
+  - 본인이 `c` 일 때만 허용 (그 외 400)
+  - `user_role = 'm'` 으로 변경 + `invite_code_service.generate_unique_invite_code(db)` 로 회사 초대 코드 발급
+  - 응답은 기존 `UserResponse` 재활용
+- 신규 스키마/마이그레이션 없음 (기존 `user_invite_code` 컬럼 그대로 사용)
+
+### 프론트
+- 신규 컴포넌트 `client/src/components/SubscribeModal.jsx`
+  - 요금제 카드(99,000원/월) + 기능 리스트 + 결제하기 버튼
+  - 클릭 시 `POST /users/me/upgrade` 호출, 성공 시 `onSuccess(updatedUser)` 콜백 + 토스트
+- `client/src/styles/Dashboard.css` 에 `.subscribeOverlay/.subscribeModal/.subscribePlan*/.subscribeActions/...` 추가 (createPortal 기반 모달 패턴)
+- `client/src/App.jsx`: `Dashboard` 에 `onUserUpdate={setUser}` prop 전달
+- `client/src/components/Dashboard.jsx`
+  - `onUserUpdate` prop 수신 + `subscribeOpen` state 추가
+  - `canSubscribe = user_role === 'c'` 분기로 HeroBanner CTA 토글
+  - SubscribeModal 렌더, 성공 시 setUser 갱신 → Header 드로어의 초대 코드 자동 노출
+- `client/src/components/HeroBanner.jsx`
+  - 새 prop `showSubscribeCta`/`onSubscribe` 추가
+  - `c` 일 때만 "OJT 매니저로 시작하기" CTA 노출 (m/a 는 기존 "커리큘럼 생성하기" 그대로)
+
+### 시연 흐름
+1. 일반 회원으로 로그인 → 메인 배너 하단 "OJT 매니저로 시작하기" 클릭
+2. 구독 모달 → "결제하기" 클릭 (게이트웨이 시뮬레이션, 즉시 승급)
+3. 토스트 "매니저로 승급되었습니다" + setUser 갱신
+4. 햄버거 드로어 열면 회사 초대 코드 즉시 표시 (마스킹/복사/표시 토글 기존 그대로)
+5. 메인 CTA 도 "커리큘럼 생성하기" 로 자동 전환
+
+### 한계 / 후속
+- 실제 PG/카드 입력 UI 없음. 발표 시연용
+- 권한 회귀: m → c 다운그레이드 엔드포인트는 안 만듦 (어드민 DB 직접 처리)
+- 초대 코드 재발급(1회 제한) 흐름도 별도 사이클
+
+### 검증
+- 프론트 `npm run build` 통과 (5.01s)
+- 백엔드 `python -m compileall -q app` 통과
+- 실 사용: 일반 회원 계정으로 클릭 → 매니저 권한 + 초대 코드 표시 확인 필요
+
+### 메모
+- 의존성/마이그레이션 변경 없음. 팀원 풀 후 추가 작업 없음
+
+---
+
 ## 2026-05-22 - Claude (학습자/매니저 임시저장 기능 추가 / localStorage 기반)
 
 ### 배경

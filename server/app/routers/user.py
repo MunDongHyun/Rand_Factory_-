@@ -70,6 +70,25 @@ def get_me(current_user: User = Depends(get_current_user)):
     return current_user
 
 
+@router.post("/me/upgrade", response_model=UserResponse)
+def upgrade_to_manager(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """일반 회원(c) → 매니저(m) 승급 + 회사 초대 코드 발급.
+
+    실제 결제 게이트웨이 연동은 발표용 정책으로 미구현. 호출 즉시 승급 처리.
+    """
+    if current_user.user_role != "c":
+        raise HTTPException(status_code=400, detail="일반 회원만 매니저로 승급할 수 있습니다")
+
+    current_user.user_role = "m"
+    current_user.user_invite_code = invite_code_service.generate_unique_invite_code(db)
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
 @router.get("/stats", response_model=UserStatsResponse)
 def get_user_stats(
     db: Session = Depends(get_db),

@@ -12,6 +12,7 @@ function statusFor(member) {
   if (member.user_deleted_at) return '탈퇴';
   if (member.user_role === 'a') return '관리자';
   if (member.user_role === 'm') return '매니저';
+  if (member.user_role === 'c') return '일반회원';
   return '학습자';
 }
 
@@ -57,6 +58,7 @@ function MasterMemberPanel({
             <option value="all">전체</option>
             <option value="a">관리자</option>
             <option value="m">매니저</option>
+            <option value="c">일반회원</option>
             <option value="j">학습자</option>
             <option value="deleted">탈퇴</option>
           </select>
