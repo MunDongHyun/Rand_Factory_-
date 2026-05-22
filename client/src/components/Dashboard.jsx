@@ -10,6 +10,7 @@ import EmailingView from './EmailingView';
 import ArticleDetailView from './ArticleDetailView';
 import HeroBanner from './HeroBanner';
 import MyBookmarksView from './MyBookmarksView';
+import SubscribeModal from './SubscribeModal';
 
 const SECTION_THEMES = ['blue', 'green', 'brown'];
 
@@ -25,9 +26,11 @@ const CATEGORY_EN = {
   '기타': 'OTHERS'
 };
 
-function Dashboard({ user, onLogout }) {
+function Dashboard({ user, onUserUpdate, onLogout }) {
   const canUseCurriculum = ['j', 'm', 'a'].includes(user?.user_role);
   const canCreateCurriculum = ['m', 'a'].includes(user?.user_role);
+  const canSubscribe = user?.user_role === 'c';
+  const [subscribeOpen, setSubscribeOpen] = useState(false);
 
   const [view, setView] = useState('articles');
   const [selectedArticle, setSelectedArticle] = useState(null);
@@ -415,10 +418,21 @@ function Dashboard({ user, onLogout }) {
       {view === 'articles' && (
         <HeroBanner
           showCreateCta={canCreateCurriculum}
+          showSubscribeCta={canSubscribe}
           onCreateCurriculum={() => setView('curriculum')}
+          onSubscribe={() => setSubscribeOpen(true)}
           onOpenArticle={openArticleDetail}
         />
       )}
+
+      <SubscribeModal
+        open={subscribeOpen}
+        onClose={() => setSubscribeOpen(false)}
+        onSuccess={(updatedUser) => {
+          setSubscribeOpen(false);
+          if (onUserUpdate) onUserUpdate(updatedUser);
+        }}
+      />
 
       <main className="dashMain">
         {view === 'articles' && <ArticleListView />}

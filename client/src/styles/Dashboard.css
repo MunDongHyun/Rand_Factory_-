@@ -1263,3 +1263,160 @@
   font-weight: bold;
 }
 
+/* --- 구독 모달 (일반 회원 c → 매니저 m 승급) --- */
+.subscribeOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  z-index: 9998;
+}
+
+.subscribeModal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(480px, calc(100vw - 32px));
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  padding: 28px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.subscribeModalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.subscribeModalTitle {
+  font-size: 20px;
+  font-weight: 800;
+  color: #1a202c;
+  margin: 0;
+}
+
+.subscribeCloseBtn {
+  background: none;
+  border: none;
+  font-size: 26px;
+  line-height: 1;
+  color: #718096;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.subscribeCloseBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.subscribePlanCard {
+  position: relative;
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+  color: #fff;
+  border-radius: 12px;
+  padding: 22px 22px 20px;
+}
+
+.subscribePlanBadge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  background: rgba(255, 255, 255, 0.16);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.subscribePlanPrice {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.subscribePlanAmount {
+  font-size: 32px;
+  font-weight: 800;
+}
+
+.subscribePlanUnit {
+  font-size: 14px;
+  color: #cbd5e0;
+}
+
+.subscribePlanFeatures {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.subscribePlanFeatures li {
+  font-size: 14px;
+  color: #e2e8f0;
+  position: relative;
+  padding-left: 20px;
+}
+
+.subscribePlanFeatures li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: #68d391;
+  font-weight: 700;
+}
+
+.subscribePlanNote {
+  font-size: 13px;
+  color: #4a5568;
+  background: #f7fafc;
+  border-left: 3px solid #cbd5e0;
+  padding: 10px 12px;
+  border-radius: 0 6px 6px 0;
+  margin: 0;
+}
+
+.subscribeActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.subscribeCancelBtn {
+  background: #fff;
+  border: 1px solid #cbd5e0;
+  color: #4a5568;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.subscribePayBtn {
+  background: #1a202c;
+  border: none;
+  color: #fff;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.subscribeCancelBtn:disabled,
+.subscribePayBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+

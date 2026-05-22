@@ -24,7 +24,7 @@ const SLIDES = [
 
 const INTERVAL = 6000;
 
-export default function HeroBanner({ showCreateCta = true, onCreateCurriculum, onOpenArticle }) {
+export default function HeroBanner({ showCreateCta = true, showSubscribeCta = false, onCreateCurriculum, onSubscribe, onOpenArticle }) {
     const [current, setCurrent] = useState(0);
     const [animating, setAnimating] = useState(false);
     const [direction, setDirection] = useState("next");
@@ -114,6 +114,14 @@ export default function HeroBanner({ showCreateCta = true, onCreateCurriculum, o
                     <button className="floatingCtaBtn" onClick={onCreateCurriculum}>
                         <span className="floatingCtaIcon">✦</span>
                         커리큘럼 생성하기
+                    </button>
+                </div>
+            )}
+            {showSubscribeCta && (
+                <div className="floatingCta">
+                    <button className="floatingCtaBtn" onClick={onSubscribe}>
+                        <span className="floatingCtaIcon">✦</span>
+                        OJT 매니저로 시작하기
                     </button>
                 </div>
             )}
