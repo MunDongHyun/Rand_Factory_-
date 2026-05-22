@@ -49,9 +49,15 @@ body,
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  min-height: 1024px;
+  overflow-x: auto;
 }
 
-/* 글로벌 스크롤바 스타일 */
+body {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: keep-all; 
+}
 * {
   scrollbar-width: thin;
   scrollbar-color: rgba(148, 184, 200, 0.6) transparent;
