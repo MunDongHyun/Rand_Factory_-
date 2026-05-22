@@ -2,6 +2,81 @@
 
 ---
 
+## 2026-05-22 - Claude (학습자/매니저 임시저장 기능 추가 / localStorage 기반)
+
+### 배경
+- 뒤로가기 점프 수정 후에도, 매니저가 템플릿 모달을 닫으면 다음에 다시 열 때 `openTemplateModal` 이 `assignment.template_content` 로 매번 reset 해서 작성 중이던 content 가 사라짐
+- 학습자 측도 `handleAssignmentClick` 가 매번 `assignmentData` 로 새로 init 해서 작성 중이던 답안이 보존되지 않음
+- 발표 시연 중 흐름이 끊기지 않도록 양쪽에 가벼운 임시저장 기능 필요
+
+### 구현 방식 (localStorage)
+- 백엔드 변경 없음. 브라우저 단위 임시저장
+- 키 형식:
+  - 매니저: `template_draft:{cur_id}:{week}:{idx}`
+  - 학습자: `task_draft:{cur_id}:{week}:{idx}`
+- 진입 시 자동 복원 + `toast.info('임시저장본을 불러왔습니다.')`
+- "임시저장" 버튼 클릭 시 명시 저장 + 성공 토스트
+- 정식 저장(매니저: 템플릿 배포 / 학습자: 최종 과제 제출) 성공 시 해당 키 삭제
+
+### 변경 파일
+- `client/src/components/CurriculumView.jsx`
+  - `templateDraftKey()`, `saveTemplateDraft()` 추가
+  - `openTemplateModal()`: localStorage 확인 → 있으면 우선 사용 + 토스트
+  - `saveTemplate()` 성공 분기: localStorage 키 제거
+  - 모달 footer 에 "임시저장" 버튼 (취소/배포 사이) 추가
+- `client/src/components/LearnerCurriculumView.jsx`
+  - `taskDraftKey()`, `saveTaskDraft()` 추가
+  - `handleAssignmentClick()`: 편집 모드 진입 시 localStorage 우선 적용 + 토스트
+  - `handleSubmit()` 성공 분기: localStorage 키 제거
+  - 제출 버튼 옆에 "임시저장" 버튼 추가
+
+### 한계 / 메모
+- localStorage 기반이라 다른 PC/브라우저에서는 안 보임. 발표 시연용으론 충분
+- 임시저장본 자동 만료 없음 — 오래된 키가 쌓일 수 있으나 발표용은 무관
+- 동일 사용자/PC 가정. 한 PC 에서 학습자 계정 두 개 쓰는 케이스는 미고려 (드물고 발표 외 시나리오)
+
+### 검증
+- 프론트 `npm run build` 통과 (5.12s)
+- 실 사용 흐름: 매니저 템플릿 작성 → 임시저장 → 모달 닫음/뒤로가기 → 재오픈 시 복원, 학습자 동일 시나리오, 정식 저장 후 localStorage 제거 확인 필요
+
+---
+
+## 2026-05-22 - Claude (학습자/매니저 커리큘럼 뒤로가기 시 메인 점프 수정)
+
+### 증상
+- 학습자가 과제 상세(activeTask)에 들어간 상태에서 브라우저 뒤로가기 → 메인 대시보드로 점프 (커리큘럼 목록 안 거침)
+- 매니저가 "과제 양식 배포" 템플릿 모달(`templateModal.open=true`) 상태에서 뒤로가기 → 동일하게 메인 점프, 작성 중이던 content 가 사라짐
+
+### 원인
+- `Dashboard.jsx` 에 `curriculumDetailRef = useRef(false)` 라는 escape hatch 가 이미 만들어져 있고 popstate 핸들러가 `if (curriculumDetailRef.current) return` 로 빠져나가게 돼 있음
+- 그러나 `LearnerCurriculumView` 는 ref 를 prop 으로 받기만 하고 한 번도 `true` 로 세팅하지 않음
+- `CurriculumView` 는 그 ref 자체를 prop 으로 받지조차 않음
+- 결과: 두 컴포넌트의 모든 상세 상태에서 popstate 가 Dashboard 의 fallback (`setView('articles')`)로 흘러서 메인 점프
+
+### 수정
+- `Dashboard.jsx`: `CurriculumView` 에도 `curriculumDetailRef` prop 으로 같은 ref 전달 (학습자 측은 이미 넘기고 있었음)
+- `LearnerCurriculumView.jsx`: `activeTask` 변화 추적 useEffect 추가
+  - 진입 시 ref.current = true + `pushState` 한 번
+  - popstate 발생 시 `setActiveTask(null) + setEditorFullscreen(false)` 로 과제 닫고 목록으로 복귀
+  - cleanup 에서 ref.current = false 복원
+- `CurriculumView.jsx`: `templateModal.open` 변화 추적 useEffect 추가
+  - 진입 시 ref.current = true + `pushState`
+  - popstate 시 `setTemplateModal({...prev, open: false, fullscreen: false})` 로 모달만 닫음
+  - `templateModal.content` 는 state 에 살아 있어서 같은 모달 다시 열면 복원됨
+
+### 한계 / 후속
+- 매니저의 다른 모달(`manageModalOpen`, `modalOpen`, `confirmOpen`, `assignModalOpen`)은 이번 사이클에서 처리 안 함. 같은 동선 발견 시 동일 패턴 한 번씩 추가
+- 학습자 "전체보기 → 일반 편집 → 목록 → 메인" 4단계 백 스택은 미구현. 전체보기 상태에서도 뒤로가기 한 번에 목록으로 복귀하는 단순 흐름. 정밀 4단계는 V2
+
+### 검증
+- 프론트 `npm run build` 통과 (5.35s)
+- 실 사용: 학습자/매니저 두 계정에서 과제 진입 + 뒤로가기 200/모달 닫힘 확인 필요
+
+### 메모
+- 의존성/마이그레이션 변경 없음. 팀원 풀 후 추가 작업 없음
+
+---
+
 ## 2026-05-22 - Claude (커리큘럼 목록 500 / sort buffer 폭발 수정)
 
 ### 증상

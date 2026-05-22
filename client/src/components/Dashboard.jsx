@@ -435,7 +435,7 @@ function Dashboard({ user, onLogout }) {
         {view === 'curriculum' && canUseCurriculum && (
           user?.user_role === 'j'
             ? <LearnerCurriculumView curriculumDetailRef={curriculumDetailRef} />
-            : <CurriculumView onOpenArticle={openArticleDetail} onModalToggle={setIsSubModalOpen} />
+            : <CurriculumView onOpenArticle={openArticleDetail} onModalToggle={setIsSubModalOpen} curriculumDetailRef={curriculumDetailRef} />
         )}
 
         {view === 'bookmarks' && (

@@ -111,18 +111,62 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
     setExpandedWeek((prev) => (prev === week ? null : week));
   };
 
-  const handleAssignmentClick = (week, assignmentIdx, assignmentData) => {
-    setActiveTask({ week, assignmentIdx, assignmentData });
-    const sub = getLatestSubmission(selectedId, week, assignmentIdx);
+  const taskDraftKey = (curId, week, idx) => `task_draft:${curId}:${week}:${idx}`;
 
-    if (!sub || sub.task_status === 'resubmit_requested') {
-      setIsEditing(true);
-    } else {
-      setIsEditing(false);
+  const handleAssignmentClick = (week, assignmentIdx, assignmentData) => {
+    const sub = getLatestSubmission(selectedId, week, assignmentIdx);
+    const willEdit = !sub || sub.task_status === 'resubmit_requested';
+
+    let data = assignmentData;
+    if (willEdit && selectedId != null) {
+      try {
+        const draft = localStorage.getItem(taskDraftKey(selectedId, week, assignmentIdx));
+        if (draft != null) {
+          data = { ...assignmentData, template_content: draft };
+          toast.info('임시저장본을 불러왔습니다.');
+        }
+      } catch {}
     }
+
+    setActiveTask({ week, assignmentIdx, assignmentData: data });
+    setIsEditing(willEdit);
     setSubmitFiles([]);
     setSubmitError(null);
   };
+
+  const saveTaskDraft = () => {
+    if (!activeTask || !submitEditorRef.current || selectedId == null) return;
+    try {
+      const htmlCopy = submitEditorRef.current.cloneNode(true);
+      htmlCopy.querySelectorAll('[contenteditable="true"]').forEach((el) => {
+        if (el.querySelector('.placeholder-text')) el.innerHTML = '';
+        el.removeAttribute('contenteditable');
+        el.removeAttribute('style');
+      });
+      const key = taskDraftKey(selectedId, activeTask.week, activeTask.assignmentIdx);
+      localStorage.setItem(key, htmlCopy.innerHTML);
+      toast.success('임시저장 되었습니다.');
+    } catch {
+      toast.error('임시저장에 실패했습니다.');
+    }
+  };
+
+  // 과제 상세 진입 시 브라우저 뒤로가기 → 메인 대시보드 점프 방지.
+  // ref 로 Dashboard popstate 무시시키고 자체 리스너에서 activeTask 만 해제
+  useEffect(() => {
+    if (!activeTask || !curriculumDetailRef) return;
+    curriculumDetailRef.current = true;
+    window.history.pushState({ taskOpen: true, t: Date.now() }, '');
+    const onPop = () => {
+      setActiveTask(null);
+      setEditorFullscreen(false);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      curriculumDetailRef.current = false;
+    };
+  }, [activeTask, curriculumDetailRef]);
 
   useEffect(() => {
     if (isEditing && activeTask && submitEditorRef.current) {
@@ -303,6 +347,9 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
 
       await loadSubmissions();
       setIsEditing(false);
+      try {
+        localStorage.removeItem(taskDraftKey(selectedId, activeTask.week, activeTask.assignmentIdx));
+      } catch {}
       if (failures.length > 0) toast.warn(`제출은 완료됐지만 일부 첨부 업로드에 실패했습니다:\n${failures.join('\n')}`);
       else toast.success("성공적으로 제출되었습니다.");
 
@@ -595,7 +642,14 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
                         </p>
                       )}
 
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px', gap: '8px' }}>
+                        <button
+                          onClick={saveTaskDraft}
+                          disabled={submitting}
+                          style={{ background: '#fff', border: '1px solid var(--ink)', color: 'var(--ink)', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}
+                        >
+                          임시저장
+                        </button>
                         <button
                           onClick={handleSubmit}
                           disabled={submitting}
