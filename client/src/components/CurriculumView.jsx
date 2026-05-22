@@ -113,9 +113,9 @@ const LoadingModal = ({ generating, currentMessageIndex }) => {
   const messages = [
     { text: "AI가 커리큘럼 초안을 구상 중입니다...", img: rodingRafaGif },
     { text: "직무에 맞는 학습 목표를 설정하고 있습니다...", img: rodingRafaGif },
-    { text: "주차별 상세 과제를 생성 중입니다...", img: randLogo },
-    { text: "거의 다 되었습니다. 마지막 정리 중입니다...", img: randLogo },
-    { text: "커리큘럼 생성이 완료되었습니다!", img: randLogo }
+    { text: "주차별 상세 과제를 생성 중입니다...", img: rodingRafaGif  },
+    { text: "거의 다 되었습니다. 마지막 정리 중입니다...", img: rodingRafaGif  },
+    { text: "커리큘럼 생성이 완료되었습니다!", img: rodingRafaGif  }
   ];
 
   const currentMessage = messages[currentMessageIndex];
@@ -976,7 +976,7 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef }) {
             <div className="confirmOverlay" style={{ zIndex: 99998 }} onClick={() => setTemplateModal({ ...templateModal, open: false })} />
             <div className={`confirmModal templateModal ${templateModal.fullscreen ? 'fullscreen' : ''}`} style={{ zIndex: 99999, display: 'flex', flexDirection: 'column', height: '90vh', overflow: 'hidden' }}>
               <div className="modalTopBar" style={{ flexShrink: 0 }}>
-                <h3 className="sectionTitle">과제 양식(템플릿) 배포</h3>
+                <h3 className="templateSectionTitle">과제 양식(템플릿) 배포</h3>
                 <div className="modalHeaderActions">
                   <button type="button" className="template-action-btn admin ai-regenerate-btn" onClick={handleRegenerateTemplate} disabled={templateModal.generating}>
                     {templateModal.generating ? 'AI 작성 중...' : 'AI 템플릿 재작성'}

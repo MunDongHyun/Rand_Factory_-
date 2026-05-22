@@ -8,6 +8,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .articleDetailContent {
@@ -17,6 +18,7 @@
   border-radius: 12px;
   padding: 48px;
   box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .detailBackBtn {
@@ -269,7 +271,7 @@
 =========================== */
 .carouselWrapper {
   width: 100%;
-  min-height: 550px;
+  min-height: 700px;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -297,7 +299,7 @@
 .slideProgress {
   display: flex;
   gap: 8px;
-  margin-bottom: 24px;
+  margin-bottom: 50px;
 }
 
 .progressDot {
@@ -712,4 +714,155 @@
   font-size: 14px;
   line-height: 1.7;
   color: #666;
+}
+
+/* ===========================
+   반응형 (Responsive)
+=========================== */
+
+/* 태블릿: ~1024px */
+@media (max-width: 1024px) {
+  .articleDetailContainer {
+    width: 90%;
+    padding: 28px 0;
+  }
+
+  .articleDetailContent {
+    padding: 36px;
+  }
+
+  .carouselWrapper {
+    min-height: 600px;
+    padding: 40px 0;
+  }
+
+  .slideCard {
+    max-width: 380px;
+  }
+
+  .slideCard.expanded {
+    max-width: 680px;
+  }
+}
+
+/* 모바일: ~768px */
+@media (max-width: 768px) {
+  .articleDetailContainer {
+    width: 100%;
+    padding: 16px 0;
+  }
+
+  .articleDetailContent {
+    padding: 24px 20px;
+    border-radius: 8px;
+    border-left: none;
+    border-right: none;
+  }
+
+  .articleDetailTitle {
+    font-size: 22px;
+  }
+
+  .summaryTitle {
+    font-size: 24px;
+  }
+
+  /* 캐러셀 */
+  .carouselWrapper {
+    min-height: auto;
+    padding: 32px 0;
+    margin: 24px 0;
+  }
+
+  .slideCardTrack {
+    min-height: 340px;
+  }
+
+  .slideCard {
+    max-width: 300px;
+    padding: 28px 24px;
+    min-height: 260px;
+  }
+
+  .slideCard.expanded {
+    max-width: calc(100vw - 60px);
+  }
+
+  /* expanded 시 좌우 섹션을 세로로 전환 */
+  .slideCardInner {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .dividerLine {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--line), transparent);
+    align-self: auto;
+  }
+
+  /* prev/next 카드 더 많이 숨기기 */
+  .slideCard.prev {
+    transform: translateX(-45%) translateZ(-200px) rotateY(15deg);
+    opacity: 0.25;
+  }
+
+  .slideCard.next {
+    transform: translateX(45%) translateZ(-200px) rotateY(-15deg);
+    opacity: 0.25;
+  }
+
+  /* OJT */
+  .ojtGrid {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .ojtCard {
+    width: 100%;
+  }
+
+  /* 요약 헤더 */
+  .summaryThemeWrapper {
+    margin-top: 36px;
+  }
+
+  .summaryTheme {
+    font-size: 17px;
+    margin-top: 36px;
+  }
+}
+
+/* 소형 모바일: ~480px */
+@media (max-width: 480px) {
+  .articleDetailContent {
+    padding: 20px 16px;
+  }
+
+  .articleDetailTitle {
+    font-size: 19px;
+  }
+
+  .summaryTitle {
+    font-size: 20px;
+  }
+
+  .cardTitle {
+    font-size: 18px;
+  }
+
+  .cardNum {
+    font-size: 26px;
+  }
+
+  .slideCard {
+    max-width: 260px;
+    padding: 22px 18px;
+  }
+
+  .sliderNavBtn {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
 }

@@ -248,6 +248,7 @@ function ArticleDetailView({ article, onBack, onOpenEmailing, isBookmarked = fal
                               className={`cardExpandBtn ${expandedCard === index ? 'isExpanded' : ''}`}
                               onClick={(e) => {
                                 e.stopPropagation();
+                                if (pos !== 'current') return;
                                 toggleCard(index);
                               }}
                             >
