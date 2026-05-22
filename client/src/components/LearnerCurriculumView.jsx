@@ -292,7 +292,9 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
   }, [isEditing, activeTask]);
 
   const handleFileSelect = (e) => {
-    setSubmitFiles((prev) => [...prev, ...Array.from(e.target.files || [])]);
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    setSubmitFiles((prev) => [...prev, ...files]);
     e.target.value = '';
   };
   const handleFileRemove = (idx) => setSubmitFiles((prev) => prev.filter((_, i) => i !== idx));
