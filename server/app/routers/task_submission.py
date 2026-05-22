@@ -230,6 +230,41 @@ def list_my_submissions(
     return [_submission_response(submission) for submission in submissions]
 
 
+@router.get("/by-learner/{user_id}", response_model=list[TaskSubmissionResponse])
+def list_submissions_by_learner(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """매니저/관리자 전용: 특정 학습자의 모든 제출 이력 (최신순).
+
+    - admin: 모든 학습자
+    - manager: 본인 회사 활성 학습자만
+    """
+    if current_user.user_role not in {"m", "a"}:
+        raise HTTPException(status_code=404, detail="찾을 수 없습니다")
+
+    learner = db.query(User).filter(User.user_id == user_id).first()
+    if not learner:
+        raise HTTPException(status_code=404, detail="학습자를 찾을 수 없습니다")
+
+    if current_user.user_role == "m":
+        if (
+            learner.user_role != "j"
+            or learner.user_company != current_user.user_company
+            or learner.user_deleted_at is not None
+        ):
+            raise HTTPException(status_code=404, detail="찾을 수 없습니다")
+
+    submissions = (
+        db.query(TaskSubmission)
+        .filter(TaskSubmission.task_learner_id == user_id)
+        .order_by(TaskSubmission.task_submitted_at.desc())
+        .all()
+    )
+    return [_submission_response(submission) for submission in submissions]
+
+
 @router.get("/by-curriculum/{cur_id}", response_model=list[TaskSubmissionWithLearnerResponse])
 def list_submissions_by_curriculum(
     cur_id: int,

@@ -1,8 +1,10 @@
 /* --- 학습자 관리 페이지 (매니저 전용) --- */
 .learnerMgmtContainer {
   padding: 24px 32px 60px;
-  max-width: 1100px;
+  width: 100%;
+  max-width: 1600px;
   margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .learnerMgmtHeader {
@@ -12,28 +14,75 @@
 .learnerMgmtTitle {
   font-size: 22px;
   font-weight: 800;
-  color: var(--ink, #1a202c);
+  color: var(--ink);
   margin: 0 0 6px;
 }
 
 .learnerMgmtSubtitle {
   font-size: 13px;
-  color: #718096;
+  color: var(--ink-muted);
   margin: 0;
 }
 
+/* --- 분할 레이아웃 --- */
+.learnerMgmtSplit {
+  display: grid;
+  grid-template-columns: minmax(320px, 440px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: stretch;
+  height: calc(100vh - 220px);
+  min-height: 480px;
+}
+
+@media (max-width: 900px) {
+  .learnerMgmtSplit {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+    min-height: 0;
+  }
+}
+
+/* --- 우측 상세 내부 2단 그리드 --- */
+.learnerMgmtDetailGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .learnerMgmtDetailGrid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+}
+
+.learnerMgmtDetailGrid .learnerMgmtSection {
+  margin-bottom: 0;
+}
+
+/* --- 좌측 사이드 --- */
+.learnerMgmtSide {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
 .learnerMgmtInviteCard {
-  background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%);
-  border: 1px solid #e2e8f0;
+  background: var(--bg-alt);
+  border: 1px solid var(--line);
   border-radius: 12px;
-  padding: 18px 20px;
-  margin-bottom: 20px;
+  padding: 16px 18px;
 }
 
 .learnerMgmtInviteLabel {
   font-size: 12px;
   font-weight: 600;
-  color: #4a5568;
+  color: var(--ink-muted);
   margin-bottom: 8px;
 }
 
@@ -45,71 +94,69 @@
 }
 
 .learnerMgmtInviteCode {
+  flex: 1;
   font-family: 'Pretendard', monospace;
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 700;
-  color: #1a202c;
-  background: #fff;
-  border: 1px solid #cbd5e0;
+  color: var(--ink);
+  background: var(--card);
+  border: 1px solid var(--line);
   border-radius: 6px;
-  padding: 6px 12px;
+  padding: 6px 10px;
   letter-spacing: 1px;
+  text-align: center;
 }
 
 .learnerMgmtInviteAction {
-  background: #fff;
-  border: 1px solid #cbd5e0;
+  background: var(--card);
+  border: 1px solid var(--line);
   border-radius: 6px;
   padding: 6px 10px;
   cursor: pointer;
   font-size: 14px;
+  color: var(--ink);
 }
 
 .learnerMgmtInviteAction:hover {
-  background: #f7fafc;
+  background: var(--bg);
 }
 
 .learnerMgmtInviteHint {
   font-size: 12px;
-  color: #718096;
+  color: var(--ink-muted);
   margin: 0;
 }
 
 .learnerMgmtControls {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 14px;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.learnerMgmtSearch {
-  flex: 1;
-  border: 1px solid #e2e8f0;
+.learnerMgmtSearch,
+.learnerMgmtSort {
+  border: 1px solid var(--line);
   border-radius: 8px;
   padding: 9px 12px;
   font-size: 14px;
+  background: var(--card);
+  color: var(--ink);
   font-family: 'Pretendard', sans-serif;
 }
 
-.learnerMgmtSearch:focus {
+.learnerMgmtSearch:focus,
+.learnerMgmtSort:focus {
   outline: none;
-  border-color: #3182ce;
+  border-color: var(--primary);
 }
 
 .learnerMgmtSort {
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 9px 12px;
-  font-size: 14px;
-  background: #fff;
-  font-family: 'Pretendard', sans-serif;
   cursor: pointer;
 }
 
 .learnerMgmtCount {
   font-size: 12px;
-  color: #718096;
-  white-space: nowrap;
+  color: var(--ink-muted);
 }
 
 .learnerMgmtList {
@@ -118,42 +165,49 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .learnerMgmtCard {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: var(--card);
+  border: 1px solid var(--line);
   border-radius: 10px;
-  padding: 16px 20px;
+  padding: 12px 14px;
   cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  gap: 10px;
 }
 
 .learnerMgmtCard:hover {
-  border-color: #3182ce;
-  box-shadow: 0 2px 10px rgba(49, 130, 206, 0.08);
+  border-color: var(--primary);
+  background: var(--bg-alt);
+}
+
+.learnerMgmtCard.active {
+  border-color: var(--primary);
+  background: var(--bg-alt);
+  box-shadow: 0 2px 10px rgba(148, 184, 200, 0.25);
 }
 
 .learnerMgmtCardLeft {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
   min-width: 0;
 }
 
 .learnerMgmtCardName {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
-  color: #1a202c;
+  color: var(--ink);
 }
 
 .learnerMgmtCardEmail {
-  font-size: 13px;
-  color: #718096;
+  font-size: 12px;
+  color: var(--ink-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -163,167 +217,402 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 4px;
+  gap: 3px;
+  white-space: nowrap;
 }
 
 .learnerMgmtCardDate {
-  font-size: 12px;
-  color: #a0aec0;
+  font-size: 11px;
+  color: var(--ink-muted);
 }
 
-.learnerMgmtCardCta {
-  font-size: 12px;
-  color: #3182ce;
-  font-weight: 600;
+.learnerMgmtCardArrow {
+  font-size: 11px;
+  color: var(--primary);
 }
 
 .learnerMgmtEmpty {
   text-align: center;
-  padding: 40px 20px;
-  color: #718096;
+  padding: 30px 16px;
+  color: var(--ink-muted);
 }
 
 .learnerMgmtEmpty p {
   margin: 4px 0;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .learnerMgmtEmptyHint {
-  font-size: 13px;
-  color: #a0aec0;
+  font-size: 12px;
 }
 
 .learnerMgmtLoading,
 .learnerMgmtError {
   text-align: center;
-  padding: 30px 20px;
-  font-size: 14px;
+  padding: 24px 16px;
+  font-size: 13px;
+  color: var(--ink-muted);
 }
 
 .learnerMgmtError {
-  color: #e53e3e;
+  color: #c0392b;
 }
 
-/* --- 학습자 상세 모달 --- */
-.learnerDetailOverlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.55);
-  z-index: 9998;
+/* --- 우측 상세 --- */
+.learnerMgmtDetail {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 24px 28px;
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
-.learnerDetailModal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: min(520px, calc(100vw - 32px));
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
-  padding: 28px;
-  z-index: 9999;
+.learnerMgmtDetailGrid .learnerMgmtSection {
+  min-width: 0;
+}
+
+.learnerMgmtEmptyDetail {
   display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.learnerDetailHeader {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 360px;
+  color: var(--ink-muted);
+  font-size: 14px;
 }
 
-.learnerDetailTitle {
+.learnerMgmtDetailHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.learnerMgmtDetailName {
   font-size: 20px;
   font-weight: 800;
-  color: #1a202c;
+  color: var(--ink);
   margin: 0;
 }
 
-.learnerDetailClose {
-  background: none;
-  border: none;
-  font-size: 26px;
-  line-height: 1;
-  color: #718096;
+.learnerMgmtDetailClose {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  font-size: 18px;
+  color: var(--ink-muted);
   cursor: pointer;
-  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
-.learnerDetailInfo {
+.learnerMgmtDetailClose:hover {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.learnerMgmtInfo {
   display: flex;
   flex-direction: column;
   gap: 6px;
   padding: 14px 16px;
-  background: #f7fafc;
+  background: var(--bg);
   border-radius: 10px;
+  margin-bottom: 18px;
 }
 
-.learnerDetailRow {
+.learnerMgmtInfoRow {
   display: flex;
   justify-content: space-between;
   font-size: 13px;
 }
 
-.learnerDetailLabel {
-  color: #718096;
+.learnerMgmtInfoLabel {
+  color: var(--ink-muted);
   font-weight: 600;
 }
 
-.learnerDetailValue {
-  color: #1a202c;
+.learnerMgmtInfoValue {
+  color: var(--ink);
 }
 
-.learnerDetailSection {
+.learnerMgmtSection {
+  margin-bottom: 22px;
+}
+
+.learnerMgmtSectionTopRow {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
 }
 
-.learnerDetailSectionTitle {
+.learnerMgmtSectionTitle {
   font-size: 14px;
   font-weight: 700;
-  color: #2d3748;
+  color: var(--ink);
   margin: 0;
 }
 
-.learnerDetailStats {
+.learnerMgmtStats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
+  min-height: 88px;
 }
 
-.learnerDetailStat {
-  background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%);
-  border: 1px solid #e2e8f0;
+.learnerMgmtStat {
+  background: var(--bg-alt);
+  border: 1px solid var(--line);
   border-radius: 10px;
   padding: 14px 12px;
   text-align: center;
 }
 
-.learnerDetailStatLabel {
+.learnerMgmtStatLabel {
   font-size: 11px;
   font-weight: 600;
-  color: #718096;
+  color: var(--ink-muted);
   margin: 0 0 6px;
 }
 
-.learnerDetailStatValue {
-  font-size: 24px;
+.learnerMgmtStatValue {
+  font-size: 22px;
   font-weight: 800;
-  color: #1a202c;
+  color: var(--ink);
   margin: 0;
 }
 
-.learnerDetailMuted {
-  color: #a0aec0;
+.learnerMgmtMuted {
+  color: var(--ink-muted);
   font-size: 13px;
   margin: 0;
 }
 
-.learnerDetailError {
-  color: #e53e3e;
+.learnerMgmtSectionError {
+  color: #c0392b;
   font-size: 13px;
   margin: 0;
+}
+
+/* --- 커리큘럼 배정 --- */
+.learnerMgmtEditBtn {
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.learnerMgmtEditBtn:hover {
+  background: var(--bg-alt);
+  border-color: var(--primary);
+}
+
+.learnerMgmtAssignList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 88px;
+  min-width: 0;
+}
+
+.learnerMgmtAssignItem {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.learnerMgmtAssignEdit {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--bg);
+}
+
+.learnerMgmtAssignRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink);
+  cursor: pointer;
+  padding: 4px 2px;
+  min-width: 0;
+}
+
+.learnerMgmtAssignRow input[type="checkbox"] {
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.learnerMgmtAssignRow > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.learnerMgmtAssignActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.learnerMgmtAssignCancelBtn {
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--ink-muted);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.learnerMgmtAssignCancelBtn:hover:not(:disabled) {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.learnerMgmtAssignSaveBtn {
+  background: var(--ink);
+  border: 1px solid var(--ink);
+  color: var(--card);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 7px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.learnerMgmtAssignSaveBtn:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.learnerMgmtAssignCancelBtn:disabled,
+.learnerMgmtAssignSaveBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* --- 최근 제출 이력 --- */
+.learnerMgmtSubmissionsSection {
+  margin-top: 8px;
+}
+
+.learnerMgmtSubmissionsList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.learnerMgmtSubmissionItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  min-width: 0;
+}
+
+.learnerMgmtSubmissionLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.learnerMgmtSubmissionWeek {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-muted);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+
+.learnerMgmtSubmissionCur {
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.learnerMgmtSubmissionRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.learnerMgmtSubmissionStatus {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 12px;
+  letter-spacing: 0.3px;
+}
+
+.learnerMgmtSubmissionStatus.waiting {
+  background: rgba(218, 165, 32, 0.15);
+  color: #b7791f;
+}
+
+.learnerMgmtSubmissionStatus.done {
+  background: rgba(72, 187, 120, 0.15);
+  color: #2f855a;
+}
+
+.learnerMgmtSubmissionStatus.resubmit {
+  background: rgba(229, 62, 62, 0.15);
+  color: #c53030;
+}
+
+.learnerMgmtSubmissionDate {
+  font-size: 11px;
+  color: var(--ink-muted);
+  white-space: nowrap;
 }

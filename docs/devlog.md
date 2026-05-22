@@ -2,6 +2,95 @@
 
 ---
 
+## 2026-05-22 - Claude (매니저 학습자 관리 → 분할 뷰 + theme 톤 재구성 / 커리큘럼 배정 동선 통합)
+
+### 배경
+- 직전 사이클에서 학습자 관리는 "리스트 + 모달 상세" 구조였음
+- 매니저는 학습자를 자주 옮겨가며 비교/배정해야 하는데 모달은 좁고 컨텍스트 단절이 큼
+- 프론트 담당 팀원이 `theme.css` 의 `--bg / --bg-alt / --ink / --ink-muted / --primary / --line / --card / --accent` 톤으로 통일 요청 → EmailingView 와 같은 패턴/색감으로 재구성
+
+### 구조 변경
+- **분할 뷰**: 좌측(초대 코드 + 검색/정렬 + 학습자 카드 리스트) ↔ 우측(선택된 학습자 상세)
+- 좌측 카드 클릭 → 우측 상세 패널 갱신, 활동 요약 API (`GET /users/{id}/activity-summary`) 호출
+- 우측 상세에 커리큘럼 배정 섹션 인라인 통합 (모달 안의 모달 X)
+
+### 변경 파일
+- 신규 (전면 재작성) `client/src/components/LearnerManagementView.jsx`
+  - 분할 뷰 + selectedLearnerId 따라 우측 패널 컨텐츠 전환
+  - 커리큘럼 목록은 한 번만 로드 (`GET /curricula`), 학습자 선택 변경 시 재호출 안 함
+  - 활동 요약은 학습자별로 캐시 없이 매번 조회 (가벼움)
+  - 커리큘럼 배정 흐름: 관리 버튼 → 체크박스 편집 → 저장 시 변경된 커리큘럼만 PATCH 병렬 호출
+- `client/src/styles/LearnerManagement.css` 전면 재작성
+  - 모든 색을 `var(--*)` 변수로 통일 (하드코딩 `#3182ce / #1a202c` 등 제거)
+  - 분할 그리드 레이아웃 (좌 280-380px / 우 1fr)
+  - 900px 이하에선 단일 컬럼으로 stack
+- 삭제 `client/src/components/LearnerDetailModal.jsx`
+  - 분할 뷰 우측에 흡수돼 사용처 사라짐
+
+### 검증
+- 프론트 `npm run build` 통과 (4.84s)
+- 백엔드/의존성/마이그레이션 변경 없음
+
+### 메모
+- 매니저 학습자 운영 흐름이 이메일링과 시각적으로 통일됨
+- 발표 시 "한 화면에서 학습자 비교 → 배정 → 활동 확인" 가능
+
+---
+
+## 2026-05-22 - Claude (학습자 관리 분할 뷰 + theme 톤 + 레이아웃 안정화 + 제출 이력 추가)
+
+### 배경
+- 직전 사이클에서 매니저 학습자 관리는 "리스트 + 모달 상세" 구조
+- 학습자 간 비교/배정이 잦은 매니저 동선에선 모달이 컨텍스트 단절 → 분할 뷰가 자연스러움
+- 프론트 담당 팀원이 `theme.css` 변수(`--bg / --bg-alt / --ink / --ink-muted / --primary / --line / --card / --accent`)로 톤 통일 요청 (EmailingView 와 동일 색감)
+- 우측 패널 콘텐츠가 변하면 학습자별로 좌측 카드 폭 / 우측 패널 폭이 미세하게 움직이는 issue 발견
+
+### 구조 변경 — 분할 뷰
+- `LearnerDetailModal.jsx` 폐기 (우측 패널 인라인 흡수)
+- `LearnerManagementView.jsx` 전면 재작성: 좌측(초대 코드 + 검색/정렬 + 학습자 카드 리스트) ↔ 우측(상세)
+- 우측 상세 = 정보 박스 + 활동요약(좌) + 커리큘럼 배정(우) + 최근 제출 이력 (풀폭)
+
+### 시각 톤 통일
+- `LearnerManagement.css` 의 모든 색을 `var(--*)` 으로 통일 (하드코딩 `#3182ce / #1a202c` 등 제거)
+- EmailingView 와 동일 패턴/색감
+
+### 레이아웃 안정화 (학습자 전환 시 폭 변동 차단)
+- **진범**: `.dashMain` 이 `display: flex` 라 자식 `.learnerMgmtContainer` 가 콘텐츠 폭에 맞춰 줄어들었음 → 콘텐츠 길이에 따라 컨테이너 폭이 변동
+- fix: `.learnerMgmtContainer { width: 100%; box-sizing: border-box }` 명시
+- 보조 안전망:
+  - `.learnerMgmtSplit` 우측 컬럼 `minmax(0, 1fr)` (auto 대신 0 min)
+  - `.learnerMgmtDetailGrid` 양쪽 셀 `minmax(0, 1fr)` + `.learnerMgmtSection` `min-width: 0`
+  - `.learnerMgmtDetail` `min-width: 0 + overflow-x: hidden`
+  - 모든 텍스트 ellipsis 적용 (커리큘럼 제목 `.learnerMgmtAssignItem` 등)
+  - `scrollbar-gutter: stable` 로 스크롤바 출현 따른 폭 변동 차단
+- 뷰포트 고정 height + 내부 overflow 로 외부 페이지 스크롤 차단
+  - `.learnerMgmtSplit { height: calc(100vh - 220px); min-height: 480px }`
+  - 좌/우 패널 각각 `overflow-y: auto`
+- summary stats 항상 3카드 렌더 (로딩 시 `⋯` placeholder) → 깜빡임 0
+
+### 추가 기능 — 최근 제출 이력
+- 신규 endpoint `GET /api/task-submissions/by-learner/{user_id}`
+  - admin: 모든 학습자 / 매니저: 본인 회사 활성 학습자만
+  - 기존 `_submission_response` 헬퍼 재사용, 응답: `list[TaskSubmissionResponse]` 최신순
+- 우측 패널 하단 풀폭 섹션
+- 각 행: `[N주차] 커리큘럼명 [상태 pill] 날짜`
+- 상태 pill 색:
+  - 피드백 대기 (waiting / 황색)
+  - 피드백 완료 (done / 녹색)
+  - 재제출 요청 (resubmit / 적색)
+- 최대 8개 표시, 긴 커리큘럼 제목은 ellipsis + title 툴팁
+
+### 검증
+- 프론트 `npm run build` 통과 (4.83s)
+- 백엔드 `python -m compileall -q app` 통과
+- Console 로 측정: 두 학습자 전환 시 split/container/title 위치 픽셀 단위 동일
+
+### 메모
+- 의존성/마이그레이션 변경 없음
+- 발표 시연 흐름: 학습자 관리 → 카드 클릭 → 우측에 활동요약 + 배정 관리 + 제출 이력 한 화면
+
+---
+
 ## 2026-05-22 - Claude (매니저 학습자 chip 진행률 배지 표시)
 
 ### 배경
