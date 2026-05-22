@@ -2,6 +2,34 @@
 
 ---
 
+## 2026-05-22 - Codex + Claude (학습자 화면 템플릿 표 깨짐 수정 / `.template-render` 공용 클래스 도입)
+
+### 배경
+- 매니저가 만든 과제 템플릿(표 포함)은 매니저 화면(TipTap 에디터)에서는 정상 렌더되지만 학습자가 받을 때 표 보더/패딩/너비가 다 깨져 보임
+- 원인: 매니저 측은 `.tiptap-content-area .ProseMirror table` 셀렉터로 table 스타일이 적용되는데, 학습자 측은 plain `<div>`에 `dangerouslySetInnerHTML`로 raw HTML을 그대로 dump하므로 해당 CSS 셀렉터가 매칭되지 않음
+
+### 변경 (어제 Codex가 작성, 오늘 Claude가 빌드 검증 + 커밋 마무리)
+- `client/src/styles/Curriculum.css`
+  - 기존 `.tiptap-content-area .ProseMirror table/td/th/th` 룰에 `.template-render` 셀렉터 추가 (둘 다 같은 스타일)
+  - `td/th`에 `vertical-align: top` 추가 (셀 콘텐츠 위 정렬)
+  - `.template-render p/ul/ol` 마진/패딩 룰 추가 (raw HTML이라 기본 마진이 너무 좁거나 넓어 보이는 문제 보정)
+  - 파일 끝 newline 정리
+- `client/src/components/LearnerCurriculumView.jsx`
+  - 템플릿 작성 div (L548): `className="template-render learnerTemplateRender"` 추가
+  - 본인 제출본 보기 div (L614): `template-render` 추가
+- `client/src/components/CurriculumView.jsx`
+  - TipTap 에디터 컨테이너 (L105): `template-render` 추가 (편집 중에도 동일 스타일 보장)
+  - 매니저가 학습자 제출본 볼 때 div (L800): `template-render` 추가
+
+### 검증
+- 프론트 `npm run build` 통과 (6.18s)
+- 매니저 측은 ProseMirror 룰 + template-render 룰 둘 다 적용되므로 회귀 없음
+
+### 메모
+- 의존성/마이그레이션 변경 없음. 팀원 풀 후 추가 설치 작업 없음
+
+---
+
 ## 2026-05-21 - Claude (사용자 입장 점검 후속: 매니저 초대 코드 이동 + 검색 오류/가입 토스트)
 
 ### 매니저 초대 코드 → 햄버거 드로어 사용자 정보 박스 안

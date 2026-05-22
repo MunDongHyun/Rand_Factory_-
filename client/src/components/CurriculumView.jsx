@@ -102,7 +102,7 @@ const TiptapEditor = ({ value, onChange, heightMode }) => {
   return (
     <div className="tiptap-editor-container" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <TiptapMenuBar editor={editor} />
-      <div className={`tiptap-content-area ${heightMode}`} style={{ flex: 1, overflowY: 'auto', padding: '16px', backgroundColor: '#fff' }}>
+      <div className={`tiptap-content-area template-render ${heightMode}`} style={{ flex: 1, overflowY: 'auto', padding: '16px', backgroundColor: '#fff' }}>
         <EditorContent editor={editor} />
       </div>
     </div>
@@ -797,7 +797,7 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
                   <div className="managerSubmissionItemBody" style={{ maxHeight: 'none', overflow: 'visible' }}>
                     <div className="managerSubmissionContent">
                       <p className="managerSubmissionContentLabel">제출 내용</p>
-                      <div className="managerSubmissionContentBody" dangerouslySetInnerHTML={{ __html: sanitizeHtml(s.task_submitted_content?.text) || '(내용 없음)' }} />
+                      <div className="managerSubmissionContentBody template-render" dangerouslySetInnerHTML={{ __html: sanitizeHtml(s.task_submitted_content?.text) || '(내용 없음)' }} />
                     </div>
                     {Array.isArray(s.task_submitted_content?.attachments) && s.task_submitted_content.attachments.length > 0 && (
                       <div className="managerSubmissionAttachments">
