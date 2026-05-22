@@ -169,6 +169,14 @@
   background: var(--primary);
 }
 
+
+.bookmarkIcon{
+  width: 40px;
+  height: 40px;
+  background: none;
+  align-self: flex-start;
+}
+
 /* 어두운 오버레이 */
 .drawerOverlay {
   position: fixed;
@@ -381,6 +389,12 @@
 .drawerInviteAction:hover {
   background: var(--bg-alt);
   border-color: var(--primary);
+}
+
+
+.inviteActionIcon {
+  width: 16px;
+  height: 16px;
 }
 
 /* 메뉴 리스트 */
