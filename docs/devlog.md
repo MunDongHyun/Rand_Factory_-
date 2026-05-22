@@ -2,6 +2,30 @@
 
 ---
 
+## 2026-05-22 - Claude (매니저 학습자 chip 진행률 배지 표시)
+
+### 배경
+- 매니저 커리큘럼 화면 상단의 학습자 chip 이 이름만 표시. 학습자별 진행 정도를 보려면 chip 을 클릭해 들어가야만 알 수 있었음
+- "한눈에 누가 어디까지 했는지" 정보 밀도 보강
+
+### 변경
+- `client/src/components/CurriculumView.jsx`
+  - 학습자 chip 내부를 `chipName` + `chipBadge` 두 span 으로 분리
+  - 현재 커리큘럼 의 `submissions` state 에서 학습자별 제출 unique week 수 카운트 (학습자 측 `submittedWeekCount` 와 동일 기준)
+  - 배지 문구: `submittedCount/totalWeeks`
+- `client/src/styles/Curriculum.css`
+  - `.assignedLearnerChipName` (white-space:nowrap) + `.assignedLearnerChipBadge` (옅은 청색 pill) 추가
+  - `.active` 상태에선 배지 색도 invert (흰색 pill)
+
+### 검증
+- 프론트 `npm run build` 통과 (5.61s)
+- 백엔드 변경 없음
+
+### 메모
+- 의존성/마이그레이션 변경 없음
+
+---
+
 ## 2026-05-22 - Claude (마스터 페이지: c-role 누락 보완 + 아티클 등록 UI 추가)
 
 ### 배경
