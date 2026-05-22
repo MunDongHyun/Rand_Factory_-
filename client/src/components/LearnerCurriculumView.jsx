@@ -355,9 +355,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
         const formData = new FormData();
         formData.append('file', file);
         try {
-          await api.post(`/task-submissions/${submissionId}/attachments`, formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-          });
+          await api.post(`/task-submissions/${submissionId}/attachments`, formData);
         } catch (err) {
           failures.push(`${file.name}: ${err.response?.data?.detail || '업로드 실패'}`);
         }

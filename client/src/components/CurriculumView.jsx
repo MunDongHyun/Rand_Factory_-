@@ -606,18 +606,37 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef }) {
               {(selectedCurriculum.cur_assigned_learner_ids || []).length === 0 ? (
                 <span className="assignEmptyInline">배정된 학습자가 없습니다</span>
               ) : (
-                (selectedCurriculum.cur_assigned_learner_ids || []).map((id) => {
-                  const l = learners.find((x) => x.user_id === id);
-                  return (
-                    <span
-                      key={id}
-                      className={`assignedLearnerChip ${selectedLearnerId === id && viewMode === 'learner' ? 'active' : ''}`}
-                      onClick={() => handleLearnerChipClick(id)}
-                    >
-                      {l ? l.user_name : `#${id}`}
-                    </span>
-                  );
-                })
+                (() => {
+                  const totalWeeks = normalizeWeekPlan(selectedCurriculum.cur_week_plan).length
+                    || selectedCurriculum.cur_duration_weeks
+                    || 0;
+                  return (selectedCurriculum.cur_assigned_learner_ids || []).map((id) => {
+                    const l = learners.find((x) => x.user_id === id);
+                    const submittedWeeks = new Set(
+                      submissions
+                        .filter((s) => s.task_learner_id === id)
+                        .map((s) => s.task_week_number)
+                    );
+                    const submittedCount = submittedWeeks.size;
+                    return (
+                      <span
+                        key={id}
+                        className={`assignedLearnerChip ${selectedLearnerId === id && viewMode === 'learner' ? 'active' : ''}`}
+                        onClick={() => handleLearnerChipClick(id)}
+                      >
+                        <span className="assignedLearnerChipName">{l ? l.user_name : `#${id}`}</span>
+                        {totalWeeks > 0 && (
+                          <span
+                            className="assignedLearnerChipBadge"
+                            title={`${submittedCount}/${totalWeeks} 주차 제출`}
+                          >
+                            {submittedCount}/{totalWeeks}
+                          </span>
+                        )}
+                      </span>
+                    );
+                  });
+                })()
               )}
             </div>
             <button type="button" className="assignedLearnersBarArrow" onClick={() => scrollAssignedLearners('right')}>›</button>
