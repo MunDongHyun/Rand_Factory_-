@@ -258,7 +258,12 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef }) {
     if (!selectedId) { setSubmissions([]); return; }
     setSubmissionsLoading(true);
     api.get(`/task-submissions/by-curriculum/${selectedId}`)
-      .then((res) => setSubmissions(Array.isArray(res.data) ? res.data : [])).catch(() => setSubmissions([])).finally(() => setSubmissionsLoading(false));
+      .then((res) => setSubmissions(Array.isArray(res.data) ? res.data : []))
+      .catch((err) => {
+        setSubmissions([]);
+        toast.error(err.response?.data?.detail || '제출물 목록을 불러오지 못했습니다.');
+      })
+      .finally(() => setSubmissionsLoading(false));
   }, [selectedId]);
 
   const handleAttachmentDownload = async (submissionId, attachment) => {
