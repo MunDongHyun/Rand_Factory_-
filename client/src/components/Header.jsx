@@ -2,6 +2,10 @@ import { useState } from 'react';
 import { toast } from 'react-toastify';
 import '../styles/Dashboard.css';
 import searchIcon from '../public/search_icon.png';
+import bookmarkIcon from '../public/bookmark_icon.png';
+import eyeIcon from '../public/eye_icon.png';
+import eyeCloseIcon from '../public/eye-closed_icon.png';
+import copyIcon from '../public/copy_icon.png';
 
 const ROLE_LABELS = {
   c: '일반회원',
@@ -10,10 +14,9 @@ const ROLE_LABELS = {
   a: '관리자',
 };
 
-// 하이픈은 그대로 두고 영숫자만 • 로 마스킹 (예: 9F3K-PXQ7-M2NJ → ••••-••••-••••)
 const maskInviteCode = (code) => (code ? code.replace(/[^-]/g, '•') : '');
 
-function Header({ user, canUseCurriculum = true, canManageLearners = false, currentView, onViewChange, onLogout, onScrollToTop, onScrollToArticle, onSearch, onReset, isModalOpen}) {
+function Header({ user, canUseCurriculum = true, canManageLearners = false, currentView, onViewChange, onLogout, onScrollToTop, onScrollToArticle, onSearch, onReset, isModalOpen }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [codeVisible, setCodeVisible] = useState(false);
@@ -65,17 +68,17 @@ function Header({ user, canUseCurriculum = true, canManageLearners = false, curr
           </div>
 
           <div className="searchContainer" style={{ display: 'flex', alignItems: 'center' }}>
-            <input 
-              type="text" 
-              className="searchInput" 
-              placeholder="검색어를 입력하세요" 
+            <input
+              type="text"
+              className="searchInput"
+              placeholder="검색어를 입력하세요"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
             />
 
-            <button 
-              onClick={handleSearchAction} 
+            <button
+              onClick={handleSearchAction}
               style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '18px', marginLeft: '5px' }}
             >
               <img src={searchIcon} className='searchIconImg'></img>
@@ -90,7 +93,7 @@ function Header({ user, canUseCurriculum = true, canManageLearners = false, curr
               aria-label="내 북마크"
               title="내 북마크"
             >
-              ★
+              <img src={bookmarkIcon} alt="북마크" className="bookmarkIcon" />
             </button>
             <button className="hamburgerBtn" onClick={() => setMenuOpen(true)}>
               <span /><span /><span />
@@ -125,7 +128,12 @@ function Header({ user, canUseCurriculum = true, canManageLearners = false, curr
                     aria-label={codeVisible ? '코드 숨기기' : '코드 보기'}
                     title={codeVisible ? '코드 숨기기' : '코드 보기'}
                   >
-                    {codeVisible ? '🙈' : '👁'}
+
+                    <img
+                      src={codeVisible ? eyeCloseIcon : eyeIcon}
+                      alt={codeVisible ? '코드 숨기기' : '코드 보기'}
+                      className="inviteActionIcon"
+                    />
                   </button>
                   <button
                     type="button"
@@ -134,7 +142,11 @@ function Header({ user, canUseCurriculum = true, canManageLearners = false, curr
                     aria-label="초대 코드 복사"
                     title="초대 코드 복사"
                   >
-                    📋
+                    <img
+                      src={copyIcon}
+                      alt="초대 코드 복사"
+                      className="inviteActionIcon"
+                    />
                   </button>
                 </div>
               </div>
@@ -142,12 +154,12 @@ function Header({ user, canUseCurriculum = true, canManageLearners = false, curr
           </div>
         )}
         <ul className="drawerMenu">
-          <li onClick={() => { 
-            onViewChange('articles'); 
-            setMenuOpen(false); 
-            setTimeout(() => onScrollToTop(), 100); 
+          <li onClick={() => {
+            onViewChange('articles');
+            setMenuOpen(false);
+            setTimeout(() => onScrollToTop(), 100);
           }}>아티클 페이지</li>
-          
+
           {canUseCurriculum && (
             <li onClick={() => {
               onViewChange('curriculum');
@@ -172,8 +184,8 @@ function Header({ user, canUseCurriculum = true, canManageLearners = false, curr
             setMenuOpen(false);
           }}>저자 이메일링</li>
 
-          <li className="drawerLogout" onClick={() => { 
-            onLogout(); setMenuOpen(false); 
+          <li className="drawerLogout" onClick={() => {
+            onLogout(); setMenuOpen(false);
           }}>로그아웃</li>
         </ul>
       </nav>

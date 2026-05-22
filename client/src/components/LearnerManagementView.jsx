@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'react-toastify';
 import api from '../lib/api';
-import LearnerDetailModal from './LearnerDetailModal';
 import '../styles/LearnerManagement.css';
 
 const maskInviteCode = (code) => (code ? code.replace(/[^-]/g, '•') : '');
@@ -13,7 +12,20 @@ const formatDate = (val) => {
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
 };
 
+const SUBMISSION_STATUS_LABEL = {
+  submitted: '피드백 대기',
+  feedback_given: '피드백 완료',
+  resubmit_requested: '재제출 요청',
+};
+
+const SUBMISSION_STATUS_CLASS = {
+  submitted: 'waiting',
+  feedback_given: 'done',
+  resubmit_requested: 'resubmit',
+};
+
 function LearnerManagementView({ user }) {
+  // 학습자 목록
   const [learners, setLearners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -22,6 +34,23 @@ function LearnerManagementView({ user }) {
   const [selectedLearnerId, setSelectedLearnerId] = useState(null);
   const [codeVisible, setCodeVisible] = useState(false);
 
+  // 우측 상세 - 활동 요약
+  const [summary, setSummary] = useState(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryError, setSummaryError] = useState(null);
+
+  // 우측 상세 - 커리큘럼 배정
+  const [curricula, setCurricula] = useState([]);
+  const [curriculaLoading, setCurriculaLoading] = useState(true);
+  const [editAssign, setEditAssign] = useState(false);
+  const [assignSelected, setAssignSelected] = useState(() => new Set());
+  const [assignSaving, setAssignSaving] = useState(false);
+
+  // 우측 상세 - 최근 제출 이력
+  const [submissions, setSubmissions] = useState([]);
+  const [submissionsLoading, setSubmissionsLoading] = useState(false);
+  const [submissionsError, setSubmissionsError] = useState(null);
+
   useEffect(() => {
     setLoading(true);
     api.get('/users/learners')
@@ -29,6 +58,39 @@ function LearnerManagementView({ user }) {
       .catch((err) => setError(err.response?.data?.detail || '학습자 목록을 불러오지 못했어요.'))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    setCurriculaLoading(true);
+    api.get('/curricula')
+      .then((res) => setCurricula(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setCurricula([]))
+      .finally(() => setCurriculaLoading(false));
+  }, []);
+
+  useEffect(() => {
+    if (!selectedLearnerId) {
+      setSummary(null);
+      setSummaryError(null);
+      setEditAssign(false);
+      setSubmissions([]);
+      setSubmissionsError(null);
+      return;
+    }
+    setSummaryLoading(true);
+    setSummaryError(null);
+    setEditAssign(false);
+    api.get(`/users/${selectedLearnerId}/activity-summary`)
+      .then((res) => setSummary(res.data))
+      .catch((err) => setSummaryError(err.response?.data?.detail || '활동 요약을 불러오지 못했어요.'))
+      .finally(() => setSummaryLoading(false));
+
+    setSubmissionsLoading(true);
+    setSubmissionsError(null);
+    api.get(`/task-submissions/by-learner/${selectedLearnerId}`)
+      .then((res) => setSubmissions(Array.isArray(res.data) ? res.data : []))
+      .catch((err) => setSubmissionsError(err.response?.data?.detail || '제출 이력을 불러오지 못했어요.'))
+      .finally(() => setSubmissionsLoading(false));
+  }, [selectedLearnerId]);
 
   const handleCopyInviteCode = async () => {
     if (!user?.user_invite_code) return;
@@ -64,6 +126,66 @@ function LearnerManagementView({ user }) {
     });
   }, [learners, searchQuery, sort]);
 
+  const selectedLearner = learners.find((l) => l.user_id === selectedLearnerId) || null;
+
+  const assignedCurricula = curricula.filter(
+    (c) => Array.isArray(c.cur_assigned_learner_ids) && c.cur_assigned_learner_ids.includes(selectedLearnerId)
+  );
+
+  const startEditAssign = () => {
+    setAssignSelected(new Set(assignedCurricula.map((c) => c.cur_id)));
+    setEditAssign(true);
+  };
+
+  const cancelEditAssign = () => {
+    setEditAssign(false);
+  };
+
+  const toggleAssign = (curId) => {
+    setAssignSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(curId)) next.delete(curId);
+      else next.add(curId);
+      return next;
+    });
+  };
+
+  const saveAssign = async () => {
+    if (!selectedLearnerId) return;
+    setAssignSaving(true);
+    try {
+      const tasks = [];
+      for (const c of curricula) {
+        const wasAssigned = Array.isArray(c.cur_assigned_learner_ids) && c.cur_assigned_learner_ids.includes(selectedLearnerId);
+        const willAssign = assignSelected.has(c.cur_id);
+        if (wasAssigned === willAssign) continue;
+        const nextIds = wasAssigned
+          ? (c.cur_assigned_learner_ids || []).filter((id) => id !== selectedLearnerId)
+          : [...(c.cur_assigned_learner_ids || []), selectedLearnerId];
+        tasks.push(api.patch(`/curricula/${c.cur_id}`, { cur_assigned_learner_ids: nextIds }));
+      }
+      if (tasks.length === 0) {
+        setEditAssign(false);
+        return;
+      }
+      const results = await Promise.all(tasks);
+      setCurricula((prev) => {
+        const next = [...prev];
+        for (const res of results) {
+          const idx = next.findIndex((c) => c.cur_id === res.data.cur_id);
+          if (idx >= 0) next[idx] = res.data;
+        }
+        return next;
+      });
+      toast.success('커리큘럼 배정이 업데이트되었습니다.');
+      setEditAssign(false);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || '커리큘럼 배정 변경에 실패했습니다.');
+    } finally {
+      setAssignSaving(false);
+    }
+  };
+
   return (
     <div className="learnerMgmtContainer">
       <header className="learnerMgmtHeader">
@@ -73,104 +195,273 @@ function LearnerManagementView({ user }) {
         </p>
       </header>
 
-      {user?.user_invite_code && (
-        <div className="learnerMgmtInviteCard">
-          <div className="learnerMgmtInviteLabel">회사 초대 코드</div>
-          <div className="learnerMgmtInviteRow">
-            <code className="learnerMgmtInviteCode">
-              {codeVisible ? user.user_invite_code : maskInviteCode(user.user_invite_code)}
-            </code>
-            <button
-              type="button"
-              className="learnerMgmtInviteAction"
-              onClick={() => setCodeVisible((v) => !v)}
-              aria-label={codeVisible ? '코드 숨기기' : '코드 보기'}
-              title={codeVisible ? '코드 숨기기' : '코드 보기'}
-            >
-              {codeVisible ? '🙈' : '👁'}
-            </button>
-            <button
-              type="button"
-              className="learnerMgmtInviteAction"
-              onClick={handleCopyInviteCode}
-              aria-label="초대 코드 복사"
-              title="초대 코드 복사"
-            >
-              📋
-            </button>
-          </div>
-          <p className="learnerMgmtInviteHint">
-            이 코드를 받은 사람이 회원가입 시 입력하면 본 회사 학습자로 등록됩니다.
-          </p>
-        </div>
-      )}
-
-      <div className="learnerMgmtControls">
-        <input
-          type="text"
-          className="learnerMgmtSearch"
-          placeholder="이름 또는 이메일로 검색"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-        <select
-          className="learnerMgmtSort"
-          value={sort}
-          onChange={(e) => setSort(e.target.value)}
-        >
-          <option value="created_desc">최신 가입순</option>
-          <option value="created_asc">오래된 가입순</option>
-          <option value="name_asc">이름 ㄱ→ㅎ</option>
-          <option value="name_desc">이름 ㅎ→ㄱ</option>
-        </select>
-        <span className="learnerMgmtCount">
-          {filteredLearners.length} / {learners.length}명
-        </span>
-      </div>
-
-      {loading ? (
-        <p className="learnerMgmtLoading">불러오는 중...</p>
-      ) : error ? (
-        <p className="learnerMgmtError">{error}</p>
-      ) : filteredLearners.length === 0 ? (
-        <div className="learnerMgmtEmpty">
-          {learners.length === 0 ? (
-            <>
-              <p>아직 회사에 등록된 학습자가 없습니다.</p>
-              <p className="learnerMgmtEmptyHint">위 초대 코드를 학습자에게 전달해 가입을 요청하세요.</p>
-            </>
-          ) : (
-            <p>검색 결과가 없습니다.</p>
+      <div className="learnerMgmtSplit">
+        {/* 좌측: 초대 코드 + 검색/정렬 + 학습자 목록 */}
+        <aside className="learnerMgmtSide">
+          {user?.user_invite_code && (
+            <div className="learnerMgmtInviteCard">
+              <div className="learnerMgmtInviteLabel">회사 초대 코드</div>
+              <div className="learnerMgmtInviteRow">
+                <code className="learnerMgmtInviteCode">
+                  {codeVisible ? user.user_invite_code : maskInviteCode(user.user_invite_code)}
+                </code>
+                <button
+                  type="button"
+                  className="learnerMgmtInviteAction"
+                  onClick={() => setCodeVisible((v) => !v)}
+                  aria-label={codeVisible ? '코드 숨기기' : '코드 보기'}
+                  title={codeVisible ? '코드 숨기기' : '코드 보기'}
+                >
+                  {codeVisible ? '🙈' : '👁'}
+                </button>
+                <button
+                  type="button"
+                  className="learnerMgmtInviteAction"
+                  onClick={handleCopyInviteCode}
+                  aria-label="초대 코드 복사"
+                  title="초대 코드 복사"
+                >
+                  📋
+                </button>
+              </div>
+              <p className="learnerMgmtInviteHint">
+                이 코드를 받은 사람이 회원가입 시 입력하면 본 회사 학습자로 등록됩니다.
+              </p>
+            </div>
           )}
-        </div>
-      ) : (
-        <ul className="learnerMgmtList">
-          {filteredLearners.map((l) => (
-            <li
-              key={l.user_id}
-              className="learnerMgmtCard"
-              onClick={() => setSelectedLearnerId(l.user_id)}
-            >
-              <div className="learnerMgmtCardLeft">
-                <div className="learnerMgmtCardName">{l.user_name}</div>
-                <div className="learnerMgmtCardEmail">{l.user_email}</div>
-              </div>
-              <div className="learnerMgmtCardRight">
-                <div className="learnerMgmtCardDate">가입 {formatDate(l.user_created_at)}</div>
-                <span className="learnerMgmtCardCta">활동 보기 →</span>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
 
-      {selectedLearnerId && (
-        <LearnerDetailModal
-          learnerId={selectedLearnerId}
-          learner={learners.find((l) => l.user_id === selectedLearnerId)}
-          onClose={() => setSelectedLearnerId(null)}
-        />
-      )}
+          <div className="learnerMgmtControls">
+            <input
+              type="text"
+              className="learnerMgmtSearch"
+              placeholder="이름 또는 이메일로 검색"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <select
+              className="learnerMgmtSort"
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
+            >
+              <option value="created_desc">최신 가입순</option>
+              <option value="created_asc">오래된 가입순</option>
+              <option value="name_asc">이름 ㄱ→ㅎ</option>
+              <option value="name_desc">이름 ㅎ→ㄱ</option>
+            </select>
+          </div>
+
+          <div className="learnerMgmtCount">{filteredLearners.length} / {learners.length}명</div>
+
+          {loading ? (
+            <p className="learnerMgmtLoading">불러오는 중...</p>
+          ) : error ? (
+            <p className="learnerMgmtError">{error}</p>
+          ) : filteredLearners.length === 0 ? (
+            <div className="learnerMgmtEmpty">
+              {learners.length === 0 ? (
+                <>
+                  <p>아직 회사에 등록된 학습자가 없습니다.</p>
+                  <p className="learnerMgmtEmptyHint">위 초대 코드를 학습자에게 전달해 가입을 요청하세요.</p>
+                </>
+              ) : (
+                <p>검색 결과가 없습니다.</p>
+              )}
+            </div>
+          ) : (
+            <ul className="learnerMgmtList">
+              {filteredLearners.map((l) => (
+                <li
+                  key={l.user_id}
+                  className={`learnerMgmtCard ${selectedLearnerId === l.user_id ? 'active' : ''}`}
+                  onClick={() => setSelectedLearnerId(l.user_id)}
+                >
+                  <div className="learnerMgmtCardLeft">
+                    <div className="learnerMgmtCardName">{l.user_name}</div>
+                    <div className="learnerMgmtCardEmail">{l.user_email}</div>
+                  </div>
+                  <div className="learnerMgmtCardRight">
+                    <div className="learnerMgmtCardDate">가입 {formatDate(l.user_created_at)}</div>
+                    <span className="learnerMgmtCardArrow">▶</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </aside>
+
+        {/* 우측: 선택된 학습자 상세 */}
+        <section className="learnerMgmtDetail">
+          {!selectedLearner ? (
+            <div className="learnerMgmtEmptyDetail">
+              <p>좌측에서 학습자를 선택하면 상세 정보가 표시됩니다.</p>
+            </div>
+          ) : (
+            <>
+              <div className="learnerMgmtDetailHeader">
+                <h3 className="learnerMgmtDetailName">{selectedLearner.user_name}</h3>
+                <button
+                  type="button"
+                  className="learnerMgmtDetailClose"
+                  onClick={() => setSelectedLearnerId(null)}
+                  aria-label="선택 해제"
+                  title="선택 해제"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="learnerMgmtInfo">
+                <div className="learnerMgmtInfoRow">
+                  <span className="learnerMgmtInfoLabel">이메일</span>
+                  <span className="learnerMgmtInfoValue">{selectedLearner.user_email || '-'}</span>
+                </div>
+                <div className="learnerMgmtInfoRow">
+                  <span className="learnerMgmtInfoLabel">가입일</span>
+                  <span className="learnerMgmtInfoValue">{formatDate(selectedLearner.user_created_at)}</span>
+                </div>
+                <div className="learnerMgmtInfoRow">
+                  <span className="learnerMgmtInfoLabel">소속</span>
+                  <span className="learnerMgmtInfoValue">{selectedLearner.user_company || '-'}</span>
+                </div>
+              </div>
+
+              <div className="learnerMgmtDetailGrid">
+                <div className="learnerMgmtSection">
+                  <h4 className="learnerMgmtSectionTitle">학습 활동 요약</h4>
+                  <div className="learnerMgmtStats">
+                    <div className="learnerMgmtStat">
+                      <p className="learnerMgmtStatLabel">배정 커리큘럼</p>
+                      <p className="learnerMgmtStatValue">
+                        {summaryLoading ? '⋯' : (summary?.curricula_assigned ?? 0)}
+                      </p>
+                    </div>
+                    <div className="learnerMgmtStat">
+                      <p className="learnerMgmtStatLabel">제출한 과제</p>
+                      <p className="learnerMgmtStatValue">
+                        {summaryLoading ? '⋯' : (summary?.submissions_count ?? 0)}
+                      </p>
+                    </div>
+                    <div className="learnerMgmtStat">
+                      <p className="learnerMgmtStatLabel">받은 피드백</p>
+                      <p className="learnerMgmtStatValue">
+                        {summaryLoading ? '⋯' : (summary?.feedbacks_received ?? 0)}
+                      </p>
+                    </div>
+                  </div>
+                  {summaryError && (
+                    <p className="learnerMgmtSectionError" style={{ marginTop: '8px' }}>{summaryError}</p>
+                  )}
+                </div>
+
+                <div className="learnerMgmtSection">
+                  <div className="learnerMgmtSectionTopRow">
+                    <h4 className="learnerMgmtSectionTitle">커리큘럼 배정</h4>
+                  {!editAssign && !curriculaLoading && curricula.length > 0 && (
+                    <button type="button" className="learnerMgmtEditBtn" onClick={startEditAssign}>
+                      관리
+                    </button>
+                  )}
+                </div>
+
+                {curriculaLoading ? (
+                  <p className="learnerMgmtMuted">불러오는 중...</p>
+                ) : !editAssign ? (
+                  assignedCurricula.length === 0 ? (
+                    <p className="learnerMgmtMuted">아직 배정된 커리큘럼이 없습니다.</p>
+                  ) : (
+                    <ul className="learnerMgmtAssignList">
+                      {assignedCurricula.map((c) => (
+                        <li key={c.cur_id} className="learnerMgmtAssignItem" title={c.cur_title}>
+                          {c.cur_title}
+                        </li>
+                      ))}
+                    </ul>
+                  )
+                ) : (
+                  <>
+                    <div className="learnerMgmtAssignEdit">
+                      {curricula.length === 0 ? (
+                        <p className="learnerMgmtMuted">생성한 커리큘럼이 없습니다.</p>
+                      ) : (
+                        curricula.map((c) => {
+                          const checked = assignSelected.has(c.cur_id);
+                          return (
+                            <label key={c.cur_id} className="learnerMgmtAssignRow" title={c.cur_title}>
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => toggleAssign(c.cur_id)}
+                                disabled={assignSaving}
+                              />
+                              <span>{c.cur_title}</span>
+                            </label>
+                          );
+                        })
+                      )}
+                    </div>
+                    <div className="learnerMgmtAssignActions">
+                      <button
+                        type="button"
+                        className="learnerMgmtAssignCancelBtn"
+                        onClick={cancelEditAssign}
+                        disabled={assignSaving}
+                      >
+                        취소
+                      </button>
+                      <button
+                        type="button"
+                        className="learnerMgmtAssignSaveBtn"
+                        onClick={saveAssign}
+                        disabled={assignSaving}
+                      >
+                        {assignSaving ? '저장 중...' : '저장'}
+                      </button>
+                    </div>
+                  </>
+                )}
+                </div>
+              </div>
+
+              <div className="learnerMgmtSection learnerMgmtSubmissionsSection">
+                <h4 className="learnerMgmtSectionTitle">최근 제출 이력</h4>
+                {submissionsLoading ? (
+                  <p className="learnerMgmtMuted">불러오는 중...</p>
+                ) : submissionsError ? (
+                  <p className="learnerMgmtSectionError">{submissionsError}</p>
+                ) : submissions.length === 0 ? (
+                  <p className="learnerMgmtMuted">아직 제출한 과제가 없습니다.</p>
+                ) : (
+                  <ul className="learnerMgmtSubmissionsList">
+                    {submissions.slice(0, 8).map((s) => {
+                      const cur = curricula.find((c) => c.cur_id === s.task_curriculum_id);
+                      const statusKey = s.task_status || 'submitted';
+                      const statusLabel = SUBMISSION_STATUS_LABEL[statusKey] || '제출';
+                      const statusCls = SUBMISSION_STATUS_CLASS[statusKey] || 'waiting';
+                      return (
+                        <li key={s.task_submission_id} className="learnerMgmtSubmissionItem">
+                          <div className="learnerMgmtSubmissionLeft">
+                            <span className="learnerMgmtSubmissionWeek">{s.task_week_number}주차</span>
+                            <span
+                              className="learnerMgmtSubmissionCur"
+                              title={cur ? cur.cur_title : `#${s.task_curriculum_id}`}
+                            >
+                              {cur ? cur.cur_title : `#${s.task_curriculum_id}`}
+                            </span>
+                          </div>
+                          <div className="learnerMgmtSubmissionRight">
+                            <span className={`learnerMgmtSubmissionStatus ${statusCls}`}>{statusLabel}</span>
+                            <span className="learnerMgmtSubmissionDate">{formatDate(s.task_submitted_at)}</span>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            </>
+          )}
+        </section>
+      </div>
     </div>
   );
 }
