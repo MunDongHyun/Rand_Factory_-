@@ -221,13 +221,22 @@ def list_my_submissions(
 ):
     if current_user.user_role != "j":
         raise HTTPException(status_code=404, detail="찾을 수 없습니다")
-    submissions = (
-        db.query(TaskSubmission)
+
+    # 큰 JSON 컬럼(task_submitted_content 등)이 sort buffer 를 폭발시키는 문제 방지:
+    # 1단계 id만 정렬해서 가져온 뒤, 2단계에서 PK로 전체 row fetch
+    id_rows = (
+        db.query(TaskSubmission.task_submission_id)
         .filter(TaskSubmission.task_learner_id == current_user.user_id)
         .order_by(TaskSubmission.task_submitted_at.desc())
         .all()
     )
-    return [_submission_response(submission) for submission in submissions]
+    ids = [row.task_submission_id for row in id_rows]
+    if not ids:
+        return []
+    rows = db.query(TaskSubmission).filter(TaskSubmission.task_submission_id.in_(ids)).all()
+    order = {sid: i for i, sid in enumerate(ids)}
+    rows.sort(key=lambda s: order[s.task_submission_id])
+    return [_submission_response(submission) for submission in rows]
 
 
 @router.get("/by-learner/{user_id}", response_model=list[TaskSubmissionResponse])
@@ -256,13 +265,20 @@ def list_submissions_by_learner(
         ):
             raise HTTPException(status_code=404, detail="찾을 수 없습니다")
 
-    submissions = (
-        db.query(TaskSubmission)
+    # 큰 JSON 컬럼이 sort buffer 를 폭발시키는 문제 방지: id 만 정렬 후 PK 로 fetch
+    id_rows = (
+        db.query(TaskSubmission.task_submission_id)
         .filter(TaskSubmission.task_learner_id == user_id)
         .order_by(TaskSubmission.task_submitted_at.desc())
         .all()
     )
-    return [_submission_response(submission) for submission in submissions]
+    ids = [row.task_submission_id for row in id_rows]
+    if not ids:
+        return []
+    rows = db.query(TaskSubmission).filter(TaskSubmission.task_submission_id.in_(ids)).all()
+    order = {sid: i for i, sid in enumerate(ids)}
+    rows.sort(key=lambda s: order[s.task_submission_id])
+    return [_submission_response(submission) for submission in rows]
 
 
 @router.get("/by-curriculum/{cur_id}", response_model=list[TaskSubmissionWithLearnerResponse])

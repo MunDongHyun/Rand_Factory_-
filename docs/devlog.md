@@ -37,6 +37,45 @@
 
 ---
 
+## 2026-05-22 - Claude (학습자 과제 첨부파일 업로드 fix + 제출 이력 sort buffer 폭발 수정)
+
+### 증상
+1. 학습자가 과제 작성 후 파일 첨부해 제출하면 **첨부파일이 서버에 안 올라감**
+2. 학습자 페이지 진입 시 `/api/task-submissions/my` 가 **500 (Internal Server Error)** 으로 응답
+
+### 원인 1) 첨부 업로드 — Content-Type 헤더 수동 지정
+- `LearnerCurriculumView.jsx` 의 첨부 업로드 요청에서 `headers: { 'Content-Type': 'multipart/form-data' }` 명시
+- multipart 요청은 `boundary` 파라미터가 필수 (`multipart/form-data; boundary=----WebKit...`)
+- 수동 지정하면 boundary 가 빠져서 서버가 form 파트 구분 못 함 → 빈 파일/422
+- axios 는 FormData 가 body 면 알아서 boundary 포함한 Content-Type 을 설정. 수동 지정은 그 자동 동작을 깨뜨림
+
+### 수정 1)
+- `client/src/components/LearnerCurriculumView.jsx` 의 attachments POST 호출에서 `headers` 옵션 제거
+- 동일 패턴이 다른 곳엔 없음 (grep 0건 확인)
+
+### 원인 2) `/my` 500 — sort buffer 폭발
+- 어제 `/api/curricula` 에서 발견한 `pymysql (1038, Out of sort memory)` 와 동일 패턴
+- `db.query(TaskSubmission).filter(...).order_by(task_submitted_at.desc()).all()` 가 SELECT * 라
+  `task_submitted_content` (HTML JSON), `task_manager_feedback` 등 큰 컬럼이 모두 sort buffer 로 적재
+- MySQL 기본 `sort_buffer_size` (256KB) 만으로는 row 몇 개만 있어도 폭발
+
+### 수정 2)
+- `server/app/routers/task_submission.py` 의 `list_my_submissions` 와 신규 `list_submissions_by_learner` 둘 다
+  - 1단계: `task_submission_id` 만 SELECT + ORDER BY → sort 비용 거의 0
+  - 2단계: `id IN (...)` 로 PK 직 fetch + 파이썬에서 원래 순서로 재정렬
+- 응답 schema/권한 로직 변경 없음
+
+### 검증
+- 프론트 `npm run build` 통과 (5.03s)
+- 백엔드 `python -m compileall -q app` 통과
+- 실 사용: 학습자 로그인 → 과제 화면 진입 (`/my` 200) → 파일 첨부 → 제출 (`/attachments` 200) 흐름 확인 필요
+
+### 메모
+- 의존성/마이그레이션 변경 없음
+- `/by-curriculum` 도 동일 패턴이지만 per-curriculum row 수가 적어 현재 폭발 X. 추후 데이터 증가 시 같은 fix 가능
+
+---
+
 ## 2026-05-22 - Claude (학습자 관리 분할 뷰 + theme 톤 + 레이아웃 안정화 + 제출 이력 추가)
 
 ### 배경
