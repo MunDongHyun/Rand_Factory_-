@@ -70,6 +70,25 @@ def get_me(current_user: User = Depends(get_current_user)):
     return current_user
 
 
+@router.post("/me/upgrade", response_model=UserResponse)
+def upgrade_to_manager(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """일반 회원(c) → 매니저(m) 승급 + 회사 초대 코드 발급.
+
+    실제 결제 게이트웨이 연동은 발표용 정책으로 미구현. 호출 즉시 승급 처리.
+    """
+    if current_user.user_role != "c":
+        raise HTTPException(status_code=400, detail="일반 회원만 매니저로 승급할 수 있습니다")
+
+    current_user.user_role = "m"
+    current_user.user_invite_code = invite_code_service.generate_unique_invite_code(db)
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
 @router.get("/stats", response_model=UserStatsResponse)
 def get_user_stats(
     db: Session = Depends(get_db),
@@ -187,13 +206,21 @@ def get_user_activity_summary(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """관리자(a) 전용: 회원 1명의 활동 요약 (커리큘럼/과제/피드백 수)."""
-    if current_user.user_role != "a":
+    """회원 1명의 활동 요약. admin: 모든 회원 / manager: 본인 회사 활성 학습자만."""
+    if current_user.user_role not in ("a", "m"):
         raise HTTPException(status_code=404, detail="찾을 수 없습니다")
 
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다")
+
+    if current_user.user_role == "m":
+        if (
+            user.user_role != "j"
+            or user.user_company != current_user.user_company
+            or user.user_deleted_at is not None
+        ):
+            raise HTTPException(status_code=404, detail="찾을 수 없습니다")
 
     # 지연 import (순환 방지)
     from app.models.curriculum import Curriculum

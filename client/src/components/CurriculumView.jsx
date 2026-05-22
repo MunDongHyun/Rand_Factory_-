@@ -113,9 +113,9 @@ const LoadingModal = ({ generating, currentMessageIndex }) => {
   const messages = [
     { text: "AI가 커리큘럼 초안을 구상 중입니다...", img: rodingRafaGif },
     { text: "직무에 맞는 학습 목표를 설정하고 있습니다...", img: rodingRafaGif },
-    { text: "주차별 상세 과제를 생성 중입니다...", img: randLogo },
-    { text: "거의 다 되었습니다. 마지막 정리 중입니다...", img: randLogo },
-    { text: "커리큘럼 생성이 완료되었습니다!", img: randLogo }
+    { text: "주차별 상세 과제를 생성 중입니다...", img: rodingRafaGif  },
+    { text: "거의 다 되었습니다. 마지막 정리 중입니다...", img: rodingRafaGif  },
+    { text: "커리큘럼 생성이 완료되었습니다!", img: rodingRafaGif  }
   ];
 
   const currentMessage = messages[currentMessageIndex];
@@ -141,7 +141,7 @@ const buildGeneratePayload = (form) => ({
   cur_target_industry: form.cur_target_industry.trim() || null, cur_learning_goal: form.cur_learning_goal.trim() || null, required_content: form.required_content.trim() || null,
 });
 
-function CurriculumView({ onOpenArticle, onModalToggle }) {
+function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef }) {
   const [manageModalOpen, setManageModalOpen] = useState(false);
   const [manageStep, setManageStep] = useState('select');
   const [modalOpen, setModalOpen] = useState(false);
@@ -236,6 +236,22 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
       document.body.style.overflow = '';
     };
   }, [manageModalOpen, modalOpen, confirmOpen, assignModalOpen, templateModal.open]);
+
+  // 템플릿(과제 양식 배포) 모달 진입 시 브라우저 뒤로가기 → 메인 대시보드 점프 방지.
+  // ref 로 Dashboard popstate 무시시키고 자체 리스너에서 모달만 닫음 (content 는 state 유지)
+  useEffect(() => {
+    if (!templateModal.open || !curriculumDetailRef) return;
+    curriculumDetailRef.current = true;
+    window.history.pushState({ templateOpen: true, t: Date.now() }, '');
+    const onPop = () => {
+      setTemplateModal((prev) => ({ ...prev, open: false, fullscreen: false }));
+    };
+    window.addEventListener('popstate', onPop);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      curriculumDetailRef.current = false;
+    };
+  }, [templateModal.open, curriculumDetailRef]);
 
 
   useEffect(() => {
@@ -396,6 +412,9 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
     try {
       const res = await api.patch(`/curricula/${selectedCurriculum.cur_id}`, { cur_week_plan: weekPlan });
       setCurriculums((prev) => prev.map((c) => (c.cur_id === res.data.cur_id ? res.data : c)));
+      try {
+        localStorage.removeItem(templateDraftKey(selectedCurriculum.cur_id, templateModal.week, templateModal.assignmentIdx));
+      } catch {}
       toast.success('학습자들에게 과제 템플릿이 배포되었습니다.');
       setTemplateModal({ open: false, week: null, assignmentIdx: null, title: '', content: '', generating: false, fullscreen: false });
     } catch (err) {
@@ -441,12 +460,35 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
     }
   };
 
+  const templateDraftKey = (curId, week, idx) => `template_draft:${curId}:${week}:${idx}`;
+
   const openTemplateModal = (week, idx, assignment) => {
+    let content = assignment.template_content || `<h3>[${assignment.title}]</h3><p>관련 과제 양식을 자유롭게 작성해주세요.</p>`;
+    try {
+      if (selectedCurriculum) {
+        const draft = localStorage.getItem(templateDraftKey(selectedCurriculum.cur_id, week, idx));
+        if (draft != null) {
+          content = draft;
+          toast.info('임시저장본을 불러왔습니다.');
+        }
+      }
+    } catch {}
     setTemplateModal({
       open: true, week, assignmentIdx: idx, title: assignment.title,
-      content: assignment.template_content || `<h3>[${assignment.title}]</h3><p>관련 과제 양식을 자유롭게 작성해주세요.</p>`,
+      content,
       generating: false, fullscreen: false
     });
+  };
+
+  const saveTemplateDraft = () => {
+    if (!selectedCurriculum || templateModal.week == null || templateModal.assignmentIdx == null) return;
+    try {
+      const key = templateDraftKey(selectedCurriculum.cur_id, templateModal.week, templateModal.assignmentIdx);
+      localStorage.setItem(key, templateModal.content || '');
+      toast.success('임시저장 되었습니다.');
+    } catch {
+      toast.error('임시저장에 실패했습니다.');
+    }
   };
 
   const renderAccordionItem = (step, expandedState, toggleFunc) => {
@@ -934,7 +976,7 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
             <div className="confirmOverlay" style={{ zIndex: 99998 }} onClick={() => setTemplateModal({ ...templateModal, open: false })} />
             <div className={`confirmModal templateModal ${templateModal.fullscreen ? 'fullscreen' : ''}`} style={{ zIndex: 99999, display: 'flex', flexDirection: 'column', height: '90vh', overflow: 'hidden' }}>
               <div className="modalTopBar" style={{ flexShrink: 0 }}>
-                <h3 className="sectionTitle">과제 양식(템플릿) 배포</h3>
+                <h3 className="templateSectionTitle">과제 양식(템플릿) 배포</h3>
                 <div className="modalHeaderActions">
                   <button type="button" className="template-action-btn admin ai-regenerate-btn" onClick={handleRegenerateTemplate} disabled={templateModal.generating}>
                     {templateModal.generating ? 'AI 작성 중...' : 'AI 템플릿 재작성'}
@@ -964,6 +1006,7 @@ function CurriculumView({ onOpenArticle, onModalToggle }) {
               </div>
               <div className="confirmBtns" style={{ flexShrink: 0, paddingTop: '16px' }}>
                 <button type="button" className="confirmBtnBack" onClick={() => setTemplateModal({ ...templateModal, open: false })} disabled={templateModal.saving}>취소</button>
+                <button type="button" className="confirmBtnBack" onClick={saveTemplateDraft} disabled={templateModal.saving}>임시저장</button>
                 <button type="button" className="confirmBtnCreate" onClick={saveTemplate} disabled={templateModal.saving}>{templateModal.saving ? '배포 중...' : '템플릿 배포'}</button>
               </div>
             </div>

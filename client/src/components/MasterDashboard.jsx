@@ -6,6 +6,7 @@ import api from '../lib/api';
 import ReportTemplate from './ReportTemplate';
 import MasterMemberPanel from './master/MasterMemberPanel';
 import MasterMemberDetailModal from './master/MasterMemberDetailModal';
+import MasterArticleCreateModal from './master/MasterArticleCreateModal';
 import '../styles/MasterDashboard.css';
 
 const DOUGHNUT_COLORS = [
@@ -21,6 +22,7 @@ const DOUGHNUT_COLORS = [
 
 function MasterDashboard({ user, onLogout }) {
   const [memberPanelOpen, setMemberPanelOpen] = useState(false);
+  const [articleCreateOpen, setArticleCreateOpen] = useState(false);
 
   const [stats, setStats] = useState(null);
   const [statsError, setStatsError] = useState(null);
@@ -93,7 +95,7 @@ function MasterDashboard({ user, onLogout }) {
       .catch((err) => setCurriculumStatsError(err.response?.data?.detail || '커리큘럼 통계를 불러오지 못했어요.'));
   }, []);
 
-  const ROLE_ORDER = { a: 0, m: 1, j: 2 };
+  const ROLE_ORDER = { a: 0, m: 1, j: 2, c: 3 };
 
   const filteredMembers = members
     .filter((m) => {
@@ -418,6 +420,9 @@ function MasterDashboard({ user, onLogout }) {
           >
             {reportGenerating ? '생성 중...' : '월간 PDF'}
           </button>
+          <button className="masterMemberBtn" onClick={() => setArticleCreateOpen(true)}>
+            아티클 등록
+          </button>
           <button className="masterMemberBtn" onClick={() => setMemberPanelOpen(true)}>
             회원관리
           </button>
@@ -630,6 +635,15 @@ function MasterDashboard({ user, onLogout }) {
           handleDeleteRestore={handleDeleteRestore}
         />
       )}
+
+      {/* 아티클 등록 패널 */}
+      <MasterArticleCreateModal
+        open={articleCreateOpen}
+        onClose={() => setArticleCreateOpen(false)}
+        onCreated={(newArticle) => {
+          // 카테고리 통계는 다음 자연스러운 새로고침에 반영. 토스트만 표시.
+        }}
+      />
 
       {/* 보고서 (offscreen, html2pdf 캡처용) */}
       {reportData && (

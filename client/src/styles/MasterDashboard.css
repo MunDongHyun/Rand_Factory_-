@@ -1083,3 +1083,179 @@
     padding: 18px;
     text-align: center;
 }
+
+/* --- 아티클 등록 패널 (admin 전용) --- */
+.masterArticlePanel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: min(720px, 92vw);
+    height: 100vh;
+    background: rgba(15, 20, 28, 0.92);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-left: 1px solid var(--m-border);
+    z-index: 1100;
+    overflow-y: auto;
+    padding: 60px 48px 40px;
+    animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.masterArticleForm {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.masterArticleField {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+}
+
+.masterArticleField label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--m-text-dim);
+    letter-spacing: 0.02em;
+}
+
+.masterArticleField input[type="text"],
+.masterArticleField input[type="url"],
+.masterArticleField input[type="date"],
+.masterArticleField textarea {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--m-border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--m-text);
+    font-family: 'Pretendard', sans-serif;
+    font-size: 14px;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.masterArticleField input[type="text"]:focus,
+.masterArticleField input[type="url"]:focus,
+.masterArticleField input[type="date"]:focus,
+.masterArticleField textarea:focus {
+    outline: none;
+    border-color: rgba(74, 143, 208, 0.7);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.masterArticleField input::placeholder,
+.masterArticleField textarea::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.masterArticleField textarea {
+    resize: vertical;
+    min-height: 120px;
+    font-family: 'Pretendard', sans-serif;
+}
+
+.masterArticleField input:disabled,
+.masterArticleField textarea:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.masterArticleFieldRow {
+    display: flex;
+    gap: 12px;
+}
+
+.masterArticleSourceRow {
+    display: flex;
+    gap: 8px;
+}
+
+.masterArticleSourceBtn {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--m-border);
+    color: var(--m-text-dim);
+    padding: 10px 22px;
+    border-radius: 8px;
+    font-family: 'Pretendard', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.masterArticleSourceBtn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--m-text);
+}
+
+.masterArticleSourceBtn.active {
+    background: rgba(74, 143, 208, 0.18);
+    border-color: rgba(74, 143, 208, 0.6);
+    color: #fff;
+}
+
+.masterArticleSourceBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.masterArticleError {
+    background: rgba(255, 107, 107, 0.12);
+    border: 1px solid rgba(255, 107, 107, 0.4);
+    color: #ff8a8a;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin: 0;
+}
+
+.masterArticleActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding-top: 6px;
+}
+
+.masterArticleCancelBtn {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--m-border);
+    color: var(--m-text-dim);
+    padding: 10px 22px;
+    border-radius: 8px;
+    font-family: 'Pretendard', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.masterArticleCancelBtn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--m-text);
+}
+
+.masterArticleSubmitBtn {
+    background: rgba(74, 143, 208, 0.85);
+    border: 1px solid rgba(74, 143, 208, 1);
+    color: #fff;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-family: 'Pretendard', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.masterArticleSubmitBtn:hover:not(:disabled) {
+    background: rgba(74, 143, 208, 1);
+}
+
+.masterArticleCancelBtn:disabled,
+.masterArticleSubmitBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+

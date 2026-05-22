@@ -111,39 +111,64 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
     setExpandedWeek((prev) => (prev === week ? null : week));
   };
 
+  const taskDraftKey = (curId, week, idx) => `task_draft:${curId}:${week}:${idx}`;
+
   const handleAssignmentClick = (week, assignmentIdx, assignmentData) => {
-    setActiveTask({ week, assignmentIdx, assignmentData });
     const sub = getLatestSubmission(selectedId, week, assignmentIdx);
+    const willEdit = !sub || sub.task_status === 'resubmit_requested';
 
-    const initialContent = templateAssignments.length > 0
-      ? templateAssignments.map((a) => {
-        const title = a.title ? `<h3>${escapeHtml(a.title)}</h3>` : '';
-        return `${title}${a.template_content}`;
-      }).join('<hr>')
-      : '';
-
-    const processedContent = initialContent.replace(
-      /(□|■)/g,
-      (match) => {
-        const color = match === '■' ? 'color: #3B82F6;' : 'color: inherit;';
-        return `<span class="learner-checkbox" style="cursor:pointer; user-select:none; font-weight:bold; padding:0 2px; ${color}">${match}</span>`;
+    let data = assignmentData;
+    if (willEdit && selectedId != null) {
+      if (sub?.task_submitted_content?.text) {
+        data = { ...assignmentData, template_content: sub.task_submitted_content.text };
+      } else {
+        try {
+          const draft = localStorage.getItem(taskDraftKey(selectedId, week, assignmentIdx));
+          if (draft != null) {
+            data = { ...assignmentData, template_content: draft };
+            toast.info('임시저장본을 불러왔습니다.');
+          }
+        } catch { }
       }
-    );
+    }
 
-    setModalState({ curId, week, fullscreen: false, templateHtml: processedContent });
+    setActiveTask({ week, assignmentIdx, assignmentData: data });
+    setIsEditing(willEdit);
     setSubmitFiles([]);
     setSubmitError(null);
   };
 
-  const toggleSubmitFullscreen = () =>
-    setModalState((prev) => (prev ? { ...prev, fullscreen: !prev.fullscreen } : prev));
-
-  const closeSubmitModal = () => {
-    if (submitting) return;
-    setModalState(null);
-    setSubmitFiles([]);
-    setSubmitError(null);
+  const saveTaskDraft = () => {
+    if (!activeTask || !submitEditorRef.current || selectedId == null) return;
+    try {
+      const htmlCopy = submitEditorRef.current.cloneNode(true);
+      htmlCopy.querySelectorAll('[contenteditable="true"]').forEach((el) => {
+        if (el.querySelector('.placeholder-text')) el.innerHTML = '';
+        el.removeAttribute('contenteditable');
+        el.removeAttribute('style');
+      });
+      const key = taskDraftKey(selectedId, activeTask.week, activeTask.assignmentIdx);
+      localStorage.setItem(key, htmlCopy.innerHTML);
+      toast.success('임시저장 되었습니다.');
+    } catch {
+      toast.error('임시저장에 실패했습니다.');
+    }
   };
+
+  useEffect(() => {
+    if (!activeTask || !curriculumDetailRef) return;
+    curriculumDetailRef.current = true;
+    window.history.pushState({ taskOpen: true, t: Date.now() }, '');
+    const onPop = () => {
+      setActiveTask(null);
+      setEditorFullscreen(false);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      curriculumDetailRef.current = false;
+    };
+  }, [activeTask, curriculumDetailRef]);
 
   useEffect(() => {
     if (isEditing && activeTask && submitEditorRef.current) {
@@ -165,29 +190,29 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
       container.addEventListener('click', handleCheckboxClick);
 
       container.querySelectorAll('td').forEach((td) => {
-        if (td.textContent.trim() === '' && !td.querySelector('img')) {
-          td.setAttribute('contenteditable', 'true');
-          td.style.border = "2px dashed #90cdf4";
-          td.style.padding = "10px";
-          td.style.cursor = "text";
-          td.style.minHeight = "40px";
-          td.style.transition = "all 0.2s";
+        td.setAttribute('contenteditable', 'true');
+        td.style.border = "2px dashed #90cdf4";
+        td.style.padding = "10px";
+        td.style.cursor = "text";
+        td.style.minHeight = "40px";
+        td.style.transition = "all 0.2s";
 
+        if (td.textContent.trim() === '' && !td.querySelector('img')) {
           td.innerHTML = '<span class="placeholder-text" style="color:#a0aec0;font-style:italic;pointer-events:none;">클릭하여 내용 입력</span>';
-          td.onfocus = function () {
-            if (this.querySelector('.placeholder-text')) this.innerHTML = '';
-            this.style.border = "2px solid #3182ce";
-            this.style.outline = "none";
-            this.style.backgroundColor = "#ebf8ff";
-          };
-          td.onblur = function () {
-            if (this.textContent.trim() === '')
-              this.innerHTML = '<span class="placeholder-text" style="color:#a0aec0;font-style:italic;pointer-events:none;">클릭하여 내용 입력</span>';
-            this.style.border = "2px dashed #90cdf4";
-            this.style.backgroundColor = "transparent";
-          };
-          injectedCount++;
         }
+        td.onfocus = function () {
+          if (this.querySelector('.placeholder-text')) this.innerHTML = '';
+          this.style.border = "2px solid #3182ce";
+          this.style.outline = "none";
+          this.style.backgroundColor = "#ebf8ff";
+        };
+        td.onblur = function () {
+          if (this.textContent.trim() === '')
+            this.innerHTML = '<span class="placeholder-text" style="color:#a0aec0;font-style:italic;pointer-events:none;">클릭하여 내용 입력</span>';
+          this.style.border = "2px dashed #90cdf4";
+          this.style.backgroundColor = "transparent";
+        };
+        injectedCount++;
       });
 
       container.querySelectorAll('p').forEach((p) => {
@@ -340,6 +365,9 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
 
       await loadSubmissions();
       setIsEditing(false);
+      try {
+        localStorage.removeItem(taskDraftKey(selectedId, activeTask.week, activeTask.assignmentIdx));
+      } catch { }
       if (failures.length > 0) toast.warn(`제출은 완료됐지만 일부 첨부 업로드에 실패했습니다:\n${failures.join('\n')}`);
       else toast.success("성공적으로 제출되었습니다.");
 
@@ -569,7 +597,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
                         </div>
                       )}
 
-                 
+
                       {!editorFullscreen && (
                         <p style={{ fontSize: '13px', color: '#718096', marginBottom: '12px' }}>
                           마우스로 표의 푸른 점선 빈칸을 클릭하여 내용을 채워주세요.
@@ -632,7 +660,24 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
                         </p>
                       )}
 
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px', gap: '8px' }}>
+                        {currentSubmission && (
+                          <button
+                            onClick={() => setIsEditing(false)}
+                            disabled={submitting}
+                            style={{ background: '#fff', border: '1px solid #cbd5e0', color: '#718096', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', marginRight: 'auto' }}
+                          >
+                            취소
+                          </button>
+                        )}
+
+                        <button
+                          onClick={saveTaskDraft}
+                          disabled={submitting}
+                          style={{ background: '#fff', border: '1px solid var(--ink)', color: 'var(--ink)', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}
+                        >
+                          임시저장
+                        </button>
                         <button
                           onClick={handleSubmit}
                           disabled={submitting}
@@ -686,7 +731,19 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
 
                       <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px dashed #e2e8f0', paddingTop: '20px' }}>
                         <button
-                          onClick={() => setIsEditing(true)}
+                          onClick={() => {
+                            const sub = currentSubmission;
+                            if (sub?.task_submitted_content?.text) {
+                              setActiveTask(prev => ({
+                                ...prev,
+                                assignmentData: {
+                                  ...prev.assignmentData,
+                                  template_content: sub.task_submitted_content.text,
+                                }
+                              }));
+                            }
+                            setIsEditing(true)
+                          }}
                           style={{ background: '#fff', border: '1px solid #cbd5e0', color: '#4a5568', padding: '10px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}
                         >
                           과제 수정 / 재제출하기
