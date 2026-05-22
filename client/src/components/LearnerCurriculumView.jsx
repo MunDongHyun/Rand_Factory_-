@@ -582,6 +582,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
                       )}
 
                       <div
+                        className="template-render learnerTemplateRender"
                         contentEditable={false}
                         ref={submitEditorRef}
                         dangerouslySetInnerHTML={{ __html: activeTask.assignmentData.template_content || '' }}
@@ -647,7 +648,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
                       <div className="managerSubmissionContent" style={{ marginBottom: '24px' }}>
                         <p className="managerSubmissionContentLabel" style={{ fontSize: '15px', fontWeight: '700', marginBottom: '12px' }}>내가 제출한 내용</p>
                         <div
-                          className="managerSubmissionContentBody"
+                          className="managerSubmissionContentBody template-render"
                           style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '24px', minHeight: '200px' }}
                           dangerouslySetInnerHTML={{ __html: sanitizeHtml(currentSubmission?.task_submitted_content?.text) || '(내용 없음)' }}
                         />

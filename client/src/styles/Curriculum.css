@@ -1551,22 +1551,37 @@
   color: var(--ink);
 }
 
+.template-render table,
 .tiptap-content-area .ProseMirror table {
   border-collapse: collapse;
   width: 100%;
   margin: 8px 0;
 }
 
+.template-render td,
+.template-render th,
 .tiptap-content-area .ProseMirror td,
 .tiptap-content-area .ProseMirror th {
   border: 1px solid var(--line);
   padding: 6px 10px;
   min-width: 60px;
+  vertical-align: top;
 }
 
+.template-render th,
 .tiptap-content-area .ProseMirror th {
   background: var(--bg-alt);
   font-weight: 600;
+}
+
+.template-render p {
+  margin: 0 0 10px;
+}
+
+.template-render ul,
+.template-render ol {
+  padding-left: 28px;
+  margin: 12px 0;
 }
 
 .tiptap-loading-overlay {

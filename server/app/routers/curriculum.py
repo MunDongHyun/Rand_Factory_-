@@ -147,8 +147,21 @@ def list_curricula(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    query = _scope_curriculum_query(db.query(Curriculum), current_user)
-    return query.order_by(Curriculum.cur_created_at.desc()).all()
+    # 큰 JSON 컬럼(cur_week_plan 등)이 sort buffer를 폭발시키는 문제 방지:
+    # 1단계 id만 정렬해서 가져온 뒤, 2단계에서 PK로 전체 row fetch
+    id_rows = (
+        _scope_curriculum_query(db.query(Curriculum.cur_id), current_user)
+        .order_by(Curriculum.cur_created_at.desc())
+        .all()
+    )
+    ids = [row.cur_id for row in id_rows]
+    if not ids:
+        return []
+
+    rows = db.query(Curriculum).filter(Curriculum.cur_id.in_(ids)).all()
+    order = {cid: i for i, cid in enumerate(ids)}
+    rows.sort(key=lambda r: order[r.cur_id])
+    return rows
 
 
 @router.get("/stats", response_model=CurriculumStatsResponse)
