@@ -2,6 +2,35 @@
 
 ---
 
+## 2026-05-22 - Claude (커리큘럼 목록 500 / sort buffer 폭발 수정)
+
+### 증상
+- 로그인 후 `/api/curricula` 호출이 학습자(`j`)/매니저(`m`) 양쪽 모두 500
+- 서버 traceback 끝: `pymysql.err.OperationalError: (1038, 'Out of sort memory, consider increasing server sort buffer size')`
+
+### 원인
+- `list_curricula` 핸들러가 `SELECT *` + `ORDER BY cur_created_at DESC`
+- `cur_week_plan` (JSON), `cur_assigned_learner_ids` (JSON) 등 큰 컬럼이 전부 sort buffer에 적재됨
+- MySQL 기본 `sort_buffer_size` (256KB) 만으로는 row 몇 개만 있어도 폭발
+- 어제 임시배포 자체가 직접 원인은 아니나, 데이터가 일정 임계점을 넘으면 결국 터질 코드였음
+
+### 수정
+- `server/app/routers/curriculum.py` `list_curricula` 한 함수만 교체
+  - 1단계: `cur_id` 컬럼만 SELECT + ORDER BY → sort 비용 거의 0
+  - 2단계: `id IN (...)` 로 PK 인덱스 직접 fetch → 정렬 없음
+  - 파이썬에서 ids 순서대로 재정렬해 DB 정렬 결과 보존
+- 응답 schema/권한 로직/다른 핸들러 영향 없음
+
+### 검증
+- `python -m compileall -q app` 통과
+- 실 사용 시 매니저/학습자 두 계정에서 커리큘럼 페이지 200 확인 필요
+
+### 메모
+- 의존성/마이그레이션 변경 없음. 팀원 풀 후 추가 작업 없음
+- 동일 패턴이 다른 라우터(예: task_submissions list)에 있는지는 추후 점검 사이클로 미룸
+
+---
+
 ## 2026-05-22 - Codex + Claude (학습자 화면 템플릿 표 깨짐 수정 / `.template-render` 공용 클래스 도입)
 
 ### 배경
