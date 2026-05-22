@@ -119,13 +119,17 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
 
     let data = assignmentData;
     if (willEdit && selectedId != null) {
-      try {
-        const draft = localStorage.getItem(taskDraftKey(selectedId, week, assignmentIdx));
-        if (draft != null) {
-          data = { ...assignmentData, template_content: draft };
-          toast.info('임시저장본을 불러왔습니다.');
-        }
-      } catch {}
+      if (sub?.task_submitted_content?.text) {
+        data = { ...assignmentData, template_content: sub.task_submitted_content.text };
+      } else {
+        try {
+          const draft = localStorage.getItem(taskDraftKey(selectedId, week, assignmentIdx));
+          if (draft != null) {
+            data = { ...assignmentData, template_content: draft };
+            toast.info('임시저장본을 불러왔습니다.');
+          }
+        } catch { }
+      }
     }
 
     setActiveTask({ week, assignmentIdx, assignmentData: data });
@@ -151,8 +155,6 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
     }
   };
 
-  // 과제 상세 진입 시 브라우저 뒤로가기 → 메인 대시보드 점프 방지.
-  // ref 로 Dashboard popstate 무시시키고 자체 리스너에서 activeTask 만 해제
   useEffect(() => {
     if (!activeTask || !curriculumDetailRef) return;
     curriculumDetailRef.current = true;
@@ -175,29 +177,29 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
       let injectedCount = 0;
 
       container.querySelectorAll('td').forEach((td) => {
-        if (td.textContent.trim() === '' && !td.querySelector('img')) {
-          td.setAttribute('contenteditable', 'true');
-          td.style.border = "2px dashed #90cdf4";
-          td.style.padding = "10px";
-          td.style.cursor = "text";
-          td.style.minHeight = "40px";
-          td.style.transition = "all 0.2s";
+        td.setAttribute('contenteditable', 'true');
+        td.style.border = "2px dashed #90cdf4";
+        td.style.padding = "10px";
+        td.style.cursor = "text";
+        td.style.minHeight = "40px";
+        td.style.transition = "all 0.2s";
 
+        if (td.textContent.trim() === '' && !td.querySelector('img')) {
           td.innerHTML = '<span class="placeholder-text" style="color:#a0aec0;font-style:italic;pointer-events:none;">클릭하여 내용 입력</span>';
-          td.onfocus = function () {
-            if (this.querySelector('.placeholder-text')) this.innerHTML = '';
-            this.style.border = "2px solid #3182ce";
-            this.style.outline = "none";
-            this.style.backgroundColor = "#ebf8ff";
-          };
-          td.onblur = function () {
-            if (this.textContent.trim() === '')
-              this.innerHTML = '<span class="placeholder-text" style="color:#a0aec0;font-style:italic;pointer-events:none;">클릭하여 내용 입력</span>';
-            this.style.border = "2px dashed #90cdf4";
-            this.style.backgroundColor = "transparent";
-          };
-          injectedCount++;
         }
+        td.onfocus = function () {
+          if (this.querySelector('.placeholder-text')) this.innerHTML = '';
+          this.style.border = "2px solid #3182ce";
+          this.style.outline = "none";
+          this.style.backgroundColor = "#ebf8ff";
+        };
+        td.onblur = function () {
+          if (this.textContent.trim() === '')
+            this.innerHTML = '<span class="placeholder-text" style="color:#a0aec0;font-style:italic;pointer-events:none;">클릭하여 내용 입력</span>';
+          this.style.border = "2px dashed #90cdf4";
+          this.style.backgroundColor = "transparent";
+        };
+        injectedCount++;
       });
 
       container.querySelectorAll('p').forEach((p) => {
@@ -349,7 +351,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
       setIsEditing(false);
       try {
         localStorage.removeItem(taskDraftKey(selectedId, activeTask.week, activeTask.assignmentIdx));
-      } catch {}
+      } catch { }
       if (failures.length > 0) toast.warn(`제출은 완료됐지만 일부 첨부 업로드에 실패했습니다:\n${failures.join('\n')}`);
       else toast.success("성공적으로 제출되었습니다.");
 
@@ -579,7 +581,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
                         </div>
                       )}
 
-                 
+
                       {!editorFullscreen && (
                         <p style={{ fontSize: '13px', color: '#718096', marginBottom: '12px' }}>
                           마우스로 표의 푸른 점선 빈칸을 클릭하여 내용을 채워주세요.
@@ -643,6 +645,16 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
                       )}
 
                       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px', gap: '8px' }}>
+                        {currentSubmission && (
+                          <button
+                            onClick={() => setIsEditing(false)}
+                            disabled={submitting}
+                            style={{ background: '#fff', border: '1px solid #cbd5e0', color: '#718096', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', marginRight: 'auto' }}
+                          >
+                            취소
+                          </button>
+                        )}
+
                         <button
                           onClick={saveTaskDraft}
                           disabled={submitting}
@@ -703,7 +715,19 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
 
                       <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px dashed #e2e8f0', paddingTop: '20px' }}>
                         <button
-                          onClick={() => setIsEditing(true)}
+                          onClick={() => {
+                            const sub = currentSubmission;
+                            if (sub?.task_submitted_content?.text) {
+                              setActiveTask(prev => ({
+                                ...prev,
+                                assignmentData: {
+                                  ...prev.assignmentData,
+                                  template_content: sub.task_submitted_content.text,
+                                }
+                              }));
+                            }
+                            setIsEditing(true)
+                          }}
                           style={{ background: '#fff', border: '1px solid #cbd5e0', color: '#4a5568', padding: '10px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}
                         >
                           과제 수정 / 재제출하기
