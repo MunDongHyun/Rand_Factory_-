@@ -2,6 +2,57 @@
 
 ---
 
+## 2026-05-22 - Claude (마스터 페이지: c-role 누락 보완 + 아티클 등록 UI 추가)
+
+### 배경
+- 마스터 페이지(admin 전용) 점검 결과 두 가지 누락 발견:
+  1. `c` (일반 회원) 역할이 UI 곳곳에 처리 안 됨 — 회원 목록에서 "학습자"로 잘못 표기, 필터 옵션 없음, 역할 변경 버튼 없음, 정렬 시 끝으로 밀림
+  2. admin 본분인 "아티클 등록" 화면 자체가 부재 (백엔드 `POST /api/articles` 는 존재했으나 호출할 UI 가 없었음)
+
+### 수정 1) c-role 누락 보완 (4곳)
+- `client/src/components/master/MasterMemberPanel.jsx`
+  - `statusFor()` 에 `c → '일반회원'` 분기 추가
+  - 역할 필터 select 에 `<option value="c">일반회원</option>` 추가
+- `client/src/components/master/MasterMemberDetailModal.jsx`
+  - 역할 변경 버튼 배열에 `{value: 'c', label: '일반회원'}` 추가 (a/m/c/j 4개로 확장)
+- `client/src/components/MasterDashboard.jsx`
+  - `ROLE_ORDER` 에 `c: 3` 추가 (a/m/j 뒤로 정렬)
+
+### 수정 2) 아티클 등록 UI 추가
+- 신규 컴포넌트 `client/src/components/master/MasterArticleCreateModal.jsx`
+  - 사이드 패널 (회원관리 패널과 동일 패턴)
+  - 폼 필드: 출처(DBR/HBR 토글) / 제목 / 저자 / 발행일 / 카테고리(datalist 자동완성) / 원문 URL / 본문(선택, 입력 시 RAG 인제스트)
+  - 카테고리 옵션은 `GET /articles/categories` 에서 자동 로드
+  - 필수 필드 검증 후 `POST /articles` 호출
+  - 성공 시 토스트 + 폼 초기화 + 패널 닫힘
+- `client/src/components/MasterDashboard.jsx`
+  - 헤더에 "아티클 등록" 버튼 추가 (회원관리 버튼 왼쪽)
+  - `articleCreateOpen` state + 모달 렌더
+- `client/src/styles/MasterDashboard.css`
+  - `.masterArticlePanel`, `.masterArticleForm`, `.masterArticleField`, `.masterArticleSourceBtn`, `.masterArticleSubmitBtn` 등 추가
+  - 회원관리 패널과 동일한 어두운 톤 + 슬라이드인 애니메이션 재사용
+
+### 백엔드 정합성 보완
+- `server/app/schemas/article.py` `ArticleCreate`
+  - 기존: author/published_date/category/source_url 가 Optional 이었음 (스키마 ↔ 모델 NOT NULL 불일치)
+  - 변경: 모두 필수 (스키마와 DB 정합성 일치, 클라이언트가 빈 값 보내면 422 로 친절하게 거부)
+- 새 endpoint 없음, 마이그레이션 없음
+
+### 한계 / 후속
+- 썸네일 업로드는 이번 사이클 제외 (별도 thumbnail_service 흐름 분석 필요)
+- 아티클 수정/삭제 UI 없음 — 추후 사이클
+- 회사 초대 코드 재발급 (1회 제한) 액션은 다음 작업
+
+### 검증
+- 프론트 `npm run build` 통과 (4.93s)
+- 백엔드 `python -m compileall -q app` 통과
+- 실 사용: admin 계정 → 회원관리에서 일반회원 표시/필터/역할변경 동작, "아티클 등록" 패널에서 폼 작성 후 등록 → 메인 대시보드에 즉시 반영 확인 필요
+
+### 메모
+- 의존성/마이그레이션 변경 없음
+
+---
+
 ## 2026-05-22 - Claude (일반 회원 c → 매니저 m 승급 구독 팝업 추가 / 결제 시뮬레이션)
 
 ### 배경

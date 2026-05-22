@@ -10,10 +10,10 @@ ArticleSource = Literal["DBR", "HBR"]
 class ArticleCreate(BaseModel):
     article_source: ArticleSource
     article_title: str
-    article_author: str | None = None
-    article_published_date: date | None = None
-    article_category: str | None = None
-    article_source_url: str | None = None
+    article_author: str
+    article_published_date: date
+    article_category: str
+    article_source_url: str
     content: str | None = None
 
 
