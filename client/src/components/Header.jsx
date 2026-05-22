@@ -13,7 +13,7 @@ const ROLE_LABELS = {
 // 하이픈은 그대로 두고 영숫자만 • 로 마스킹 (예: 9F3K-PXQ7-M2NJ → ••••-••••-••••)
 const maskInviteCode = (code) => (code ? code.replace(/[^-]/g, '•') : '');
 
-function Header({ user, canUseCurriculum = true, currentView, onViewChange, onLogout, onScrollToTop, onScrollToArticle, onSearch, onReset, isModalOpen}) {
+function Header({ user, canUseCurriculum = true, canManageLearners = false, currentView, onViewChange, onLogout, onScrollToTop, onScrollToArticle, onSearch, onReset, isModalOpen}) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [codeVisible, setCodeVisible] = useState(false);
@@ -153,6 +153,13 @@ function Header({ user, canUseCurriculum = true, currentView, onViewChange, onLo
               onViewChange('curriculum');
               setMenuOpen(false);
             }}>커리큘럼 관리</li>
+          )}
+
+          {canManageLearners && (
+            <li onClick={() => {
+              onViewChange('learners');
+              setMenuOpen(false);
+            }}>학습자 관리</li>
           )}
 
           <li onClick={() => {

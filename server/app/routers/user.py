@@ -206,13 +206,21 @@ def get_user_activity_summary(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """관리자(a) 전용: 회원 1명의 활동 요약 (커리큘럼/과제/피드백 수)."""
-    if current_user.user_role != "a":
+    """회원 1명의 활동 요약. admin: 모든 회원 / manager: 본인 회사 활성 학습자만."""
+    if current_user.user_role not in ("a", "m"):
         raise HTTPException(status_code=404, detail="찾을 수 없습니다")
 
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다")
+
+    if current_user.user_role == "m":
+        if (
+            user.user_role != "j"
+            or user.user_company != current_user.user_company
+            or user.user_deleted_at is not None
+        ):
+            raise HTTPException(status_code=404, detail="찾을 수 없습니다")
 
     # 지연 import (순환 방지)
     from app.models.curriculum import Curriculum

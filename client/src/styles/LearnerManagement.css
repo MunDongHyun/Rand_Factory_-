@@ -1,0 +1,329 @@
+/* --- 학습자 관리 페이지 (매니저 전용) --- */
+.learnerMgmtContainer {
+  padding: 24px 32px 60px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.learnerMgmtHeader {
+  margin-bottom: 20px;
+}
+
+.learnerMgmtTitle {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink, #1a202c);
+  margin: 0 0 6px;
+}
+
+.learnerMgmtSubtitle {
+  font-size: 13px;
+  color: #718096;
+  margin: 0;
+}
+
+.learnerMgmtInviteCard {
+  background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 20px;
+}
+
+.learnerMgmtInviteLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #4a5568;
+  margin-bottom: 8px;
+}
+
+.learnerMgmtInviteRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.learnerMgmtInviteCode {
+  font-family: 'Pretendard', monospace;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a202c;
+  background: #fff;
+  border: 1px solid #cbd5e0;
+  border-radius: 6px;
+  padding: 6px 12px;
+  letter-spacing: 1px;
+}
+
+.learnerMgmtInviteAction {
+  background: #fff;
+  border: 1px solid #cbd5e0;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.learnerMgmtInviteAction:hover {
+  background: #f7fafc;
+}
+
+.learnerMgmtInviteHint {
+  font-size: 12px;
+  color: #718096;
+  margin: 0;
+}
+
+.learnerMgmtControls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.learnerMgmtSearch {
+  flex: 1;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 14px;
+  font-family: 'Pretendard', sans-serif;
+}
+
+.learnerMgmtSearch:focus {
+  outline: none;
+  border-color: #3182ce;
+}
+
+.learnerMgmtSort {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 14px;
+  background: #fff;
+  font-family: 'Pretendard', sans-serif;
+  cursor: pointer;
+}
+
+.learnerMgmtCount {
+  font-size: 12px;
+  color: #718096;
+  white-space: nowrap;
+}
+
+.learnerMgmtList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.learnerMgmtCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.learnerMgmtCard:hover {
+  border-color: #3182ce;
+  box-shadow: 0 2px 10px rgba(49, 130, 206, 0.08);
+}
+
+.learnerMgmtCardLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.learnerMgmtCardName {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a202c;
+}
+
+.learnerMgmtCardEmail {
+  font-size: 13px;
+  color: #718096;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.learnerMgmtCardRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.learnerMgmtCardDate {
+  font-size: 12px;
+  color: #a0aec0;
+}
+
+.learnerMgmtCardCta {
+  font-size: 12px;
+  color: #3182ce;
+  font-weight: 600;
+}
+
+.learnerMgmtEmpty {
+  text-align: center;
+  padding: 40px 20px;
+  color: #718096;
+}
+
+.learnerMgmtEmpty p {
+  margin: 4px 0;
+  font-size: 14px;
+}
+
+.learnerMgmtEmptyHint {
+  font-size: 13px;
+  color: #a0aec0;
+}
+
+.learnerMgmtLoading,
+.learnerMgmtError {
+  text-align: center;
+  padding: 30px 20px;
+  font-size: 14px;
+}
+
+.learnerMgmtError {
+  color: #e53e3e;
+}
+
+/* --- 학습자 상세 모달 --- */
+.learnerDetailOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  z-index: 9998;
+}
+
+.learnerDetailModal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(520px, calc(100vw - 32px));
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  padding: 28px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.learnerDetailHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.learnerDetailTitle {
+  font-size: 20px;
+  font-weight: 800;
+  color: #1a202c;
+  margin: 0;
+}
+
+.learnerDetailClose {
+  background: none;
+  border: none;
+  font-size: 26px;
+  line-height: 1;
+  color: #718096;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.learnerDetailInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  background: #f7fafc;
+  border-radius: 10px;
+}
+
+.learnerDetailRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.learnerDetailLabel {
+  color: #718096;
+  font-weight: 600;
+}
+
+.learnerDetailValue {
+  color: #1a202c;
+}
+
+.learnerDetailSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.learnerDetailSectionTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #2d3748;
+  margin: 0;
+}
+
+.learnerDetailStats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.learnerDetailStat {
+  background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 12px;
+  text-align: center;
+}
+
+.learnerDetailStatLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: #718096;
+  margin: 0 0 6px;
+}
+
+.learnerDetailStatValue {
+  font-size: 24px;
+  font-weight: 800;
+  color: #1a202c;
+  margin: 0;
+}
+
+.learnerDetailMuted {
+  color: #a0aec0;
+  font-size: 13px;
+  margin: 0;
+}
+
+.learnerDetailError {
+  color: #e53e3e;
+  font-size: 13px;
+  margin: 0;
+}

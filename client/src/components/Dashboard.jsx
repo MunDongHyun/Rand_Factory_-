@@ -11,6 +11,7 @@ import ArticleDetailView from './ArticleDetailView';
 import HeroBanner from './HeroBanner';
 import MyBookmarksView from './MyBookmarksView';
 import SubscribeModal from './SubscribeModal';
+import LearnerManagementView from './LearnerManagementView';
 
 const SECTION_THEMES = ['blue', 'green', 'brown'];
 
@@ -29,6 +30,7 @@ const CATEGORY_EN = {
 function Dashboard({ user, onUserUpdate, onLogout }) {
   const canUseCurriculum = ['j', 'm', 'a'].includes(user?.user_role);
   const canCreateCurriculum = ['m', 'a'].includes(user?.user_role);
+  const canManageLearners = user?.user_role === 'm';
   const canSubscribe = user?.user_role === 'c';
   const [subscribeOpen, setSubscribeOpen] = useState(false);
 
@@ -137,8 +139,12 @@ function Dashboard({ user, onUserUpdate, onLogout }) {
           sessionStorage.removeItem('dash:view');
           sessionStorage.removeItem('dash:articleId');
         });
-    } else if (savedView === 'curriculum' || savedView === 'emailing' || savedView === 'bookmarks') {
+    } else if (savedView === 'curriculum' || savedView === 'emailing' || savedView === 'bookmarks' || savedView === 'learners') {
       if (savedView === 'curriculum' && !canUseCurriculum) {
+        sessionStorage.removeItem('dash:view');
+        return;
+      }
+      if (savedView === 'learners' && !canManageLearners) {
         sessionStorage.removeItem('dash:view');
         return;
       }
@@ -401,6 +407,7 @@ function Dashboard({ user, onUserUpdate, onLogout }) {
       <Header
         user={user}
         canUseCurriculum={canUseCurriculum}
+        canManageLearners={canManageLearners}
         currentView={view}
         onViewChange={(v) => {
           setView(v);
@@ -450,6 +457,10 @@ function Dashboard({ user, onUserUpdate, onLogout }) {
           user?.user_role === 'j'
             ? <LearnerCurriculumView curriculumDetailRef={curriculumDetailRef} />
             : <CurriculumView onOpenArticle={openArticleDetail} onModalToggle={setIsSubModalOpen} curriculumDetailRef={curriculumDetailRef} />
+        )}
+
+        {view === 'learners' && canManageLearners && (
+          <LearnerManagementView user={user} />
         )}
 
         {view === 'bookmarks' && (
