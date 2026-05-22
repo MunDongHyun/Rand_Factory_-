@@ -301,9 +301,8 @@ def list_submissions_by_curriculum(
     if current_user.user_role == "m" and curriculum.cur_creator_id != current_user.user_id:
         raise HTTPException(status_code=404, detail="Curriculum not found")
 
-    rows = (
-        db.query(TaskSubmission, User)
-        .join(User, TaskSubmission.task_learner_id == User.user_id)
+    id_rows = (
+        db.query(TaskSubmission.task_submission_id)
         .filter(TaskSubmission.task_curriculum_id == cur_id)
         .order_by(
             TaskSubmission.task_week_number.asc(),
@@ -311,14 +310,32 @@ def list_submissions_by_curriculum(
         )
         .all()
     )
+    ids = [row.task_submission_id for row in id_rows]
+    if not ids:
+        return []
+
+    submissions = (
+        db.query(TaskSubmission)
+        .filter(TaskSubmission.task_submission_id.in_(ids))
+        .all()
+    )
+    learner_ids = {submission.task_learner_id for submission in submissions}
+    users = (
+        db.query(User)
+        .filter(User.user_id.in_(learner_ids))
+        .all()
+    )
+    user_map = {user.user_id: user for user in users}
+    order = {sid: i for i, sid in enumerate(ids)}
+    submissions.sort(key=lambda submission: order[submission.task_submission_id])
 
     return [
         TaskSubmissionWithLearnerResponse(
             task_submission_id=s.task_submission_id,
             task_curriculum_id=s.task_curriculum_id,
             task_learner_id=s.task_learner_id,
-            learner_name=u.user_name,
-            learner_email=u.user_email,
+            learner_name=user_map[s.task_learner_id].user_name if s.task_learner_id in user_map else None,
+            learner_email=user_map[s.task_learner_id].user_email if s.task_learner_id in user_map else None,
             task_week_number=s.task_week_number,
             task_submission_type=s.task_submission_type or _submission_type_from_content(s),
             task_submitted_content=_content_with_attachments(s),
@@ -330,7 +347,7 @@ def list_submissions_by_curriculum(
             task_status=s.task_status,
             attachments=[a for a in s.attachments if a.file_deleted_at is None],
         )
-        for s, u in rows
+        for s in submissions
     ]
 
 

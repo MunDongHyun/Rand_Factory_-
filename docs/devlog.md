@@ -2,6 +2,38 @@
 
 ---
 
+## 2026-05-22 - Codex (매니저 커리큘럼별 제출 조회 500 수정)
+
+### 배경
+- 학습자가 과제를 제출해도 매니저 커리큘럼 관리 화면에서 제출물이 보이지 않음.
+- 학습자 과제 제출 화면에서 파일 선택 후에도 첨부파일 목록에 파일명이 표시되지 않음.
+- 실제 데이터는 `task_submissions`에 저장되어 있었고, `GET /api/task-submissions/by-learner/{id}`는 200으로 정상 응답.
+- 반면 매니저 화면이 사용하는 `GET /api/task-submissions/by-curriculum/{cur_id}`는 500으로 실패.
+
+### 원인
+- `LearnerCurriculumView`의 파일 선택 핸들러가 `setSubmitFiles((prev) => ... e.target.files ...)` 형태로 state updater 안에서 `e.target.files`를 늦게 읽음.
+- 직후 `e.target.value = ''`로 input을 비워 같은 파일 재선택을 허용하면서, updater 실행 시점에는 files가 비어 첨부 목록이 추가되지 않을 수 있었음.
+- `/by-curriculum`이 `TaskSubmission + User` 전체 row를 조인한 상태로 `ORDER BY task_week_number, task_submitted_at`을 수행.
+- `task_submitted_content`의 HTML/JSON이 큰 row로 함께 sort buffer에 적재되면서 MySQL `Out of sort memory` 발생.
+- 프론트는 해당 실패를 `setSubmissions([])`로 삼켜서 화면상 “제출 없음”처럼 보였음.
+
+### 수정
+- 파일 선택 시 `const files = Array.from(e.target.files || [])`로 먼저 복사한 뒤 `setSubmitFiles`에 반영.
+- `/by-curriculum`도 `/my`, `/by-learner`와 같은 2단계 조회로 변경.
+  - 1단계: `task_submission_id`만 정렬 조회
+  - 2단계: `id IN (...)`으로 실제 제출 row 조회 후 파이썬에서 원래 순서 복원
+  - 학습자 이름/이메일은 별도 `User` 조회로 매핑
+- 프론트 `CurriculumView`에서 제출물 조회 실패 시 조용히 숨기지 않고 toast 에러 표시.
+
+### 검증
+- `python -m py_compile server/app/routers/task_submission.py` 통과
+- `npm run build` 통과
+- 실제 API 확인:
+  - 수정 전: `/api/task-submissions/by-curriculum/2079` → 500
+  - 수정 후: `/api/task-submissions/by-curriculum/2079` → 200, 재호출 313ms
+
+---
+
 ## 2026-05-22 - Claude (매니저 학습자 관리 → 분할 뷰 + theme 톤 재구성 / 커리큘럼 배정 동선 통합)
 
 ### 배경
