@@ -86,6 +86,7 @@
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .curriculumSidebarTitle {
@@ -174,6 +175,7 @@
   cursor: pointer;
   align-self: center;
   transition: background 0.15s;
+  flex-shrink: 0;
 }
 
 .curriculumSidebarAddBtn:hover {
@@ -190,7 +192,7 @@
 .sidebarMenuBtn {
   background: transparent;
   border: none;
-  color: var(--card);
+  color: var(--ink-muted);
   font-size: 20px;
   font-weight: 700;
   cursor: pointer;
@@ -198,13 +200,18 @@
   border-radius: 4px;
   line-height: 1;
   flex-shrink: 0;
-  opacity: 0;
   transition: opacity 0.15s, background 0.15s;
+  visibility: visible;
 }
 
 .sidebarMenuBtn:hover {
   opacity: 1;
   background: rgba(255, 255, 255, 0.1);
+}
+
+
+.curriculumSidebarItem.active .sidebarMenuBtn {
+  color: var(--card);
 }
 
 /* =============================================
@@ -251,6 +258,7 @@
   min-height: 64px;
   overflow: hidden;
   position: relative;
+  flex-shrink: 0;
 }
 
 .assignedLearnersBarScroll {
@@ -438,7 +446,7 @@
   flex-shrink: 0;
   pointer-events: none;
   vertical-align: middle;
-  margin-right: -5px ;
+  margin-right: -5px;
   margin-left: 0px;
 }
 
@@ -452,7 +460,7 @@
   flex-shrink: 0;
   pointer-events: none;
   vertical-align: middle;
-  margin-right: -5px ;
+  margin-right: -5px;
   margin-left: -10px;
 }
 
@@ -483,6 +491,7 @@
   user-select: none;
   box-sizing: border-box;
   transition: background 0.12s;
+  flex-shrink: 0;
 }
 
 .extracted-accordion-header:hover {
@@ -1341,6 +1350,29 @@
 /* =============================================
    확인/저장/배정 변경 모달
    ============================================= */
+
+.templateSectionTitle {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.templateSectionTitle::before {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 22px;
+  background-color: var(--primary);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+
+
 .confirmModal {
   position: fixed;
   top: 50%;
@@ -1767,7 +1799,7 @@
   font-family: 'Pretendard', sans-serif;
   font-size: 14px;
   color: var(--ink-muted);
-  margin: -40px 0 18px 14px;
+  margin: 0 0 18px 0;
   white-space: pre-wrap;
   flex-shrink: 0;
 }
