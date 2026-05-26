@@ -1,7 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
+from app.core.limiter import limiter
 from app.routers import (
     article,
     author,
@@ -29,6 +33,11 @@ app = FastAPI(
     description="DBR/HBR article-based AI learning platform API",
     version="0.2.0",
 )
+
+# 레이트 리미트 (slowapi) — IP 기반 메모리 백엔드
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 app.add_middleware(
     CORSMiddleware,

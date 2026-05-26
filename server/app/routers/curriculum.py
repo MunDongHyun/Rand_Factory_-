@@ -1,5 +1,5 @@
 from datetime import datetime, timezone, timedelta
-from fastapi import APIRouter, Depends, HTTPException, status, Body
+from fastapi import APIRouter, Depends, HTTPException, Request, status, Body
 from fastapi.responses import StreamingResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Query, Session
@@ -10,6 +10,7 @@ from docx.shared import Pt, Inches, RGBColor
 from docx.oxml.ns import qn
 
 from app.core.database import get_db
+from app.core.limiter import limiter
 from app.core.security import get_current_user
 from app.models.curriculum import Curriculum
 from app.models.task_submission import TaskSubmission
@@ -96,7 +97,9 @@ def create_curriculum(
 
 
 @router.post("/generate", response_model=CurriculumGenerateResponse)
+@limiter.limit("10/hour")
 def generate_curriculum(
+    request: Request,
     body: CurriculumGenerateRequest,
     current_user: User = Depends(get_current_user),
 ):
@@ -614,7 +617,9 @@ async def download_curriculum_docx(
     
 
 @router.post("/generate-template", response_model=TemplateGenerateResponse)
+@limiter.limit("20/hour")
 def generate_template_api(
+    request: Request,
     body: TemplateGenerateRequest,
     current_user: User = Depends(get_current_user),
 ):

@@ -22,3 +22,4 @@ PyMuPDF>=1.24.0
 fpdf==1.7.2
 filetype>=1.2.0
 python-docx>=0.8.11
+slowapi>=0.1.9

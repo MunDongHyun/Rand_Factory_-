@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.limiter import limiter
 from app.core.security import get_current_user
 from app.models.article import Article
 from app.models.author import Author, article_authors_mapping
@@ -82,7 +83,9 @@ def get_author(
 
 
 @router.post("/{author_numb}/email", response_model=EmailSendResponse)
+@limiter.limit("5/hour;20/day")
 def send_email_to_author(
+    request: Request,
     author_numb: int,
     body: EmailSendRequest,
     db: Session = Depends(get_db),
