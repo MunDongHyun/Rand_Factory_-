@@ -117,15 +117,17 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
     const sub = getLatestSubmission(selectedId, week, assignmentIdx);
     const willEdit = !sub || sub.task_status === 'resubmit_requested';
 
-    let data = assignmentData;
+    // ✨ 핵심: 교육담당자가 보낸 '순정 원본 템플릿'을 따로 보존해 둡니다.
+    let data = { ...assignmentData, original_template: assignmentData.template_content || '' };
+
     if (willEdit && selectedId != null) {
       if (sub?.task_submitted_content?.text) {
-        data = { ...assignmentData, template_content: sub.task_submitted_content.text };
+        data.template_content = sub.task_submitted_content.text;
       } else {
         try {
           const draft = localStorage.getItem(taskDraftKey(selectedId, week, assignmentIdx));
           if (draft != null) {
-            data = { ...assignmentData, template_content: draft };
+            data.template_content = draft;
             toast.info('임시저장본을 불러왔습니다.');
           }
         } catch { }
@@ -174,37 +176,82 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
     if (isEditing && activeTask && submitEditorRef.current) {
       const container = submitEditorRef.current;
       const templateHtml = activeTask.assignmentData.template_content || '';
+
+      // ✨ 핵심: 보존해둔 원본 템플릿을 불러와 백그라운드(가상 DOM)에서 분석합니다.
+      const originalHtml = activeTask.assignmentData.original_template || templateHtml;
+      const parser = new DOMParser();
+      const origDoc = parser.parseFromString(originalHtml, 'text/html');
+      const origTds = origDoc.querySelectorAll('td');
+
       let injectedCount = 0;
 
-      container.querySelectorAll('td').forEach((td) => {
-        td.setAttribute('contenteditable', 'true');
-        td.style.border = "2px dashed #90cdf4";
-        td.style.padding = "10px";
-        td.style.cursor = "text";
-        td.style.minHeight = "40px";
-        td.style.transition = "all 0.2s";
-
-        if (td.textContent.trim() === '' && !td.querySelector('img')) {
-          td.innerHTML = '<span class="placeholder-text" style="color:#a0aec0;font-style:italic;pointer-events:none;">클릭하여 내용 입력</span>';
+      // --- 체크박스 로직 ---
+      const handleCheckboxClick = (e) => {
+        const target = e.target;
+        if (target.classList.contains('learner-checkbox')) {
+          const isChecked = target.textContent === '□';
+          target.textContent = isChecked ? '■' : '□';
+          target.style.color = isChecked ? '#3B82F6' : 'inherit';
         }
-        td.onfocus = function () {
-          if (this.querySelector('.placeholder-text')) this.innerHTML = '';
-          this.style.border = "2px solid #3182ce";
-          this.style.outline = "none";
-          this.style.backgroundColor = "#ebf8ff";
-        };
-        td.onblur = function () {
-          if (this.textContent.trim() === '')
-            this.innerHTML = '<span class="placeholder-text" style="color:#a0aec0;font-style:italic;pointer-events:none;">클릭하여 내용 입력</span>';
-          this.style.border = "2px dashed #90cdf4";
-          this.style.backgroundColor = "transparent";
-        };
-        injectedCount++;
+      };
+      container.addEventListener('click', handleCheckboxClick);
+
+      // --- 📌 TD(표) 로직 ---
+      container.querySelectorAll('td').forEach((td, index) => {
+        const origTd = origTds[index]; // 현재 td와 똑같은 위치의 '원본 td'를 매칭
+
+        // 원본 양식 기준으로 이 칸이 비어있었는지, 혹은 이미 편집 마커가 있는지 검사
+        const wasEmptyOriginally = origTd && origTd.textContent.trim() === '' && !origTd.querySelector('img');
+        const hasMarker = td.classList.contains('learner-editable');
+
+        if (wasEmptyOriginally || hasMarker) {
+          td.classList.add('learner-editable'); // 식별용 마커 부착
+          td.setAttribute('contenteditable', 'true');
+          td.style.border = "2px dashed #90cdf4";
+          td.style.padding = "10px";
+          td.style.cursor = "text";
+          td.style.minHeight = "40px";
+          td.style.transition = "all 0.2s";
+
+          // 현재 내용이 비어있을 때만 플레이스홀더를 노출하여 기존 입력값 보호
+          if (td.textContent.trim() === '' && !td.querySelector('img')) {
+            td.innerHTML = '<span class="placeholder-text" style="color:#a0aec0;font-style:italic;pointer-events:none;">클릭하여 내용 입력</span>';
+          }
+
+          td.onfocus = function () {
+            if (this.querySelector('.placeholder-text')) this.innerHTML = '';
+            this.style.border = "2px solid #3182ce";
+            this.style.outline = "none";
+            this.style.backgroundColor = "#ebf8ff";
+          };
+
+          td.onblur = function () {
+            if (this.textContent.trim() === '')
+              this.innerHTML = '<span class="placeholder-text" style="color:#a0aec0;font-style:italic;pointer-events:none;">클릭하여 내용 입력</span>';
+            this.style.border = "2px dashed #90cdf4";
+            this.style.backgroundColor = "transparent";
+          };
+
+          injectedCount++;
+        } else {
+          // 원래 글자가 있던 칸(팀/부서, 성명 등)은 수정 불가 처리
+          td.setAttribute('contenteditable', 'false');
+          td.style.border = "1px solid #cbd5e0";
+        }
       });
 
-      container.querySelectorAll('p').forEach((p) => {
-        if (p.closest('td')) return;
-        if (p.textContent.trim() === '' && !p.querySelector('img')) {
+      // --- 📌 P 태그 로직 ---
+      const origPs = origDoc.querySelectorAll('p');
+      const currentPs = Array.from(container.querySelectorAll('p')).filter(p => !p.closest('td'));
+      const filteredOrigPs = Array.from(origPs).filter(p => !p.closest('td'));
+
+      currentPs.forEach((p, index) => {
+        const origP = filteredOrigPs[index];
+        const wasEmptyOriginally = origP && origP.textContent.trim() === '' && !origP.querySelector('img');
+        const hasMarker = p.classList.contains('learner-editable');
+
+        if (wasEmptyOriginally || hasMarker) {
+          p.classList.add('learner-editable');
           p.setAttribute('contenteditable', 'true');
           p.style.border = "1px dashed #cbd5e0";
           p.style.padding = "12px";
@@ -213,7 +260,10 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
           p.style.minHeight = "40px";
           p.style.transition = "all 0.2s";
 
-          p.innerHTML = '<span class="placeholder-text" style="color:#a0aec0;font-style:italic;pointer-events:none;">답변을 입력해주세요...</span>';
+          if (p.textContent.trim() === '' && !p.querySelector('img')) {
+            p.innerHTML = '<span class="placeholder-text" style="color:#a0aec0;font-style:italic;pointer-events:none;">답변을 입력해주세요...</span>';
+          }
+
           p.onfocus = function () {
             if (this.querySelector('.placeholder-text')) this.innerHTML = '';
             this.style.border = "1px solid #3182ce";
@@ -288,6 +338,9 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
         };
         container.appendChild(editableDiv);
       }
+      return () => {
+        container.removeEventListener('click', handleCheckboxClick);
+      };
     }
   }, [isEditing, activeTask]);
 

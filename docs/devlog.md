@@ -2,6 +2,78 @@
 
 ---
 
+## 2026-05-26 - Claude (알림 기능 1차 구현 — 헤더 🔔 + DB 기반 알림함)
+
+### 배경
+- 기존 "알림" 표면은 `react-toastify` 인앱 토스트뿐. 페이지 새로고침 시 사라지고 안 읽음 카운트도 없음
+- 매니저↔학습자 양방향 흐름이 핵심인데 toast로는 "내가 자리 비운 사이 발생한 이벤트"를 알 수 없음
+- 발표 시연 임팩트 + 매니저 운영 가시성 확보를 위해 **DB 기반 알림함**으로 새로 구현
+
+### 1차 범위
+- 알림 종류 3종 (V2 확장 여지 남김)
+  - `submission_received` — 학습자 제출 → 커리큘럼 생성한 매니저
+  - `feedback_received` — 매니저 피드백 → 제출 학습자
+  - `resubmit_requested` — 매니저 재제출 요청 → 제출 학습자
+- 인앱 드롭다운만 (이메일·WebSocket·푸시는 V2)
+- 60초 폴링 기반
+
+### DB
+- `notifications` 테이블 신규 (DB 팀원이 별도 적용)
+- 컬럼: `notif_id`, `notif_user_id`(FK users), `notif_type`(VARCHAR(30)), `notif_title`, `notif_body`, `notif_link`, `notif_ref_type`, `notif_ref_id`, `notif_read_at`, `notif_created_at`, `notif_deleted_at`
+- 인덱스: `(notif_user_id, notif_created_at DESC)`, `(notif_user_id, notif_read_at)`
+- `notif_type`은 ENUM 대신 VARCHAR — 종류 확장 시 ALTER 부담 회피
+- `ref_type/ref_id` 폴리모픽 참조 — 향후 "커리큘럼 삭제 시 관련 알림 정리" 같은 작업 대비
+
+### 백엔드 신규
+- `server/app/models/notification.py`
+- `server/app/schemas/notification.py` — `NotificationResponse`, `NotificationListResponse`, `NotificationUnreadCountResponse`
+- `server/app/services/notification_service.py` — `create_for_user(...)` 헬퍼 + 타입 상수 3개
+- `server/app/routers/notification.py` — 4개 API
+  - `GET /api/notifications?limit=20&unread_only=false` (목록 + unread_count 동봉)
+  - `GET /api/notifications/unread-count` (폴링용 경량)
+  - `PATCH /api/notifications/{id}/read`
+  - `POST /api/notifications/read-all`
+
+### 백엔드 수정
+- `server/app/main.py` — `notification` 라우터 include + `Notification` 모델 import (`Base.metadata.create_all`로 dev 환경에서도 자동 생성 보조)
+- `server/app/schemas/__init__.py`, `models/__init__.py` — export 추가
+- `server/app/routers/task_submission.py` 트리거 2곳 삽입
+  - `POST ""` (create_submission) → 매니저에게 `submission_received`
+  - `PATCH /{id}/feedback` (update_feedback) → 학습자에게 `feedback_received` 또는 `resubmit_requested` (task_status 분기)
+  - 알림 생성 실패가 본 도메인 동작에 영향 주지 않도록 `try/except`로 감쌈
+
+### 프론트
+- 신규
+  - `client/src/components/NotificationBell.jsx` — 🔔 버튼 + 빨간 unread 배지 + 드롭다운(최근 20개) + 60초 폴링 + 클릭 시 read 처리 + 외부 클릭 시 닫힘
+  - `client/src/styles/NotificationBell.css` — theme 변수 기반 (하드코딩 없이 `var(--card/--line/--ink/--primary/--bg-alt)`)
+- 수정
+  - `client/src/components/Header.jsx` — 북마크 버튼 우측에 `<NotificationBell onViewChange={onViewChange} />` 1줄 삽입
+
+### 라우팅
+- `notif_link` 형식: `dashboard:{view}:{id}` (예: `dashboard:curriculum:123`)
+- 클릭 시 view 이름만 파싱해서 `onViewChange(view)` 호출 (학습자/매니저 둘 다 `curriculum` view로 이동)
+- 깊은 deep linking (특정 제출물까지 자동 펼침)은 V2
+
+### 검증
+- `python -m compileall -q app` 통과
+- `npm run build` 5.23s 통과
+- API 동작 확인은 실 사용 단계에서 진행
+
+### DB 팀원 적용 스키마 (실제 운영본)
+- 내 원안 대비 강화됨 — 그대로 수용
+  - `notif_type` VARCHAR(50) — 원안 30 → 여유 확보
+  - `notif_dedupe_key` VARCHAR(150) + UNIQUE `(notif_user_id, notif_dedupe_key)` — 중복 알림 방지 키
+  - FK `ON DELETE RESTRICT ON UPDATE RESTRICT` — 사용자 삭제 안전장치
+  - 인덱스 3개 (read_at·deleted_at 다 포함된 복합 인덱스 + ref 인덱스)
+- 모델/서비스 동기화 완료 — `notif_dedupe_key` 컬럼 추가, `notif_type` 길이 50으로 일치
+- 현재 트리거는 `dedupe_key` 를 NULL 로 둠 (MySQL UNIQUE는 NULL 다중 허용)
+- 향후 "동일 이벤트 중복 알림 방지"가 필요해지면 트리거에서 `dedupe_key` 채워 호출
+
+### 단톡 안내 사항
+- requirements.txt / .env / package.json 변경 없음 — pull만 받으면 됨
+
+---
+
 ## 2026-05-22 - Codex (매니저 커리큘럼별 제출 조회 500 수정)
 
 ### 배경

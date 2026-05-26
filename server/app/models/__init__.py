@@ -3,6 +3,7 @@ from app.models.article import Article
 from app.models.author import Author, article_authors_mapping
 from app.models.bookmark import Bookmark
 from app.models.curriculum import Curriculum
+from app.models.notification import Notification
 from app.models.task_submission import TaskSubmission, TaskSubmissionAttachment
 from app.models.user import User
 from app.models.user_activity import UserActivity
@@ -13,6 +14,7 @@ __all__ = [
     "Author",
     "Bookmark",
     "Curriculum",
+    "Notification",
     "TaskSubmission",
     "TaskSubmissionAttachment",
     "User",

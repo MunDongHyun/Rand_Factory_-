@@ -24,6 +24,7 @@ from app.schemas.task_submission import (
     TaskSubmissionResponse,
     TaskSubmissionWithLearnerResponse,
 )
+from app.services import notification_service
 
 router = APIRouter(prefix="/api/task-submissions", tags=["task-submissions"])
 
@@ -211,6 +212,22 @@ def create_submission(
     db.add(submission)
     db.commit()
     db.refresh(submission)
+
+    # 매니저에게 새 제출 알림 (실패해도 제출 자체는 영향 없음)
+    try:
+        notification_service.create_for_user(
+            db,
+            user_id=curriculum.cur_creator_id,
+            notif_type=notification_service.NOTIF_TYPE_SUBMISSION_RECEIVED,
+            title=f"{current_user.user_name}님이 과제를 제출했습니다",
+            body=f"{curriculum.cur_title} {body.task_week_number}주차",
+            link=f"dashboard:curriculum:{curriculum.cur_id}",
+            ref_type="task_submission",
+            ref_id=submission.task_submission_id,
+        )
+    except Exception:
+        pass
+
     return _submission_response(submission)
 
 
@@ -423,6 +440,38 @@ def update_feedback(
     submission.task_resubmit_requested = "Y" if body.task_status == "resubmit_requested" else "N"
     db.commit()
     db.refresh(submission)
+
+    # 학습자에게 피드백/재제출 알림
+    try:
+        is_resubmit = body.task_status == "resubmit_requested"
+        notif_type = (
+            notification_service.NOTIF_TYPE_RESUBMIT_REQUESTED
+            if is_resubmit
+            else notification_service.NOTIF_TYPE_FEEDBACK_RECEIVED
+        )
+        title = (
+            f"{submission.task_week_number}주차 과제 재제출 요청이 있습니다"
+            if is_resubmit
+            else f"{submission.task_week_number}주차 과제에 피드백이 도착했습니다"
+        )
+        body_text = (
+            f"{current_user.user_name}님이 재제출을 요청했습니다"
+            if is_resubmit
+            else f"{current_user.user_name}님이 코멘트를 작성했습니다"
+        )
+        notification_service.create_for_user(
+            db,
+            user_id=submission.task_learner_id,
+            notif_type=notif_type,
+            title=title,
+            body=body_text,
+            link=f"dashboard:curriculum:{submission.task_curriculum_id}",
+            ref_type="task_submission",
+            ref_id=submission.task_submission_id,
+        )
+    except Exception:
+        pass
+
     return _submission_response(submission)
 
 
