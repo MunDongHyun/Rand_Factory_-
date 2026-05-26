@@ -4,7 +4,6 @@ import api from '../lib/api';
 import { sanitizeHtml } from '../lib/sanitize';
 import { downloadAttachment, formatBytes } from '../lib/attachments';
 import '../styles/LearnerCurriculum.css';
-import '../styles/Curriculum.css';
 
 // --- 유틸 함수 ---
 const normalizeWeekPlan = (plan) => {
@@ -50,7 +49,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
   // ✅ 첨부파일 상태 분리 (기존 서버 파일 / 새로 추가할 파일)
   const [existingAttachments, setExistingAttachments] = useState([]);
   const [submitFiles, setSubmitFiles] = useState([]);
-  
+
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
 
@@ -112,7 +111,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
 
   const submittedCount = submittedAssignmentsCount(selectedId);
   const overallProgress = totalAssignmentsCount > 0 ? Math.round((submittedCount / totalAssignmentsCount) * 100) : 0;
-  
+
   const currentSubmission = activeTask
     ? getLatestSubmission(selectedId, activeTask.week, activeTask.assignmentIdx)
     : null;
@@ -125,7 +124,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
 
   const handleAssignmentClick = (week, assignmentIdx, assignmentData) => {
     const sub = getLatestSubmission(selectedId, week, assignmentIdx);
-    
+
     const hasTemplate = !!assignmentData.template_content && assignmentData.template_content.trim() !== '';
     if (!hasTemplate && !sub) {
       toast.warn('관리자가 아직 과제 양식을 배포하지 않았습니다.');
@@ -152,7 +151,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
 
     setActiveTask({ week, assignmentIdx, assignmentData: data });
     setIsEditing(willEdit);
-    
+
     // ✅ 재제출/수정 시 기존 첨부파일 세팅
     setSubmitFiles([]);
     if (willEdit && sub?.task_submitted_content?.attachments) {
@@ -223,7 +222,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
         const hasMarker = td.classList.contains('learner-editable');
 
         if (wasEmptyOriginally || hasMarker) {
-          td.classList.add('learner-editable'); 
+          td.classList.add('learner-editable');
           td.setAttribute('contenteditable', 'true');
           td.style.border = "2px dashed #90cdf4";
           td.style.padding = "10px";
@@ -371,7 +370,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
     setSubmitFiles((prev) => [...prev, ...files]);
     e.target.value = '';
   };
-  
+
   const handleFileRemove = (idx) => setSubmitFiles((prev) => prev.filter((_, i) => i !== idx));
 
   const handleAttachmentDownload = async (submissionId, attachment) => {
@@ -544,7 +543,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
                                   {step.assignments.map((a, idx) => {
                                     const sub = getLatestSubmission(selectedId, step.week, idx);
                                     const isActive = activeTask?.week === step.week && activeTask?.assignmentIdx === idx;
-                                    
+
                                     const hasTemplate = !!a.template_content && a.template_content.trim() !== '';
                                     const isClickable = hasTemplate || !!sub;
 
@@ -706,11 +705,11 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
                             + 추가 파일 선택
                           </span>
                         </label>
-                        
+
                         {/* ✅ 기존 첨부파일 + 새로 추가할 파일 UI 렌더링 */}
                         {(existingAttachments.length > 0 || submitFiles.length > 0) && (
                           <ul style={{ listStyle: 'none', padding: 0, margin: '12px 0 0 0' }}>
-                            
+
                             {/* 1. 기존에 제출했던 파일 렌더링 */}
                             {existingAttachments.map((a, i) => (
                               <li key={`ext-${i}`} style={{ display: 'flex', alignItems: 'center', background: '#fff', border: '1px solid #e2e8f0', padding: '8px 12px', borderRadius: '6px', marginBottom: '6px' }}>
@@ -726,7 +725,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
                                 </button>
                               </li>
                             ))}
-                            
+
                             {/* 2. 새로 추가한 파일 렌더링 */}
                             {submitFiles.map((f, i) => (
                               <li key={`new-${i}`} style={{ display: 'flex', alignItems: 'center', background: '#fff', border: '1px solid #e2e8f0', padding: '8px 12px', borderRadius: '6px', marginBottom: '6px' }}>
@@ -742,7 +741,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
                                 </button>
                               </li>
                             ))}
-                            
+
                           </ul>
                         )}
                       </div>
@@ -822,35 +821,37 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
                         </div>
                       )}
 
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px dashed #e2e8f0', paddingTop: '20px' }}>
-                        <button
-                          onClick={() => {
-                            const sub = currentSubmission;
-                            if (sub?.task_submitted_content?.text) {
-                              setActiveTask(prev => ({
-                                ...prev,
-                                assignmentData: {
-                                  ...prev.assignmentData,
-                                  template_content: sub.task_submitted_content.text,
-                                }
-                              }));
-                            }
-                            
-                            // ✅ 보기 모드에서 '수정 / 재제출하기' 버튼을 눌렀을 때 기존 첨부파일 세팅
-                            setSubmitFiles([]);
-                            if (sub?.task_submitted_content?.attachments) {
-                              setExistingAttachments(sub.task_submitted_content.attachments);
-                            } else {
-                              setExistingAttachments([]);
-                            }
+                      {currentSubmission?.task_status !== 'feedback_given' && (
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px dashed #e2e8f0', paddingTop: '20px' }}>
+                          <button
+                            onClick={() => {
+                              const sub = currentSubmission;
+                              if (sub?.task_submitted_content?.text) {
+                                setActiveTask(prev => ({
+                                  ...prev,
+                                  assignmentData: {
+                                    ...prev.assignmentData,
+                                    template_content: sub.task_submitted_content.text,
+                                  }
+                                }));
+                              }
 
-                            setIsEditing(true)
-                          }}
-                          style={{ background: '#fff', border: '1px solid #cbd5e0', color: '#4a5568', padding: '10px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}
-                        >
-                          과제 수정 / 재제출하기
-                        </button>
-                      </div>
+                              // ✅ 보기 모드에서 '수정 / 재제출하기' 버튼을 눌렀을 때 기존 첨부파일 세팅
+                              setSubmitFiles([]);
+                              if (sub?.task_submitted_content?.attachments) {
+                                setExistingAttachments(sub.task_submitted_content.attachments);
+                              } else {
+                                setExistingAttachments([]);
+                              }
+
+                              setIsEditing(true)
+                            }}
+                            style={{ background: '#fff', border: '1px solid #cbd5e0', color: '#4a5568', padding: '10px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}
+                          >
+                            과제 수정 / 재제출하기
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
 
