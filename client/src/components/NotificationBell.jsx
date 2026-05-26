@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import api from '../lib/api';
 import '../styles/NotificationBell.css';
+import bellIcon from '../public/bell_icon.png';
 
 const POLL_INTERVAL_MS = 60_000;
 
@@ -103,7 +104,9 @@ function NotificationBell({ onViewChange }) {
         aria-label="알림"
         title="알림"
       >
-        <span className="notifBellIcon" aria-hidden="true">🔔</span>
+        <span className="notifBellIcon" aria-hidden="true">
+          <img src={bellIcon} alt="알림" className="bellIcon"/>
+        </span>
         {unreadCount > 0 && (
           <span className="notifBellBadge">{unreadCount > 99 ? '99+' : unreadCount}</span>
         )}

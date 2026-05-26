@@ -2,6 +2,104 @@
 
 ---
 
+## 2026-05-26 - Claude (sort_buffer 헬퍼 추출 + JSON_TABLE 푸시다운 + 페이지네이션)
+
+### 배경
+- 직전 사이클(JSON 풀스캔 #1·#4) 의 연장. A 그룹 나머지 #1(curriculum 측) / #2 / #3 처리
+- 동현님이 `cur_deadline` 컬럼 추가 푸시한 직후로 라우터 영역은 동현님 변경과 겹치지 않음 확인하고 진행
+
+### #2 — sort_buffer 우회 헬퍼 추출
+
+신규 `server/app/core/db_helpers.py` 에 `fetch_in_order(db, id_query, model_class, pk_attr)` 헬퍼:
+- 1단계: `id_query` (이미 정렬·필터된 PK만 SELECT) 실행
+- 2단계: `WHERE pk IN (...)` 로 본 row 조회 후 1단계 순서대로 재정렬
+
+복붙돼 있던 4곳을 헬퍼 호출 1줄로 치환:
+- `curriculum.py` `list_curricula`
+- `task_submission.py` `list_my_submissions`
+- `task_submission.py` `list_submissions_by_learner`
+- `task_submission.py` `list_submissions_by_curriculum`
+
+동작 동일, 코드량 대폭 축소, sort buffer 정책 변경 시 한 곳만 수정하면 됨
+
+### #1-curriculum — `get_curriculum_stats` active_learners JSON_TABLE 푸시다운
+
+기존: 모든 활성 커리큘럼의 `cur_assigned_learner_ids` 컬럼 SELECT → Python 측 set 합집합 cardinality
+
+변경: MySQL 8 `JSON_TABLE` 로 DB 측에서 합집합 cardinality 계산
+```sql
+SELECT COUNT(DISTINCT jt.learner_id)
+FROM curriculum c
+CROSS JOIN JSON_TABLE(
+    IFNULL(c.cur_assigned_learner_ids, JSON_ARRAY()),
+    '$[*]' COLUMNS(learner_id BIGINT PATH '$')
+) jt
+WHERE c.cur_deleted_at IS NULL AND c.cur_status = 'active'
+```
+- `IFNULL(col, JSON_ARRAY())` 로 NULL 컬럼 안전 처리
+- **MySQL 8.0.4+ 필수** (JSON_TABLE)
+
+### #3 — 페이지네이션 누락 라우터 3개
+
+| 라우터 | 기본 limit | 최대 |
+|---|---|---|
+| `GET /api/curricula` | 100 | 500 |
+| `GET /api/task-submissions/by-curriculum/{cur_id}` | 100 | 500 |
+| `GET /api/users/learners` | 200 | 500 |
+
+- 응답 형태는 기존 `list[...]` 그대로 유지 (백워드 호환)
+- 프론트 변경 불필요 — limit 안 보내면 100/200 default 적용
+- 100~200 초과 데이터가 있는 경우 잘릴 수 있음 → 추후 응답을 `{items, total}` 로 wrap 하는 V2 작업 가능
+
+### 변경 파일
+- 신규: `server/app/core/db_helpers.py`
+- 수정: `server/app/routers/curriculum.py`, `task_submission.py`, `user.py`
+
+### 검증
+- `python -m compileall -q app` 통과
+- `python -c "from app.main import app"` 통과 (59 routes 그대로)
+- 회귀 확인은 실제 매니저/학습자 로그인 후 목록 화면 정상 조회로 진행
+
+### 단톡 안내 사항
+- DB / .env / 의존성 / 프론트 변경 없음 — pull만 받으면 됨
+- MySQL 8.0.4+ 가정 (JSON_TABLE 사용). 미만 버전이면 `/api/curricula/stats` 호출 시 에러 가능 — 확인 필요
+
+---
+
+## 2026-05-26 - Claude (JSON 풀스캔 제거 + json_contains 인자 정합화)
+
+### 배경
+- 보안/성능 검토 시 짚어뒀던 A-1, A-4 항목 처리
+- 학습자 활동 요약 조회 시 모든 커리큘럼을 Python 측에 적재하던 패턴 폭발 위험
+- `func.json_contains(col, str(user_id))` 형태가 MySQL JSON 매칭 규칙상 미묘한 문제 가능
+
+### 변경
+
+**`server/app/routers/user.py` — `get_user_activity_summary`**
+- 학습자(j)의 배정 커리큘럼 수 카운트
+- 기존: 모든 활성 커리큘럼의 `cur_assigned_learner_ids` JSON 컬럼을 SELECT 한 뒤 Python 루프로 `in` 체크 (커리큘럼 수에 비례한 선형 폭발)
+- 변경: `JSON_CONTAINS(col, JSON.dumps(uid))` 푸시다운으로 DB 측 카운트 한 번 호출
+- 응답 형태/값 동일
+
+**`server/app/routers/curriculum.py` — `_scope_curriculum_query`**
+- 학습자(j) 본인 배정 커리큘럼 필터
+- 기존: `json_contains(col, str(user.user_id))` — 두 번째 인자가 "5" 같은 plain string. MySQL이 JSON 문서로 파싱 성공 시 동작했지만 의도 불명확
+- 변경: `json.dumps(user.user_id)` 사용으로 JSON 정수 스칼라 명시 (`5`)
+- 동작 변화는 없으나 의도 명확화 + edge case 방어
+
+### 보류
+- `curriculum.py` `get_curriculum_stats` 의 `active_learners` 합집합 계산
+  - 현재 모든 활성 커리큘럼의 JSON 컬럼만 SELECT 후 Python 측 set 합집합
+  - SQL 푸시다운하려면 `JSON_TABLE` (MySQL 8+) 필요 — 별도 사이클 작업
+  - 관리자 1명만 보는 통계 API이고 컬럼 1개만 SELECT 하므로 sort buffer 폭발 위험은 없음
+
+### 검증
+- `python -m compileall -q app` 통과
+- `python -c "from app.main import app"` 통과 (59 routes)
+- 회귀 테스트는 학습자(j)로 로그인 후 활동 요약 / 커리큘럼 목록 정상 조회 시 수동 확인
+
+---
+
 ## 2026-05-26 - Claude (레이트 리미트 도입 — slowapi 기반 5개 라우터 보호)
 
 ### 배경
