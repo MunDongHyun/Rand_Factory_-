@@ -13,6 +13,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.db_helpers import fetch_in_order
 from app.core.security import get_current_user
 from app.models.curriculum import Curriculum
 from app.models.task_submission import TaskSubmission, TaskSubmissionAttachment
@@ -239,20 +240,12 @@ def list_my_submissions(
     if current_user.user_role != "j":
         raise HTTPException(status_code=404, detail="찾을 수 없습니다")
 
-    # 큰 JSON 컬럼(task_submitted_content 등)이 sort buffer 를 폭발시키는 문제 방지:
-    # 1단계 id만 정렬해서 가져온 뒤, 2단계에서 PK로 전체 row fetch
-    id_rows = (
+    id_query = (
         db.query(TaskSubmission.task_submission_id)
         .filter(TaskSubmission.task_learner_id == current_user.user_id)
         .order_by(TaskSubmission.task_submitted_at.desc())
-        .all()
     )
-    ids = [row.task_submission_id for row in id_rows]
-    if not ids:
-        return []
-    rows = db.query(TaskSubmission).filter(TaskSubmission.task_submission_id.in_(ids)).all()
-    order = {sid: i for i, sid in enumerate(ids)}
-    rows.sort(key=lambda s: order[s.task_submission_id])
+    rows = fetch_in_order(db, id_query, TaskSubmission, TaskSubmission.task_submission_id)
     return [_submission_response(submission) for submission in rows]
 
 
@@ -282,29 +275,24 @@ def list_submissions_by_learner(
         ):
             raise HTTPException(status_code=404, detail="찾을 수 없습니다")
 
-    # 큰 JSON 컬럼이 sort buffer 를 폭발시키는 문제 방지: id 만 정렬 후 PK 로 fetch
-    id_rows = (
+    id_query = (
         db.query(TaskSubmission.task_submission_id)
         .filter(TaskSubmission.task_learner_id == user_id)
         .order_by(TaskSubmission.task_submitted_at.desc())
-        .all()
     )
-    ids = [row.task_submission_id for row in id_rows]
-    if not ids:
-        return []
-    rows = db.query(TaskSubmission).filter(TaskSubmission.task_submission_id.in_(ids)).all()
-    order = {sid: i for i, sid in enumerate(ids)}
-    rows.sort(key=lambda s: order[s.task_submission_id])
+    rows = fetch_in_order(db, id_query, TaskSubmission, TaskSubmission.task_submission_id)
     return [_submission_response(submission) for submission in rows]
 
 
 @router.get("/by-curriculum/{cur_id}", response_model=list[TaskSubmissionWithLearnerResponse])
 def list_submissions_by_curriculum(
     cur_id: int,
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """매니저/관리자 전용: 본인이 만든 커리큘럼의 모든 제출 + 학습자 정보."""
+    """매니저/관리자 전용: 본인이 만든 커리큘럼의 제출 + 학습자 정보 (페이지네이션)."""
     if current_user.user_role not in {"m", "a"}:
         raise HTTPException(status_code=404, detail="Not found")
 
@@ -318,24 +306,20 @@ def list_submissions_by_curriculum(
     if current_user.user_role == "m" and curriculum.cur_creator_id != current_user.user_id:
         raise HTTPException(status_code=404, detail="Curriculum not found")
 
-    id_rows = (
+    id_query = (
         db.query(TaskSubmission.task_submission_id)
         .filter(TaskSubmission.task_curriculum_id == cur_id)
         .order_by(
             TaskSubmission.task_week_number.asc(),
             TaskSubmission.task_submitted_at.desc(),
         )
-        .all()
+        .offset(offset)
+        .limit(limit)
     )
-    ids = [row.task_submission_id for row in id_rows]
-    if not ids:
+    submissions = fetch_in_order(db, id_query, TaskSubmission, TaskSubmission.task_submission_id)
+    if not submissions:
         return []
 
-    submissions = (
-        db.query(TaskSubmission)
-        .filter(TaskSubmission.task_submission_id.in_(ids))
-        .all()
-    )
     learner_ids = {submission.task_learner_id for submission in submissions}
     users = (
         db.query(User)
@@ -343,8 +327,6 @@ def list_submissions_by_curriculum(
         .all()
     )
     user_map = {user.user_id: user for user in users}
-    order = {sid: i for i, sid in enumerate(ids)}
-    submissions.sort(key=lambda submission: order[submission.task_submission_id])
 
     return [
         TaskSubmissionWithLearnerResponse(

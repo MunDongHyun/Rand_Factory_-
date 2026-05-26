@@ -1,7 +1,7 @@
 from datetime import datetime, timezone, timedelta
-from fastapi import APIRouter, Depends, HTTPException, Request, status, Body
+from fastapi import APIRouter, Depends, HTTPException, Query as QueryParam, Request, status, Body
 from fastapi.responses import StreamingResponse
-from sqlalchemy import func
+from sqlalchemy import func, text
 from sqlalchemy.orm import Query, Session
 import os, io, json
 from fpdf import FPDF
@@ -10,6 +10,7 @@ from docx.shared import Pt, Inches, RGBColor
 from docx.oxml.ns import qn
 
 from app.core.database import get_db
+from app.core.db_helpers import fetch_in_order
 from app.core.limiter import limiter
 from app.core.security import get_current_user
 from app.models.curriculum import Curriculum
@@ -65,7 +66,13 @@ def _scope_curriculum_query(query: Query, user: User) -> Query:
     if user.user_role == "m":
         return query.filter(Curriculum.cur_creator_id == user.user_id)
     if user.user_role == "j":
-        return query.filter(func.json_contains(Curriculum.cur_assigned_learner_ids, str(user.user_id)))
+        # JSON_CONTAINS 두 번째 인자는 JSON 문서여야 하므로 json.dumps 로 명시
+        return query.filter(
+            func.json_contains(
+                Curriculum.cur_assigned_learner_ids,
+                json.dumps(user.user_id),
+            )
+        )
     return query.filter(False)
 
 
@@ -145,24 +152,19 @@ def generate_curriculum(
 
 @router.get("", response_model=list[CurriculumResponse])
 def list_curricula(
+    limit: int = QueryParam(100, ge=1, le=500),
+    offset: int = QueryParam(0, ge=0),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    # 큰 JSON 컬럼(cur_week_plan 등)이 sort buffer를 폭발시키는 문제 방지:
-    # 1단계 id만 정렬해서 가져온 뒤, 2단계에서 PK로 전체 row fetch
-    id_rows = (
+    # sort buffer 폭발 방지 + 페이지네이션
+    id_query = (
         _scope_curriculum_query(db.query(Curriculum.cur_id), current_user)
         .order_by(Curriculum.cur_created_at.desc())
-        .all()
+        .offset(offset)
+        .limit(limit)
     )
-    ids = [row.cur_id for row in id_rows]
-    if not ids:
-        return []
-
-    rows = db.query(Curriculum).filter(Curriculum.cur_id.in_(ids)).all()
-    order = {cid: i for i, cid in enumerate(ids)}
-    rows.sort(key=lambda r: order[r.cur_id])
-    return rows
+    return fetch_in_order(db, id_query, Curriculum, Curriculum.cur_id)
 
 
 @router.get("/stats", response_model=CurriculumStatsResponse)
@@ -180,21 +182,24 @@ def get_curriculum_stats(
         or 0
     )
 
-    assigned_rows = (
-        db.query(Curriculum.cur_assigned_learner_ids)
-        .filter(
-            Curriculum.cur_deleted_at.is_(None),
-            Curriculum.cur_status == "active",
-        )
-        .all()
+    # MySQL 8 JSON_TABLE 로 활성 커리큘럼의 배정 학습자 합집합 cardinality 를 DB 측에서 계산.
+    # NULL 컬럼은 IFNULL 로 빈 배열 처리해 안전.
+    active_learners = int(
+        db.execute(
+            text(
+                """
+                SELECT COUNT(DISTINCT jt.learner_id)
+                FROM curriculum c
+                CROSS JOIN JSON_TABLE(
+                    IFNULL(c.cur_assigned_learner_ids, JSON_ARRAY()),
+                    '$[*]' COLUMNS(learner_id BIGINT PATH '$')
+                ) jt
+                WHERE c.cur_deleted_at IS NULL AND c.cur_status = 'active'
+                """
+            )
+        ).scalar()
+        or 0
     )
-    learner_set: set[int] = set()
-    for (ids,) in assigned_rows:
-        if isinstance(ids, list):
-            for lid in ids:
-                if isinstance(lid, int):
-                    learner_set.add(lid)
-    active_learners = len(learner_set)
 
     total_submissions = (
         db.query(func.count(TaskSubmission.task_submission_id)).scalar() or 0
