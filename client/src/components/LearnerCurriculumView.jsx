@@ -41,15 +41,16 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
 
   const [submissions, setSubmissions] = useState([]);
 
-
   const [selectedId, setSelectedId] = useState(null);
-
   const [expandedWeek, setExpandedWeek] = useState(null);
 
   const [activeTask, setActiveTask] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
 
+  // ✅ 첨부파일 상태 분리 (기존 서버 파일 / 새로 추가할 파일)
+  const [existingAttachments, setExistingAttachments] = useState([]);
   const [submitFiles, setSubmitFiles] = useState([]);
+  
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
 
@@ -73,10 +74,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
     ]).finally(() => setLoading(false));
   }, []);
 
-
   const selectedCurriculum = curriculums.find((c) => c.cur_id === selectedId) || null;
-
-
 
   const getLatestSubmission = (curId, week, assignmentIdx) => {
     const matches = submissions.filter((s) => {
@@ -92,20 +90,32 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
     });
   };
 
-  const submittedWeekCount = (curId) => {
-    const set = new Set(submissions.filter((s) => s.task_curriculum_id === curId).map((s) => s.task_week_number));
-    return set.size;
+  const weekPlan = normalizeWeekPlan(selectedCurriculum?.cur_week_plan);
+
+  const totalAssignmentsCount = weekPlan.reduce((total, step) => {
+    return total + (Array.isArray(step.assignments) ? step.assignments.length : 0);
+  }, 0);
+
+  const submittedAssignmentsCount = (curId) => {
+    const uniqueSubmissions = new Set();
+    submissions.forEach((s) => {
+      if (s.task_curriculum_id === curId) {
+        const week = s.task_week_number;
+        const idx = s.task_submitted_content?.assignmentIdx;
+        if (idx !== undefined && idx !== null) {
+          uniqueSubmissions.add(`${week}-${idx}`);
+        }
+      }
+    });
+    return uniqueSubmissions.size;
   };
 
-
-  const weekPlan = normalizeWeekPlan(selectedCurriculum?.cur_week_plan);
-  const totalWeeks = weekPlan.length || selectedCurriculum?.cur_duration_weeks || 0;
-  const submittedCount = submittedWeekCount(selectedId);
-  const overallProgress = totalWeeks > 0 ? Math.round((submittedCount / totalWeeks) * 100) : 0;
+  const submittedCount = submittedAssignmentsCount(selectedId);
+  const overallProgress = totalAssignmentsCount > 0 ? Math.round((submittedCount / totalAssignmentsCount) * 100) : 0;
+  
   const currentSubmission = activeTask
     ? getLatestSubmission(selectedId, activeTask.week, activeTask.assignmentIdx)
     : null;
-
 
   const toggleWeek = (week) => {
     setExpandedWeek((prev) => (prev === week ? null : week));
@@ -115,9 +125,15 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
 
   const handleAssignmentClick = (week, assignmentIdx, assignmentData) => {
     const sub = getLatestSubmission(selectedId, week, assignmentIdx);
+    
+    const hasTemplate = !!assignmentData.template_content && assignmentData.template_content.trim() !== '';
+    if (!hasTemplate && !sub) {
+      toast.warn('관리자가 아직 과제 양식을 배포하지 않았습니다.');
+      return;
+    }
+
     const willEdit = !sub || sub.task_status === 'resubmit_requested';
 
-    // ✨ 핵심: 교육담당자가 보낸 '순정 원본 템플릿'을 따로 보존해 둡니다.
     let data = { ...assignmentData, original_template: assignmentData.template_content || '' };
 
     if (willEdit && selectedId != null) {
@@ -136,7 +152,14 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
 
     setActiveTask({ week, assignmentIdx, assignmentData: data });
     setIsEditing(willEdit);
+    
+    // ✅ 재제출/수정 시 기존 첨부파일 세팅
     setSubmitFiles([]);
+    if (willEdit && sub?.task_submitted_content?.attachments) {
+      setExistingAttachments(sub.task_submitted_content.attachments);
+    } else {
+      setExistingAttachments([]);
+    }
     setSubmitError(null);
   };
 
@@ -177,7 +200,6 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
       const container = submitEditorRef.current;
       const templateHtml = activeTask.assignmentData.template_content || '';
 
-      // ✨ 핵심: 보존해둔 원본 템플릿을 불러와 백그라운드(가상 DOM)에서 분석합니다.
       const originalHtml = activeTask.assignmentData.original_template || templateHtml;
       const parser = new DOMParser();
       const origDoc = parser.parseFromString(originalHtml, 'text/html');
@@ -185,7 +207,6 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
 
       let injectedCount = 0;
 
-      // --- 체크박스 로직 ---
       const handleCheckboxClick = (e) => {
         const target = e.target;
         if (target.classList.contains('learner-checkbox')) {
@@ -196,16 +217,13 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
       };
       container.addEventListener('click', handleCheckboxClick);
 
-      // --- 📌 TD(표) 로직 ---
       container.querySelectorAll('td').forEach((td, index) => {
-        const origTd = origTds[index]; // 현재 td와 똑같은 위치의 '원본 td'를 매칭
-
-        // 원본 양식 기준으로 이 칸이 비어있었는지, 혹은 이미 편집 마커가 있는지 검사
+        const origTd = origTds[index];
         const wasEmptyOriginally = origTd && origTd.textContent.trim() === '' && !origTd.querySelector('img');
         const hasMarker = td.classList.contains('learner-editable');
 
         if (wasEmptyOriginally || hasMarker) {
-          td.classList.add('learner-editable'); // 식별용 마커 부착
+          td.classList.add('learner-editable'); 
           td.setAttribute('contenteditable', 'true');
           td.style.border = "2px dashed #90cdf4";
           td.style.padding = "10px";
@@ -213,7 +231,6 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
           td.style.minHeight = "40px";
           td.style.transition = "all 0.2s";
 
-          // 현재 내용이 비어있을 때만 플레이스홀더를 노출하여 기존 입력값 보호
           if (td.textContent.trim() === '' && !td.querySelector('img')) {
             td.innerHTML = '<span class="placeholder-text" style="color:#a0aec0;font-style:italic;pointer-events:none;">클릭하여 내용 입력</span>';
           }
@@ -234,13 +251,11 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
 
           injectedCount++;
         } else {
-          // 원래 글자가 있던 칸(팀/부서, 성명 등)은 수정 불가 처리
           td.setAttribute('contenteditable', 'false');
           td.style.border = "1px solid #cbd5e0";
         }
       });
 
-      // --- 📌 P 태그 로직 ---
       const origPs = origDoc.querySelectorAll('p');
       const currentPs = Array.from(container.querySelectorAll('p')).filter(p => !p.closest('td'));
       const filteredOrigPs = Array.from(origPs).filter(p => !p.closest('td'));
@@ -281,62 +296,68 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
       });
 
       if (injectedCount === 0 && templateHtml !== '') {
-        const fallbackDiv = document.createElement('div');
-        fallbackDiv.style.marginTop = "24px";
-        fallbackDiv.style.paddingTop = "24px";
-        fallbackDiv.style.borderTop = "2px dashed #e2e8f0";
-        fallbackDiv.innerHTML = '<h4 style="margin-top:0; font-size:16px; color:#2d3748; font-weight:700;">📝 답변 작성</h4>';
+        if (!container.querySelector('.fallback-template-injected')) {
+          const fallbackDiv = document.createElement('div');
+          fallbackDiv.className = 'fallback-template-injected';
+          fallbackDiv.style.marginTop = "24px";
+          fallbackDiv.style.paddingTop = "24px";
+          fallbackDiv.style.borderTop = "2px dashed #e2e8f0";
+          fallbackDiv.innerHTML = '<h4 style="margin-top:0; font-size:16px; color:#2d3748; font-weight:700;">📝 답변 작성</h4>';
 
-        const editableDiv = document.createElement('div');
-        editableDiv.setAttribute('contenteditable', 'true');
-        editableDiv.style.border = "2px dashed #90cdf4";
-        editableDiv.style.padding = "16px";
-        editableDiv.style.borderRadius = "8px";
-        editableDiv.style.minHeight = "150px";
-        editableDiv.style.cursor = "text";
-        editableDiv.style.transition = "all 0.2s";
+          const editableDiv = document.createElement('div');
+          editableDiv.setAttribute('contenteditable', 'true');
+          editableDiv.style.border = "2px dashed #90cdf4";
+          editableDiv.style.padding = "16px";
+          editableDiv.style.borderRadius = "8px";
+          editableDiv.style.minHeight = "150px";
+          editableDiv.style.cursor = "text";
+          editableDiv.style.transition = "all 0.2s";
 
-        editableDiv.innerHTML = '<span class="placeholder-text" style="color:#a0aec0;font-style:italic;pointer-events:none;">여기에 내용을 자유롭게 작성해주세요...</span>';
-        editableDiv.onfocus = function () {
-          if (this.querySelector('.placeholder-text')) this.innerHTML = '';
-          this.style.border = "2px solid #3182ce";
-          this.style.outline = "none";
-          this.style.backgroundColor = "#ebf8ff";
-        };
-        editableDiv.onblur = function () {
-          if (this.textContent.trim() === '')
-            this.innerHTML = '<span class="placeholder-text" style="color:#a0aec0;font-style:italic;pointer-events:none;">여기에 내용을 자유롭게 작성해주세요...</span>';
-          this.style.border = "2px dashed #90cdf4";
-          this.style.backgroundColor = "transparent";
-        };
-        fallbackDiv.appendChild(editableDiv);
-        container.appendChild(fallbackDiv);
+          editableDiv.innerHTML = '<span class="placeholder-text" style="color:#a0aec0;font-style:italic;pointer-events:none;">여기에 내용을 자유롭게 작성해주세요...</span>';
+          editableDiv.onfocus = function () {
+            if (this.querySelector('.placeholder-text')) this.innerHTML = '';
+            this.style.border = "2px solid #3182ce";
+            this.style.outline = "none";
+            this.style.backgroundColor = "#ebf8ff";
+          };
+          editableDiv.onblur = function () {
+            if (this.textContent.trim() === '')
+              this.innerHTML = '<span class="placeholder-text" style="color:#a0aec0;font-style:italic;pointer-events:none;">여기에 내용을 자유롭게 작성해주세요...</span>';
+            this.style.border = "2px dashed #90cdf4";
+            this.style.backgroundColor = "transparent";
+          };
+          fallbackDiv.appendChild(editableDiv);
+          container.appendChild(fallbackDiv);
+        }
       }
 
       if (templateHtml === '') {
-        const editableDiv = document.createElement('div');
-        editableDiv.setAttribute('contenteditable', 'true');
-        editableDiv.style.border = "2px dashed #90cdf4";
-        editableDiv.style.padding = "20px";
-        editableDiv.style.borderRadius = "8px";
-        editableDiv.style.minHeight = "200px";
-        editableDiv.style.cursor = "text";
-        editableDiv.style.transition = "all 0.2s";
+        if (!container.querySelector('.empty-template-injected')) {
+          const editableDiv = document.createElement('div');
+          editableDiv.className = 'empty-template-injected';
+          editableDiv.setAttribute('contenteditable', 'true');
+          editableDiv.style.border = "2px dashed #90cdf4";
+          editableDiv.style.padding = "20px";
+          editableDiv.style.borderRadius = "8px";
+          editableDiv.style.minHeight = "200px";
+          editableDiv.style.cursor = "text";
+          editableDiv.style.transition = "all 0.2s";
 
-        editableDiv.innerHTML = '<span class="placeholder-text" style="color:#a0aec0;font-style:italic;pointer-events:none;">등록된 템플릿이 없습니다. 자유롭게 과제 내용을 작성해주세요.</span>';
-        editableDiv.onfocus = function () {
-          if (this.querySelector('.placeholder-text')) this.innerHTML = '';
-          this.style.border = "2px solid #3182ce";
-          this.style.outline = "none";
-          this.style.backgroundColor = "#ebf8ff";
-        };
-        editableDiv.onblur = function () {
-          if (this.textContent.trim() === '')
-            this.innerHTML = '<span class="placeholder-text" style="color:#a0aec0;font-style:italic;pointer-events:none;">등록된 템플릿이 없습니다. 자유롭게 과제 내용을 작성해주세요.</span>';
-          this.style.border = "2px dashed #90cdf4";
-          this.style.backgroundColor = "transparent";
-        };
-        container.appendChild(editableDiv);
+          editableDiv.innerHTML = '<span class="placeholder-text" style="color:#a0aec0;font-style:italic;pointer-events:none;">등록된 템플릿이 없습니다. 자유롭게 과제 내용을 작성해주세요.</span>';
+          editableDiv.onfocus = function () {
+            if (this.querySelector('.placeholder-text')) this.innerHTML = '';
+            this.style.border = "2px solid #3182ce";
+            this.style.outline = "none";
+            this.style.backgroundColor = "#ebf8ff";
+          };
+          editableDiv.onblur = function () {
+            if (this.textContent.trim() === '')
+              this.innerHTML = '<span class="placeholder-text" style="color:#a0aec0;font-style:italic;pointer-events:none;">등록된 템플릿이 없습니다. 자유롭게 과제 내용을 작성해주세요.</span>';
+            this.style.border = "2px dashed #90cdf4";
+            this.style.backgroundColor = "transparent";
+          };
+          container.appendChild(editableDiv);
+        }
       }
       return () => {
         container.removeEventListener('click', handleCheckboxClick);
@@ -350,6 +371,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
     setSubmitFiles((prev) => [...prev, ...files]);
     e.target.value = '';
   };
+  
   const handleFileRemove = (idx) => setSubmitFiles((prev) => prev.filter((_, i) => i !== idx));
 
   const handleAttachmentDownload = async (submissionId, attachment) => {
@@ -370,7 +392,8 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
       el.removeAttribute('style');
     });
 
-    if (!hasContent && submitFiles.length === 0) {
+    // ✅ 기존 첨부파일 배열도 포함하여 유효성 체크
+    if (!hasContent && submitFiles.length === 0 && existingAttachments.length === 0) {
       setSubmitError('작성 내용이나 첨부파일 중 하나는 있어야 합니다.');
       return;
     }
@@ -379,16 +402,19 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
     setSubmitError(null);
 
     try {
+      // ✅ 기존에 유지된 파일(existingAttachments) 정보를 함께 전송
       const res = await api.post('/task-submissions', {
         task_curriculum_id: selectedId,
         task_week_number: activeTask.week,
         task_submitted_content: {
           text: htmlCopy.innerHTML.trim(),
-          assignmentIdx: activeTask.assignmentIdx
+          assignmentIdx: activeTask.assignmentIdx,
+          attachments: existingAttachments
         },
       });
       const submissionId = res.data?.task_submission_id;
 
+      // 새로 추가된 파일들 업로드
       const failures = [];
       for (const file of submitFiles) {
         const formData = new FormData();
@@ -414,11 +440,6 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
       setSubmitting(false);
     }
   };
-
-
-
-
-
 
   return (
     <div className="curriculumPageContainer">
@@ -488,7 +509,6 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
                             <span className="extracted-toggle-label">{isExpanded ? '▲' : '▼'}</span>
                           </div>
 
-
                           {isExpanded && (
                             <div className="extracted-accordion-body" onClick={(e) => e.stopPropagation()}>
 
@@ -524,24 +544,39 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
                                   {step.assignments.map((a, idx) => {
                                     const sub = getLatestSubmission(selectedId, step.week, idx);
                                     const isActive = activeTask?.week === step.week && activeTask?.assignmentIdx === idx;
+                                    
+                                    const hasTemplate = !!a.template_content && a.template_content.trim() !== '';
+                                    const isClickable = hasTemplate || !!sub;
+
                                     return (
                                       <div
                                         key={idx}
                                         className={`extracted-assignment-card ${isActive ? 'active' : ''}`}
-                                        onClick={() => handleAssignmentClick(step.week, idx, a)}
+                                        onClick={() => {
+                                          if (isClickable) {
+                                            handleAssignmentClick(step.week, idx, a);
+                                          } else {
+                                            toast.warn('관리자가 아직 과제 양식을 배포하지 않았습니다.');
+                                          }
+                                        }}
                                         style={{
-                                          cursor: 'pointer',
+                                          cursor: isClickable ? 'pointer' : 'not-allowed',
                                           border: isActive ? '1px solid var(--primary)' : '1px solid rgba(58, 74, 92, 0.18)',
-                                          background: isActive ? '#EAF3F8' : 'var(--card)',
+                                          background: isActive ? '#EAF3F8' : (isClickable ? 'var(--card)' : '#f8fafc'),
+                                          opacity: isClickable ? 1 : 0.6
                                         }}
                                       >
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                           <strong className="extracted-assignment-name">{a.title || `과제 ${idx + 1}`}</strong>
-                                          {sub && (
+                                          {sub ? (
                                             <span className={`submissionStatusBadge ${sub.task_status}`}>
                                               {STATUS_LABEL[sub.task_status] || '제출 완료'}
                                             </span>
-                                          )}
+                                          ) : !hasTemplate ? (
+                                            <span style={{ fontSize: '12px', color: '#718096', fontWeight: '600', backgroundColor: '#edf2f7', padding: '4px 8px', borderRadius: '4px' }}>
+                                              양식 배포 대기중
+                                            </span>
+                                          ) : null}
                                         </div>
                                       </div>
                                     );
@@ -664,18 +699,38 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
                       />
 
                       <div style={{ marginTop: '16px', padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e0' }}>
-                        <h4 style={{ fontSize: '12px', fontWeight: '700', color: '#4a5568', margin: '0 0 10px 0' }}>📎 첨부파일 추가</h4>
+                        <h4 style={{ fontSize: '12px', fontWeight: '700', color: '#4a5568', margin: '0 0 10px 0' }}>📎 첨부파일 추가 / 유지</h4>
                         <label style={{ display: 'inline-flex', cursor: 'pointer' }}>
                           <input type="file" multiple onChange={handleFileSelect} disabled={submitting} style={{ display: 'none' }} />
                           <span style={{ fontSize: '13px', fontWeight: '600', color: '#3182ce', background: '#fff', border: '1px solid #3182ce', padding: '6px 14px', borderRadius: '6px' }}>
-                            + 파일 선택
+                            + 추가 파일 선택
                           </span>
                         </label>
-                        {submitFiles.length > 0 && (
+                        
+                        {/* ✅ 기존 첨부파일 + 새로 추가할 파일 UI 렌더링 */}
+                        {(existingAttachments.length > 0 || submitFiles.length > 0) && (
                           <ul style={{ listStyle: 'none', padding: 0, margin: '12px 0 0 0' }}>
+                            
+                            {/* 1. 기존에 제출했던 파일 렌더링 */}
+                            {existingAttachments.map((a, i) => (
+                              <li key={`ext-${i}`} style={{ display: 'flex', alignItems: 'center', background: '#fff', border: '1px solid #e2e8f0', padding: '8px 12px', borderRadius: '6px', marginBottom: '6px' }}>
+                                <span style={{ flex: 1, fontSize: '13px', color: '#2d3748' }}>{a.filename || a.stored_name} <span style={{ color: '#3182ce', fontSize: '11px', marginLeft: '4px' }}>(기존 파일)</span></span>
+                                <span style={{ fontSize: '12px', color: '#a0aec0', marginRight: '12px' }}>{formatBytes(a.size)}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setExistingAttachments((prev) => prev.filter((_, idx) => idx !== i))}
+                                  disabled={submitting}
+                                  style={{ border: 'none', background: '#fff5f5', color: '#e53e3e', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+                                >
+                                  삭제
+                                </button>
+                              </li>
+                            ))}
+                            
+                            {/* 2. 새로 추가한 파일 렌더링 */}
                             {submitFiles.map((f, i) => (
-                              <li key={i} style={{ display: 'flex', alignItems: 'center', background: '#fff', border: '1px solid #e2e8f0', padding: '8px 12px', borderRadius: '6px', marginBottom: '6px' }}>
-                                <span style={{ flex: 1, fontSize: '13px', color: '#2d3748' }}>{f.name}</span>
+                              <li key={`new-${i}`} style={{ display: 'flex', alignItems: 'center', background: '#fff', border: '1px solid #e2e8f0', padding: '8px 12px', borderRadius: '6px', marginBottom: '6px' }}>
+                                <span style={{ flex: 1, fontSize: '13px', color: '#2d3748' }}>{f.name} <span style={{ color: '#38a169', fontSize: '11px', marginLeft: '4px' }}>(새 파일)</span></span>
                                 <span style={{ fontSize: '12px', color: '#a0aec0', marginRight: '12px' }}>{formatBytes(f.size)}</span>
                                 <button
                                   type="button"
@@ -687,6 +742,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
                                 </button>
                               </li>
                             ))}
+                            
                           </ul>
                         )}
                       </div>
@@ -779,6 +835,15 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
                                 }
                               }));
                             }
+                            
+                            // ✅ 보기 모드에서 '수정 / 재제출하기' 버튼을 눌렀을 때 기존 첨부파일 세팅
+                            setSubmitFiles([]);
+                            if (sub?.task_submitted_content?.attachments) {
+                              setExistingAttachments(sub.task_submitted_content.attachments);
+                            } else {
+                              setExistingAttachments([]);
+                            }
+
                             setIsEditing(true)
                           }}
                           style={{ background: '#fff', border: '1px solid #cbd5e0', color: '#4a5568', padding: '10px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}
@@ -788,7 +853,6 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
                       </div>
                     </div>
                   )}
-
 
                 </div>
               )}
