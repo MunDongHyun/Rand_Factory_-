@@ -65,7 +65,7 @@ function Header({ user, canUseCurriculum = true, canManageLearners = false, curr
               if (onReset) onReset();
             }}
           >
-            LANDFACTORY
+            ArtiCulum
           </div>
 
           <div className="searchContainer" style={{ display: 'flex', alignItems: 'center' }}>

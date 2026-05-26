@@ -152,7 +152,7 @@ const Signup = ({ onBack, onComplete }) => {
   return (
     <div className="screen" id="screen-signup">
       <nav className="nav-signup">
-        <span className="nav-signup__brand">LAND FACTORY</span>
+        <span className="nav-signup__brand">ArtiCulum</span>
         <button
           type="button"
           className="nav-signup__back"

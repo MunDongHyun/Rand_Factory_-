@@ -36,7 +36,7 @@ const Intro = ({ onLogin, onSignup }) => {
   return (
     <div className="screen" id="screen-intro">
       <nav className="nav">
-        <span className="nav__brand">LF</span>
+        <span className="nav__brand">AC</span>
         {/* <ul className="nav__links">
           <li><a href="#intro">소개</a></li>
           <li><a href="#service">서비스</a></li>
@@ -48,7 +48,7 @@ const Intro = ({ onLogin, onSignup }) => {
         <section className="intro-left">
           <img src={serviceDetailRobot} className='intro-left_image'></img>
           <span className="intro-left__eyebrow">Knowledge Platform</span>
-          <h1 className="intro-left__logo">LAND<span>FACTORY</span></h1>
+          <h1 className="intro-left__logo">Arti<span>Culum</span></h1>
           <div className="intro-left__rule"></div>
           <ul className="intro-left__features">
             <li className="feature-item"><span className="feature-item__dot"></span>DBR 기반 신뢰있는 아티클</li>
