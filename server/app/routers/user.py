@@ -1,3 +1,4 @@
+import json
 from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -182,10 +183,12 @@ def get_signups_timeline(
 
 @router.get("/learners", response_model=list[UserResponse])
 def list_learners(
+    limit: int = Query(200, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """매니저/관리자 전용: 학습자(j) 목록.
+    """매니저/관리자 전용: 학습자(j) 목록 (페이지네이션).
 
     - m (manager): 본인과 같은 회사의 활성 학습자
     - a (admin): 전체 활성 학습자
@@ -200,7 +203,7 @@ def list_learners(
     if current_user.user_role == "m":
         query = query.filter(User.user_company == current_user.user_company)
 
-    return query.order_by(User.user_name.asc()).all()
+    return query.order_by(User.user_name.asc()).offset(offset).limit(limit).all()
 
 
 @router.get("/{user_id}/activity-summary", response_model=UserActivitySummary)
@@ -240,15 +243,19 @@ def get_user_activity_summary(
 
     curricula_assigned = 0
     if user.user_role == "j":
-        # JSON 컬럼이라 Python 측에서 카운트
-        rows = (
-            db.query(Curriculum.cur_assigned_learner_ids)
-            .filter(Curriculum.cur_deleted_at.is_(None))
-            .all()
+        # MySQL JSON_CONTAINS 푸시다운으로 DB 측에서 카운트 (전체 row Python 적재 회피)
+        curricula_assigned = (
+            db.query(func.count(Curriculum.cur_id))
+            .filter(
+                Curriculum.cur_deleted_at.is_(None),
+                func.json_contains(
+                    Curriculum.cur_assigned_learner_ids,
+                    json.dumps(user_id),
+                ),
+            )
+            .scalar()
+            or 0
         )
-        for (ids,) in rows:
-            if isinstance(ids, list) and user_id in ids:
-                curricula_assigned += 1
 
     submissions_count = (
         db.query(func.count(TaskSubmission.task_submission_id))
