@@ -406,6 +406,13 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef }) {
 
   const saveTemplate = async () => {
     if (!selectedCurriculum) return;
+
+    // ✅ 배포 전 최종 확인 경고창 추가
+    const isConfirmed = window.confirm(
+      "과제를 배포하시면 이후 템플릿 수정이나 재배포가 불가능합니다.\n정말 배포하시겠습니까?"
+    );
+    if (!isConfirmed) return; // 취소하면 로직 중단
+
     const weekPlan = normalizeWeekPlan(selectedCurriculum.cur_week_plan).map((step) => ({ ...step }));
     const targetWeek = weekPlan.find((s) => s.week === templateModal.week);
     if (!targetWeek || !Array.isArray(targetWeek.assignments)) { toast.error('대상 과제를 찾을 수 없습니다.'); return; }
@@ -496,7 +503,8 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef }) {
     }
   };
 
-  const renderAccordionItem = (step, expandedState, toggleFunc) => {
+  // ✅ isPreview 파라미터를 추가하여 미리보기 모달인지 여부를 판별
+  const renderAccordionItem = (step, expandedState, toggleFunc, isPreview = false) => {
     const isExpanded = expandedState === step.week;
     return (
       <div key={step.week} className="extracted-accordion-item">
@@ -525,23 +533,40 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef }) {
               <div className="extracted-assignment-wrapper">
                 <h4 className="extracted-task-title">[실무 수행 과제]</h4>
                 <div className="extracted-assignment-grid">
-                  {step.assignments.map((a, idx) => (
-                    <div key={idx} className="extracted-assignment-card">
-                      <strong className="extracted-assignment-name">[과제명] {a.title}</strong>
-                      {Array.isArray(a.step_by_step_guide) && a.step_by_step_guide.length > 0 && (
-                        <ul className="extracted-guide-list">
-                          {a.step_by_step_guide.map((guide, gIdx) => (<li key={gIdx} className="extracted-guide-item">{guide}</li>))}
-                        </ul>
-                      )}
-                      {a.description && <p className="extracted-guide-item">{a.description}</p>}
-                      <div className="extracted-submission-format has-actions">
-                        <span>제출 형태: {a.expected_output_format || a.submission || '지정되지 않음'}</span>
-                        <div className="templateActionBtnGroup">
-                          <button className="template-action-btn admin" onClick={(e) => { e.stopPropagation(); openTemplateModal(step.week, idx, a); }}>양식 배포(관리자)</button>
+                  {step.assignments.map((a, idx) => {
+                    // ✅ 배포 완료 여부 체크 (template_content 값이 있으면 배포된 것으로 간주)
+                    const isDistributed = !!a.template_content;
+                    
+                    return (
+                      <div key={idx} className="extracted-assignment-card">
+                        <strong className="extracted-assignment-name">[과제명] {a.title}</strong>
+                        {Array.isArray(a.step_by_step_guide) && a.step_by_step_guide.length > 0 && (
+                          <ul className="extracted-guide-list">
+                            {a.step_by_step_guide.map((guide, gIdx) => (<li key={gIdx} className="extracted-guide-item">{guide}</li>))}
+                          </ul>
+                        )}
+                        {a.description && <p className="extracted-guide-item">{a.description}</p>}
+                        
+                        {/* ✅ isPreview 플래그에 따라 버튼 렌더링 조건 처리 */}
+                        <div className={`extracted-submission-format ${!isPreview ? 'has-actions' : ''}`}>
+                          <span>제출 형태: {a.expected_output_format || a.submission || '지정되지 않음'}</span>
+                          {!isPreview && (
+                            <div className="templateActionBtnGroup">
+                              {/* ✅ 배포 완료 상태에 따른 버튼 비활성화 및 텍스트 변경 */}
+                              <button 
+                                className="template-action-btn admin" 
+                                onClick={(e) => { e.stopPropagation(); openTemplateModal(step.week, idx, a); }}
+                                disabled={isDistributed}
+                                style={isDistributed ? { backgroundColor: '#ccc', cursor: 'not-allowed', color: '#666' } : {}}
+                              >
+                                {isDistributed ? '배포 완료' : '양식 배포(관리자)'}
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -778,23 +803,36 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef }) {
                         <div className="extracted-assignment-wrapper">
                           <h4 className="extracted-task-title">[실무 수행 과제]</h4>
                           <div className="extracted-assignment-grid">
-                            {weekData.assignments.map((a, idx) => (
-                              <div key={idx} className="extracted-assignment-card">
-                                <strong className="extracted-assignment-name">[과제명] {a.title}</strong>
-                                {Array.isArray(a.step_by_step_guide) && a.step_by_step_guide.length > 0 && (
-                                  <ul className="extracted-guide-list">
-                                    {a.step_by_step_guide.map((guide, gIdx) => <li key={gIdx} className="extracted-guide-item">{guide}</li>)}
-                                  </ul>
-                                )}
-                                {a.description && <p className="extracted-guide-item">{a.description}</p>}
-                                <div className="extracted-submission-format has-actions">
-                                  <span>제출 형태: {a.expected_output_format || a.submission || '지정되지 않음'}</span>
-                                  <div className="templateActionBtnGroup">
-                                    <button className="template-action-btn admin" onClick={(e) => { e.stopPropagation(); openTemplateModal(weekData.week, idx, a); }}>양식 배포(관리자)</button>
+                            {weekData.assignments.map((a, idx) => {
+                              // ✅ 배포 완료 여부 체크
+                              const isDistributed = !!a.template_content;
+                              
+                              return (
+                                <div key={idx} className="extracted-assignment-card">
+                                  <strong className="extracted-assignment-name">[과제명] {a.title}</strong>
+                                  {Array.isArray(a.step_by_step_guide) && a.step_by_step_guide.length > 0 && (
+                                    <ul className="extracted-guide-list">
+                                      {a.step_by_step_guide.map((guide, gIdx) => <li key={gIdx} className="extracted-guide-item">{guide}</li>)}
+                                    </ul>
+                                  )}
+                                  {a.description && <p className="extracted-guide-item">{a.description}</p>}
+                                  <div className="extracted-submission-format has-actions">
+                                    <span>제출 형태: {a.expected_output_format || a.submission || '지정되지 않음'}</span>
+                                    <div className="templateActionBtnGroup">
+                                      {/* ✅ 배포 완료 상태에 따른 버튼 처리 */}
+                                      <button 
+                                        className="template-action-btn admin" 
+                                        onClick={(e) => { e.stopPropagation(); openTemplateModal(weekData.week, idx, a); }}
+                                        disabled={isDistributed}
+                                        style={isDistributed ? { backgroundColor: '#ccc', cursor: 'not-allowed', color: '#666' } : {}}
+                                      >
+                                        {isDistributed ? '배포 완료' : '양식 배포(관리자)'}
+                                      </button>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
                       )}
@@ -972,7 +1010,8 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef }) {
               <div className="confirmGoalBox"><p className="confirmGoalLabel">교육 목표 :</p><p className="confirmGoalText">{preview.cur_learning_goal || '교육 목표가 입력되지 않았습니다.'}</p></div>
               <p className="confirmProgramName">{preview.cur_title}</p>
               <div className="confirmStepList">
-                {previewWeeks.map((step) => renderAccordionItem(step, previewExpandedWeek, (week) => setPreviewExpandedWeek(prev => prev === week ? null : week)))}
+                {/* ✅ isPreview 플래그 true로 전달하여 양식 배포 버튼 숨김 처리 */}
+                {previewWeeks.map((step) => renderAccordionItem(step, previewExpandedWeek, (week) => setPreviewExpandedWeek(prev => prev === week ? null : week), true))}
               </div>
               <div className="assignSection">
                 <p className="assignSectionTitle">학습자 배정 (선택)</p><p className="assignSectionHint">선택한 학습자들이 자신의 화면에서 이 커리큘럼을 볼 수 있습니다. 나중에 변경 가능합니다.</p>

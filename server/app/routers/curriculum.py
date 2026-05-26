@@ -1,6 +1,4 @@
 from datetime import datetime, timezone, timedelta
-
-
 from fastapi import APIRouter, Depends, HTTPException, status, Body
 from fastapi.responses import StreamingResponse
 from sqlalchemy import func
@@ -290,7 +288,7 @@ async def download_curriculum_txt(
     for week in week_plan:
         tasks = ", ".join([a.get("title", "") for a in week.get("assignments", [])])
         lines.append(f"[{week.get('week')}주차] 주제: {week.get('theme')}")
-        lines.append(f"         핵심 산출물: {tasks}")
+        lines.append(f"        핵심 산출물: {tasks}")
     lines.append("-" * 60 + "\n")
 
     # 3. 주차별 과제 템플릿
@@ -304,10 +302,10 @@ async def download_curriculum_txt(
         
         for idx, a in enumerate(week.get("assignments", [])):
             lines.append(f"\n▶ 과제명: {a.get('title')}")
-            lines.append(f"   제출 형태: {a.get('expected_output_format')}")
-            lines.append(f"   수행 방법:")
+            lines.append(f"  제출 형태: {a.get('expected_output_format')}")
+            lines.append(f"  수행 방법:")
             for step in a.get("step_by_step_guide", []):
-                lines.append(f"     - {step}")
+                lines.append(f"    - {step}")
                 
         # 자기 점검 & 사수 피드백
         ig = week.get("instructor_guide", {})
@@ -372,7 +370,6 @@ async def download_curriculum_pdf(
         else:
             pdf.set_font('Arial', style, size)
             
-    # ✨ 수정됨: 한국어에 맞춰 "글자(캐릭터) 단위"로 정밀하게 너비를 계산해 자연스럽게 줄바꿈
     def safe_print(text, border=0, fill=False, h=7):
         if not text: return
         text = str(text).replace('\r', '').replace('\t', '  ')
@@ -387,7 +384,6 @@ async def download_curriculum_pdf(
                 
             current_line = ""
             for char in p:
-                # 다음 한 글자를 붙였을 때 페이지 너비를 넘어가면 줄을 바꿈
                 if pdf.get_string_width(current_line + char) > max_w:
                     lines.append(current_line)
                     current_line = char
@@ -479,8 +475,6 @@ async def download_curriculum_pdf(
     set_font('', 10)
     rubric = "구체성: 행동/수량/순서 명확\n현장 적용성: 실무 즉시 적용 가능\n근거 제시: 데이터/상황 근거 포함\n연결성: 이전 주차 산출물 연계"
     safe_print(rubric, border=1, h=8)
-
-    # ✨ 수정됨: pdf 라이브러리(fpdf 버전에 따른) 인코딩 에러 원천 차단
     pdf_out = pdf.output(dest="S")
     pdf_bytes = pdf_out.encode("latin-1") if isinstance(pdf_out, str) else bytes(pdf_out)
     pdf_stream = io.BytesIO(pdf_bytes)
@@ -618,6 +612,7 @@ async def download_curriculum_docx(
         headers={"Content-Disposition": f"attachment; filename=curriculum.docx"}
     )
     
+
 @router.post("/generate-template", response_model=TemplateGenerateResponse)
 def generate_template_api(
     body: TemplateGenerateRequest,
@@ -625,6 +620,21 @@ def generate_template_api(
 ):
     if current_user.user_role not in {"m", "a"}:
         raise HTTPException(status_code=403, detail="Only manager/admin can generate templates")
+
+    try:
+        val_result = curriculum_service.validate_curriculum_input(
+            cur_title=body.assignment_title, 
+            cur_target_job=body.theme or "",
+            cur_target_industry="", 
+            cur_learning_goal=body.learning_objective or "",
+            required_content=" ".join(body.step_by_step_guide) if body.step_by_step_guide else ""
+        )
+        if not val_result.is_valid:
+            raise HTTPException(status_code=400, detail=val_result.reason)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"템플릿 입력값 검증 실패: {exc}")
 
     try:
         html_content = curriculum_service.generate_assignment_template(
@@ -638,7 +648,6 @@ def generate_template_api(
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"템플릿 AI 생성 실패: {exc}")
     
-
 
 @router.delete("/{cur_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_curriculum(
