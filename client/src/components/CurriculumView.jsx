@@ -8,7 +8,6 @@ import curri_nulll from '../public/curri_null.png';
 import download_img from '../public/download_img.png';
 import delete_img from '../public/delete_img.png';
 import '../styles/Curriculum.css';
-
 import rodingRafaGif from '../public/roding_rafa.gif';
 import randLogo from '../public/roding_rafa.png';
 
@@ -178,7 +177,8 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef }) {
   const [selectedWeek, setSelectedWeek] = useState(null);
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
 
-  const [templateModal, setTemplateModal] = useState({ open: false, week: null, assignmentIdx: null, title: '', content: '', fullscreen: false, generating: false });
+  const [reportModal, setReportModal] = useState({ open: false, file: null, loading: false });
+  const [templateModal, setTemplateModal] = useState({ open: false, week: null, assignmentIdx: null, title: '', content: '', deadline: '', fullscreen: false, generating: false });
 
   const [templateMessageIndex, setTemplateMessageIndex] = useState(0);
   const TEMPLATE_MESSAGES = [
@@ -406,12 +406,8 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef }) {
 
   const saveTemplate = async () => {
     if (!selectedCurriculum) return;
-
-    // ✅ 배포 전 최종 확인 경고창 추가
-    const isConfirmed = window.confirm(
-      "과제를 배포하시면 이후 템플릿 수정이나 재배포가 불가능합니다.\n정말 배포하시겠습니까?"
-    );
-    if (!isConfirmed) return; // 취소하면 로직 중단
+    const isConfirmed = window.confirm("과제를 배포하시면 이후 템플릿 수정이나 재배포가 불가능합니다.\n정말 배포하시겠습니까?");
+    if (!isConfirmed) return; 
 
     const weekPlan = normalizeWeekPlan(selectedCurriculum.cur_week_plan).map((step) => ({ ...step }));
     const targetWeek = weekPlan.find((s) => s.week === templateModal.week);
@@ -420,15 +416,26 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef }) {
     targetWeek.assignments = targetWeek.assignments.map((a, i) =>
       i === templateModal.assignmentIdx ? { ...a, template_content: templateModal.content } : a
     );
+    
+    // ✨ 마감일(Deadline) 값을 ISO 형식으로 파싱해서 서버로 넘김
+    let isoDeadline = null;
+    if (templateModal.deadline) {
+      isoDeadline = new Date(templateModal.deadline).toISOString();
+    }
+
     setTemplateModal((prev) => ({ ...prev, saving: true }));
     try {
-      const res = await api.patch(`/curricula/${selectedCurriculum.cur_id}`, { cur_week_plan: weekPlan });
+      // ✨ cur_deadline 함께 PATCH 
+      const res = await api.patch(`/curricula/${selectedCurriculum.cur_id}`, { 
+        cur_week_plan: weekPlan,
+        cur_deadline: isoDeadline
+      });
       setCurriculums((prev) => prev.map((c) => (c.cur_id === res.data.cur_id ? res.data : c)));
       try {
         localStorage.removeItem(templateDraftKey(selectedCurriculum.cur_id, templateModal.week, templateModal.assignmentIdx));
       } catch {}
       toast.success('학습자들에게 과제 템플릿이 배포되었습니다.');
-      setTemplateModal({ open: false, week: null, assignmentIdx: null, title: '', content: '', generating: false, fullscreen: false });
+      setTemplateModal({ open: false, week: null, assignmentIdx: null, title: '', content: '', deadline: '', generating: false, fullscreen: false });
     } catch (err) {
       toast.error(err.response?.data?.detail || '템플릿 배포에 실패했습니다.');
       setTemplateModal((prev) => ({ ...prev, saving: false }));
@@ -485,9 +492,21 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef }) {
         }
       }
     } catch {}
+
+    // ✨ 기존에 설정된 커리큘럼의 마감일이 있다면 로컬 시간대로 변환해서 <input>에 세팅
+    let currentDeadline = '';
+    if (selectedCurriculum?.cur_deadline) {
+      const d = new Date(selectedCurriculum.cur_deadline);
+      if (!isNaN(d.getTime())) {
+        const tzOffset = d.getTimezoneOffset() * 60000;
+        currentDeadline = new Date(d.getTime() - tzOffset).toISOString().slice(0, 16);
+      }
+    }
+
     setTemplateModal({
       open: true, week, assignmentIdx: idx, title: assignment.title,
       content,
+      deadline: currentDeadline,
       generating: false, fullscreen: false
     });
   };
@@ -503,7 +522,6 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef }) {
     }
   };
 
-  // ✅ isPreview 파라미터를 추가하여 미리보기 모달인지 여부를 판별
   const renderAccordionItem = (step, expandedState, toggleFunc, isPreview = false) => {
     const isExpanded = expandedState === step.week;
     return (
@@ -534,7 +552,6 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef }) {
                 <h4 className="extracted-task-title">[실무 수행 과제]</h4>
                 <div className="extracted-assignment-grid">
                   {step.assignments.map((a, idx) => {
-                    // ✅ 배포 완료 여부 체크 (template_content 값이 있으면 배포된 것으로 간주)
                     const isDistributed = !!a.template_content;
                     
                     return (
@@ -547,12 +564,10 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef }) {
                         )}
                         {a.description && <p className="extracted-guide-item">{a.description}</p>}
                         
-                        {/* ✅ isPreview 플래그에 따라 버튼 렌더링 조건 처리 */}
                         <div className={`extracted-submission-format ${!isPreview ? 'has-actions' : ''}`}>
                           <span>제출 형태: {a.expected_output_format || a.submission || '지정되지 않음'}</span>
                           {!isPreview && (
                             <div className="templateActionBtnGroup">
-                              {/* ✅ 배포 완료 상태에 따른 버튼 비활성화 및 텍스트 변경 */}
                               <button 
                                 className="template-action-btn admin" 
                                 onClick={(e) => { e.stopPropagation(); openTemplateModal(step.week, idx, a); }}
@@ -804,7 +819,6 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef }) {
                           <h4 className="extracted-task-title">[실무 수행 과제]</h4>
                           <div className="extracted-assignment-grid">
                             {weekData.assignments.map((a, idx) => {
-                              // ✅ 배포 완료 여부 체크
                               const isDistributed = !!a.template_content;
                               
                               return (
@@ -819,7 +833,6 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef }) {
                                   <div className="extracted-submission-format has-actions">
                                     <span>제출 형태: {a.expected_output_format || a.submission || '지정되지 않음'}</span>
                                     <div className="templateActionBtnGroup">
-                                      {/* ✅ 배포 완료 상태에 따른 버튼 처리 */}
                                       <button 
                                         className="template-action-btn admin" 
                                         onClick={(e) => { e.stopPropagation(); openTemplateModal(weekData.week, idx, a); }}
@@ -1010,7 +1023,6 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef }) {
               <div className="confirmGoalBox"><p className="confirmGoalLabel">교육 목표 :</p><p className="confirmGoalText">{preview.cur_learning_goal || '교육 목표가 입력되지 않았습니다.'}</p></div>
               <p className="confirmProgramName">{preview.cur_title}</p>
               <div className="confirmStepList">
-                {/* ✅ isPreview 플래그 true로 전달하여 양식 배포 버튼 숨김 처리 */}
                 {previewWeeks.map((step) => renderAccordionItem(step, previewExpandedWeek, (week) => setPreviewExpandedWeek(prev => prev === week ? null : week), true))}
               </div>
               <div className="assignSection">
@@ -1038,9 +1050,20 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef }) {
           <>
             <div className="confirmOverlay" style={{ zIndex: 99998 }} onClick={() => setTemplateModal({ ...templateModal, open: false })} />
             <div className={`confirmModal templateModal ${templateModal.fullscreen ? 'fullscreen' : ''}`} style={{ zIndex: 99999, display: 'flex', flexDirection: 'column', height: '90vh', overflow: 'hidden' }}>
-              <div className="modalTopBar" style={{ flexShrink: 0 }}>
-                <h3 className="templateSectionTitle">과제 양식(템플릿) 배포</h3>
-                <div className="modalHeaderActions">
+              <div className="modalTopBar" style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 className="templateSectionTitle" style={{ margin: 0 }}>과제 양식(템플릿) 배포</h3>
+                <div className="modalHeaderActions" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: '600', color: '#4a5568' }}>
+                    <span>마감일 설정:</span>
+                    <input 
+                      type="datetime-local" 
+                      value={templateModal.deadline || ''} 
+                      onChange={(e) => setTemplateModal(prev => ({ ...prev, deadline: e.target.value }))}
+                      style={{ border: '1px solid #cbd5e0', borderRadius: '4px', padding: '6px 8px', fontSize: '13px', outline: 'none' }}
+                    />
+                  </label>
+
                   <button type="button" className="template-action-btn admin ai-regenerate-btn" onClick={handleRegenerateTemplate} disabled={templateModal.generating}>
                     {templateModal.generating ? 'AI 작성 중...' : 'AI 템플릿 재작성'}
                   </button>
@@ -1049,7 +1072,8 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef }) {
                   </button>
                 </div>
               </div>
-              <p className="assignSectionHint">
+
+              <p className="assignSectionHint" style={{ marginTop: '12px' }}>
                 {`학습자에게 전달될 '${templateModal.title}'의 작성 양식 가이드를 작성해주세요.\n표나 양식을 지정해주면 학습자가 쉽게 채워넣을 수 있습니다.`}
               </p>
               <div className="templateEditorWrapper" style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', border: '1px solid #ccc', borderRadius: '4px', overflow: 'hidden', minHeight: 0 }}>
