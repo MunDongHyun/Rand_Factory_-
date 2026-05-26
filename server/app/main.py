@@ -2,13 +2,24 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.routers import article, author, bookmark, curriculum, health, rag, task_submission, user
+from app.routers import (
+    article,
+    author,
+    bookmark,
+    curriculum,
+    health,
+    notification,
+    rag,
+    task_submission,
+    user,
+)
 from app.services.thumbnail_service import THUMBNAIL_DIR, URL_PREFIX as THUMBNAIL_URL_PREFIX
 
 
 # 필요한 DB 테이블이 있으면 스크립트에 명시해주면 테이블 자동 생성해주는 코드
 from app.models.user_activity import UserActivity
 from app.models.bookmark import Bookmark
+from app.models.notification import Notification
 from app.core.database import engine, Base
 Base.metadata.create_all(bind=engine)
 
@@ -38,3 +49,4 @@ app.include_router(bookmark.router)
 app.include_router(rag.router)
 app.include_router(curriculum.router)
 app.include_router(task_submission.router)
+app.include_router(notification.router)

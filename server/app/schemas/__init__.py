@@ -11,6 +11,11 @@ from app.schemas.bookmark import (
     MyBookmarksResponse,
 )
 from app.schemas.curriculum import CurriculumCreate, CurriculumResponse, CurriculumUpdate
+from app.schemas.notification import (
+    NotificationListResponse,
+    NotificationResponse,
+    NotificationUnreadCountResponse,
+)
 from app.schemas.rag import RagQuery, RagResponse
 from app.schemas.task_submission import (
     TaskSubmissionCreate,
@@ -32,6 +37,9 @@ __all__ = [
     "CurriculumCreate",
     "CurriculumResponse",
     "CurriculumUpdate",
+    "NotificationListResponse",
+    "NotificationResponse",
+    "NotificationUnreadCountResponse",
     "RagQuery",
     "RagResponse",
     "TaskSubmissionCreate",

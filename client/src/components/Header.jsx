@@ -6,6 +6,7 @@ import bookmarkIcon from '../public/bookmark_icon.png';
 import eyeIcon from '../public/eye_icon.png';
 import eyeCloseIcon from '../public/eye-closed_icon.png';
 import copyIcon from '../public/copy_icon.png';
+import NotificationBell from './NotificationBell';
 
 const ROLE_LABELS = {
   c: '일반회원',
@@ -86,6 +87,7 @@ function Header({ user, canUseCurriculum = true, canManageLearners = false, curr
           </div>
 
           <div className="headerIcons">
+            <NotificationBell onViewChange={onViewChange} />
             <button
               type="button"
               className={`headerBookmarkBtn ${currentView === 'bookmarks' ? 'active' : ''}`}
