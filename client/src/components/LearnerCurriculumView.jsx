@@ -6,6 +6,30 @@ import { downloadAttachment, formatBytes } from '../lib/attachments';
 import '../styles/LearnerCurriculum.css';
 
 // --- 유틸 함수 ---
+const formatOnlyDate = (value) => {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+};
+
+const getDDayString = (deadlineStr) => {
+  if (!deadlineStr) return null;
+  const deadlineDate = new Date(deadlineStr);
+  if (isNaN(deadlineDate.getTime())) return null;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); 
+  deadlineDate.setHours(0, 0, 0, 0); 
+
+  const diffTime = deadlineDate - today;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays > 0) return `D-${diffDays}`;
+  if (diffDays === 0) return `D-Day`;
+  return `D+${Math.abs(diffDays)} (마감됨)`;
+};
+
 const normalizeWeekPlan = (plan) => {
   if (Array.isArray(plan)) return plan;
   if (plan && typeof plan === 'object') return [plan];
@@ -46,7 +70,6 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
   const [activeTask, setActiveTask] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
 
-  // ✅ 첨부파일 상태 분리 (기존 서버 파일 / 새로 추가할 파일)
   const [existingAttachments, setExistingAttachments] = useState([]);
   const [submitFiles, setSubmitFiles] = useState([]);
 
@@ -152,7 +175,6 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
     setActiveTask({ week, assignmentIdx, assignmentData: data });
     setIsEditing(willEdit);
 
-    // ✅ 재제출/수정 시 기존 첨부파일 세팅
     setSubmitFiles([]);
     if (willEdit && sub?.task_submitted_content?.attachments) {
       setExistingAttachments(sub.task_submitted_content.attachments);
@@ -194,6 +216,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
     };
   }, [activeTask, curriculumDetailRef]);
 
+  // 이 부분의 DOM 요소(빈칸) 스타일은 변경 시 구조가 깨질 수 있으므로 인라인 스타일을 그대로 유지합니다.
   useEffect(() => {
     if (isEditing && activeTask && submitEditorRef.current) {
       const container = submitEditorRef.current;
@@ -391,7 +414,6 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
       el.removeAttribute('style');
     });
 
-    // ✅ 기존 첨부파일 배열도 포함하여 유효성 체크
     if (!hasContent && submitFiles.length === 0 && existingAttachments.length === 0) {
       setSubmitError('작성 내용이나 첨부파일 중 하나는 있어야 합니다.');
       return;
@@ -401,7 +423,6 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
     setSubmitError(null);
 
     try {
-      // ✅ 기존에 유지된 파일(existingAttachments) 정보를 함께 전송
       const res = await api.post('/task-submissions', {
         task_curriculum_id: selectedId,
         task_week_number: activeTask.week,
@@ -413,7 +434,6 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
       });
       const submissionId = res.data?.task_submission_id;
 
-      // 새로 추가된 파일들 업로드
       const failures = [];
       for (const file of submitFiles) {
         const formData = new FormData();
@@ -453,7 +473,6 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
         <div className="curriculumWrapper">
           <div className="curriculumLayout">
 
-            {/* 사이드바 */}
             <aside className="curriculumSidebar">
               <p className="curriculumSidebarTitle">내 커리큘럼</p>
               <div className="curriculumSidebarDivider" />
@@ -484,13 +503,11 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ flex: 1, height: '6px', background: 'var(--line)', borderRadius: '3px', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', background: 'var(--primary)', width: `${overallProgress}%`, transition: 'width 0.3s ease' }} />
+                  <div className="learner-progress-wrap">
+                    <div className="learner-progress-bg">
+                      <div className="learner-progress-bar" style={{ width: `${overallProgress}%` }} />
                     </div>
-                    <span style={{ fontSize: '13px', color: 'var(--ink)', fontWeight: '600', whiteSpace: 'nowrap' }}>
-                      {overallProgress}%
-                    </span>
+                    <span className="learner-progress-text">{overallProgress}%</span>
                   </div>
 
                   <div className="curriculumSteps">
@@ -546,11 +563,13 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
 
                                     const hasTemplate = !!a.template_content && a.template_content.trim() !== '';
                                     const isClickable = hasTemplate || !!sub;
+                                    
+                                    const dDayStr = a.deadline ? getDDayString(a.deadline) : '마감일 미지정';
 
                                     return (
                                       <div
                                         key={idx}
-                                        className={`extracted-assignment-card ${isActive ? 'active' : ''}`}
+                                        className={`extracted-assignment-card ${isActive ? 'active' : ''} ${!isClickable ? 'disabled' : 'clickable'}`}
                                         onClick={() => {
                                           if (isClickable) {
                                             handleAssignmentClick(step.week, idx, a);
@@ -558,31 +577,26 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
                                             toast.warn('관리자가 아직 과제 양식을 배포하지 않았습니다.');
                                           }
                                         }}
-                                        style={{
-                                          cursor: isClickable ? 'pointer' : 'not-allowed',
-                                          border: isActive ? '1px solid var(--primary)' : '1px solid rgba(58, 74, 92, 0.18)',
-                                          background: isActive ? '#EAF3F8' : (isClickable ? 'var(--card)' : '#f8fafc'),
-                                          opacity: isClickable ? 1 : 0.6
-                                        }}
                                       >
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div className="extracted-assignment-card-header">
                                           <strong className="extracted-assignment-name">{a.title || `과제 ${idx + 1}`}</strong>
                                           {sub ? (
                                             <span className={`submissionStatusBadge ${sub.task_status}`}>
                                               {STATUS_LABEL[sub.task_status] || '제출 완료'}
                                             </span>
                                           ) : !hasTemplate ? (
-                                            <span style={{ fontSize: '12px', color: '#718096', fontWeight: '600', backgroundColor: '#edf2f7', padding: '4px 8px', borderRadius: '4px' }}>
-                                              양식 배포 대기중
+                                            <span className="badge-waiting">양식 배포 대기중</span>
+                                          ) : (
+                                            <span className="badge-dday">
+                                              {dDayStr}
                                             </span>
-                                          ) : null}
+                                          )}
                                         </div>
                                       </div>
                                     );
                                   })}
                                 </div>
                               )}
-
                             </div>
                           )}
                         </div>
@@ -597,7 +611,6 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
               )}
             </div>
 
-            {/* 우측: 과제 상세 */}
             <div className="curriculumRight">
               {!activeTask ? (
                 <div className="curriculumRightEmpty">
@@ -606,198 +619,108 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
               ) : (
                 <div className="curriculumRightContent">
 
-                  {/* 헤더: 제목 + 전체보기 버튼 */}
-                  <div style={{
-                    marginBottom: '24px',
-                    paddingBottom: '16px',
-                    borderBottom: '1px solid #e2e8f0',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'flex-start',
-                    position: 'sticky',
-                    top: 0,
-                    background: 'var(--card)',
-                    zIndex: 1,
-                  }}>
+                  <div className="learner-right-header">
                     <div>
-                      <span style={{ fontSize: '13px', color: '#718096', fontWeight: '600' }}>
-                        {activeTask.week}주차 과제
-                      </span>
-                      <h3 className="curriculumDetailTitle" style={{ marginTop: '4px', fontSize: '22px' }}>
-                        {activeTask.assignmentData.title}
-                      </h3>
+                      <span className="learner-right-week">{activeTask.week}주차 과제</span>
+                      <h3 className="curriculumDetailTitle large">{activeTask.assignmentData.title}</h3>
+
+                      {activeTask.assignmentData.deadline && (
+                        <span className="learner-right-dday">
+                          마감: {formatOnlyDate(activeTask.assignmentData.deadline)} ({getDDayString(activeTask.assignmentData.deadline)})
+                        </span>
+                      )}
                     </div>
                     {isEditing && (
-                      <button
-                        type="button"
-                        className="fullscreenBtn"
-                        onClick={() => setEditorFullscreen(prev => !prev)}
-                      >
+                      <button type="button" className="fullscreenBtn" onClick={() => setEditorFullscreen(prev => !prev)}>
                         {editorFullscreen ? '축소' : '전체보기'}
                       </button>
                     )}
                   </div>
-                  {/* 작성 모드 */}
+
                   {isEditing ? (
                     <div className={editorFullscreen ? 'editorFullscreenWrap' : ''}>
 
                       {editorFullscreen && (
-                        <div style={{
-                          marginBottom: '24px',
-                          paddingBottom: '16px',
-                          borderBottom: '1px solid #e2e8f0',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'flex-start'
-                        }}>
+                        <div className="learner-right-header">
                           <div>
-                            <span style={{ fontSize: '13px', color: '#718096', fontWeight: '600' }}>
-                              {activeTask.week}주차 과제 (전체화면 모드)
-                            </span>
-                            <h3 className="curriculumDetailTitle" style={{ marginTop: '4px', fontSize: '22px' }}>
-                              {activeTask.assignmentData.title}
-                            </h3>
+                            <span className="learner-right-week">{activeTask.week}주차 과제 (전체화면 모드)</span>
+                            <h3 className="curriculumDetailTitle large">{activeTask.assignmentData.title}</h3>
                           </div>
-                          <button
-                            type="button"
-                            className="fullscreenBtn"
-                            onClick={() => setEditorFullscreen(false)}
-                          >
-                            축소
-                          </button>
+                          <button type="button" className="fullscreenBtn" onClick={() => setEditorFullscreen(false)}>축소</button>
                         </div>
                       )}
 
-
-                      {!editorFullscreen && (
-                        <p style={{ fontSize: '13px', color: '#718096', marginBottom: '12px' }}>
-                          마우스로 표의 푸른 점선 빈칸을 클릭하여 내용을 채워주세요.
-                        </p>
-                      )}
-                      {editorFullscreen && (
-                        <p style={{ fontSize: '13px', color: '#718096', marginBottom: '12px' }}>
-                          마우스로 표의 푸른 점선 빈칸을 클릭하여 내용을 채워주세요.
-                        </p>
-                      )}
+                      <p className="learner-editor-guide">
+                        마우스로 표의 푸른 점선 빈칸을 클릭하여 내용을 채워주세요.
+                      </p>
 
                       <div
-                        className="template-render learnerTemplateRender"
+                        className="template-render learnerTemplateRender learner-editor-container"
                         contentEditable={false}
                         ref={submitEditorRef}
                         dangerouslySetInnerHTML={{ __html: activeTask.assignmentData.template_content || '' }}
-                        style={{
-                          minHeight: '400px',
-                          border: '1px solid #cbd5e0',
-                          borderRadius: '8px',
-                          padding: '24px',
-                          background: '#fff',
-                          color: '#2d3748',
-                          lineHeight: 1.6,
-                          fontSize: '15px',
-                        }}
                       />
 
-                      <div style={{ marginTop: '16px', padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e0' }}>
-                        <h4 style={{ fontSize: '12px', fontWeight: '700', color: '#4a5568', margin: '0 0 10px 0' }}>📎 첨부파일 추가 / 유지</h4>
-                        <label style={{ display: 'inline-flex', cursor: 'pointer' }}>
+                      <div className="learner-attach-box">
+                        <h4 className="learner-attach-title">📎 첨부파일 추가 / 유지</h4>
+                        <label className="learner-attach-label">
                           <input type="file" multiple onChange={handleFileSelect} disabled={submitting} style={{ display: 'none' }} />
-                          <span style={{ fontSize: '13px', fontWeight: '600', color: '#3182ce', background: '#fff', border: '1px solid #3182ce', padding: '6px 14px', borderRadius: '6px' }}>
-                            + 추가 파일 선택
-                          </span>
+                          <span className="learner-attach-btn">+ 추가 파일 선택</span>
                         </label>
 
-                        {/* ✅ 기존 첨부파일 + 새로 추가할 파일 UI 렌더링 */}
                         {(existingAttachments.length > 0 || submitFiles.length > 0) && (
-                          <ul style={{ listStyle: 'none', padding: 0, margin: '12px 0 0 0' }}>
-
-                            {/* 1. 기존에 제출했던 파일 렌더링 */}
+                          <ul className="learner-attach-list">
                             {existingAttachments.map((a, i) => (
-                              <li key={`ext-${i}`} style={{ display: 'flex', alignItems: 'center', background: '#fff', border: '1px solid #e2e8f0', padding: '8px 12px', borderRadius: '6px', marginBottom: '6px' }}>
-                                <span style={{ flex: 1, fontSize: '13px', color: '#2d3748' }}>{a.filename || a.stored_name} <span style={{ color: '#3182ce', fontSize: '11px', marginLeft: '4px' }}>(기존 파일)</span></span>
-                                <span style={{ fontSize: '12px', color: '#a0aec0', marginRight: '12px' }}>{formatBytes(a.size)}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => setExistingAttachments((prev) => prev.filter((_, idx) => idx !== i))}
-                                  disabled={submitting}
-                                  style={{ border: 'none', background: '#fff5f5', color: '#e53e3e', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
-                                >
-                                  삭제
-                                </button>
+                              <li key={`ext-${i}`} className="learner-attach-item">
+                                <span className="learner-attach-name">{a.filename || a.stored_name} <span className="learner-attach-badge old">(기존 파일)</span></span>
+                                <span className="learner-attach-size">{formatBytes(a.size)}</span>
+                                <button type="button" onClick={() => setExistingAttachments((prev) => prev.filter((_, idx) => idx !== i))} disabled={submitting} className="learner-attach-del">삭제</button>
                               </li>
                             ))}
 
-                            {/* 2. 새로 추가한 파일 렌더링 */}
                             {submitFiles.map((f, i) => (
-                              <li key={`new-${i}`} style={{ display: 'flex', alignItems: 'center', background: '#fff', border: '1px solid #e2e8f0', padding: '8px 12px', borderRadius: '6px', marginBottom: '6px' }}>
-                                <span style={{ flex: 1, fontSize: '13px', color: '#2d3748' }}>{f.name} <span style={{ color: '#38a169', fontSize: '11px', marginLeft: '4px' }}>(새 파일)</span></span>
-                                <span style={{ fontSize: '12px', color: '#a0aec0', marginRight: '12px' }}>{formatBytes(f.size)}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleFileRemove(i)}
-                                  disabled={submitting}
-                                  style={{ border: 'none', background: '#fff5f5', color: '#e53e3e', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
-                                >
-                                  삭제
-                                </button>
+                              <li key={`new-${i}`} className="learner-attach-item">
+                                <span className="learner-attach-name">{f.name} <span className="learner-attach-badge new">(새 파일)</span></span>
+                                <span className="learner-attach-size">{formatBytes(f.size)}</span>
+                                <button type="button" onClick={() => handleFileRemove(i)} disabled={submitting} className="learner-attach-del">삭제</button>
                               </li>
                             ))}
-
                           </ul>
                         )}
                       </div>
 
                       {submitError && (
-                        <p style={{ color: '#e53e3e', background: '#fff5f5', padding: '12px', borderRadius: '6px', fontSize: '13px', marginTop: '12px' }}>
-                          {submitError}
-                        </p>
+                        <p className="learner-submit-error">{submitError}</p>
                       )}
 
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px', gap: '8px' }}>
+                      <div className="learner-submit-actions">
                         {currentSubmission && (
-                          <button
-                            onClick={() => setIsEditing(false)}
-                            disabled={submitting}
-                            style={{ background: '#fff', border: '1px solid #cbd5e0', color: '#718096', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', marginRight: 'auto' }}
-                          >
-                            취소
-                          </button>
+                          <button onClick={() => setIsEditing(false)} disabled={submitting} className="btn-cancel">취소</button>
                         )}
-
-                        <button
-                          onClick={saveTaskDraft}
-                          disabled={submitting}
-                          style={{ background: '#fff', border: '1px solid var(--ink)', color: 'var(--ink)', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}
-                        >
-                          임시저장
-                        </button>
-                        <button
-                          onClick={handleSubmit}
-                          disabled={submitting}
-                          style={{ background: 'var(--ink)', border: 'none', color: '#fff', padding: '12px 32px', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '15px', transition: 'background 0.2s' }}
-                        >
+                        <button onClick={saveTaskDraft} disabled={submitting} className="btn-draft">임시저장</button>
+                        <button onClick={handleSubmit} disabled={submitting} className="btn-submit">
                           {submitting ? '제출 중...' : '최종 과제 제출'}
                         </button>
                       </div>
 
                     </div>
                   ) : (
-                    <div className="managerSubmissionItemBody" style={{ padding: 0, border: 'none', background: 'transparent' }}>
+                    <div className="managerSubmissionItemBody learner-submission-body">
                       <div className="managerSubmissionContent" style={{ marginBottom: '24px' }}>
-                        <p className="managerSubmissionContentLabel" style={{ fontSize: '15px', fontWeight: '700', marginBottom: '12px' }}>내가 제출한 내용</p>
+                        <p className="learner-submission-label">내가 제출한 내용</p>
                         <div
-                          className="managerSubmissionContentBody template-render"
-                          style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '24px', minHeight: '200px' }}
+                          className="managerSubmissionContentBody template-render learner-submission-content"
                           dangerouslySetInnerHTML={{ __html: sanitizeHtml(currentSubmission?.task_submitted_content?.text) || '(내용 없음)' }}
                         />
                       </div>
 
                       {Array.isArray(currentSubmission?.task_submitted_content?.attachments) && currentSubmission.task_submitted_content.attachments.length > 0 && (
                         <div className="managerSubmissionAttachments" style={{ marginBottom: '24px' }}>
-                          <p className="managerSubmissionContentLabel" style={{ fontSize: '13px', color: '#718096', marginBottom: '8px' }}>📎 첨부파일</p>
+                          <p className="learner-submission-label-small">📎 첨부파일</p>
                           <ul className="managerSubmissionAttachmentList">
                             {currentSubmission.task_submitted_content.attachments.map((a, i) => (
-                              <li key={i} className="managerSubmissionAttachmentItem" style={{ border: '1px solid #e2e8f0', background: '#f8fafc' }}>
-                                <button type="button" className="managerSubmissionAttachmentLink" onClick={() => handleAttachmentDownload(currentSubmission.task_submission_id, a)} style={{ fontWeight: '600' }}>
+                              <li key={i} className="managerSubmissionAttachmentItem learner-submission-attach-item">
+                                <button type="button" className="managerSubmissionAttachmentLink learner-submission-attach-link" onClick={() => handleAttachmentDownload(currentSubmission.task_submission_id, a)}>
                                   {a.filename || a.stored_name}
                                 </button>
                                 <span className="managerSubmissionAttachmentSize">{formatBytes(a.size)}</span>
@@ -808,22 +731,21 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
                       )}
 
                       {currentSubmission?.task_manager_feedback && (
-                        <div className="managerSubmissionExistingFeedback" style={{ background: '#ebf8ff', padding: '20px', borderRadius: '8px', borderLeft: '4px solid #3182ce', marginBottom: '24px' }}>
-                          <p className="managerSubmissionContentLabel" style={{ color: '#2b6cb0', fontWeight: '700', marginBottom: '8px' }}>
+                        <div className="learner-feedback-box">
+                          <p className="learner-feedback-label">
                             매니저 피드백
-                            <span style={{ fontSize: '12px', color: '#718096', fontWeight: '400', marginLeft: '8px' }}>
-                              {formatDateTime(currentSubmission.task_feedback_at)}
-                            </span>
+                            <span className="learner-feedback-date">{formatDateTime(currentSubmission.task_feedback_at)}</span>
                           </p>
-                          <div style={{ fontSize: '14px', color: '#2d3748', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                          <div className="learner-feedback-text">
                             {currentSubmission.task_manager_feedback}
                           </div>
                         </div>
                       )}
 
                       {currentSubmission?.task_status !== 'feedback_given' && (
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px dashed #e2e8f0', paddingTop: '20px' }}>
+                        <div className="learner-resubmit-wrap">
                           <button
+                            className="btn-resubmit"
                             onClick={() => {
                               const sub = currentSubmission;
                               if (sub?.task_submitted_content?.text) {
@@ -835,18 +757,14 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
                                   }
                                 }));
                               }
-
-                              // ✅ 보기 모드에서 '수정 / 재제출하기' 버튼을 눌렀을 때 기존 첨부파일 세팅
                               setSubmitFiles([]);
                               if (sub?.task_submitted_content?.attachments) {
                                 setExistingAttachments(sub.task_submitted_content.attachments);
                               } else {
                                 setExistingAttachments([]);
                               }
-
                               setIsEditing(true)
                             }}
-                            style={{ background: '#fff', border: '1px solid #cbd5e0', color: '#4a5568', padding: '10px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}
                           >
                             과제 수정 / 재제출하기
                           </button>
