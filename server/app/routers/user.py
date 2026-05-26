@@ -1,10 +1,11 @@
 from datetime import date, datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.limiter import limiter
 from app.core.security import create_access_token, get_current_user, hash_password, verify_password
 from app.models.user import User
 from app.schemas.article import TimelinePoint, TimelineResponse
@@ -24,7 +25,8 @@ router = APIRouter(prefix="/api/users", tags=["users"])
 
 
 @router.post("/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def signup(body: UserCreate, db: Session = Depends(get_db)):
+@limiter.limit("5/hour")
+def signup(request: Request, body: UserCreate, db: Session = Depends(get_db)):
     """단일 가입.
 
     - ``invite_code`` 있으면 → 학습자(``j``), 회사는 매니저 회사 상속
@@ -58,7 +60,8 @@ def signup(body: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(body: UserLogin, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+def login(request: Request, body: UserLogin, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.user_email == body.email, User.user_deleted_at.is_(None)).first()
     if not user or not verify_password(body.password, user.user_pw):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="이메일 또는 비밀번호가 올바르지 않습니다")

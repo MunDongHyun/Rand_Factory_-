@@ -2,6 +2,65 @@
 
 ---
 
+## 2026-05-26 - Claude (레이트 리미트 도입 — slowapi 기반 5개 라우터 보호)
+
+### 배경
+- 보안 검토 시 "로그인·회원가입 brute force 가능, AI 호출 비용 폭주 가능, 저자 메일 남발 가능" 짚어둔 상태
+- 강사님이 "이메일링 관련 Firebase 의견" 주셨는데, 본 의도는 저자 메일 남발 방지 → DB 없이 메모리 기반 레이트 리미트로 해결 가능 판단
+- DB 변경 없이 의존성 1개만 추가하는 방향
+
+### 도입 라이브러리
+- `slowapi>=0.1.9` — FastAPI 표준 레이트 리미트 라이브러리
+- 메모리 백엔드 (서버 재시작 시 카운트 초기화)
+- key 함수: `get_remote_address` (클라이언트 IP 기반)
+- 단일 인스턴스 운영 가정. 다중 인스턴스 확장 시 Redis 백엔드 권장
+
+### 신규
+- `server/app/core/limiter.py` — `Limiter` 인스턴스 + key 함수
+
+### 수정
+- `server/app/main.py`
+  - `app.state.limiter` 설정
+  - `RateLimitExceeded` 예외 핸들러 (429 응답)
+  - `SlowAPIMiddleware` 추가
+- `server/requirements.txt` — `slowapi>=0.1.9` 추가
+
+### 보호 라우터 5개
+
+| 라우터 | 제한 | 의도 |
+|---|---|---|
+| `POST /api/users/login` | 10/minute | 브루트포스 방어 |
+| `POST /api/users/signup` | 5/hour | 봇 가입 방어 |
+| `POST /api/authors/{id}/email` | 5/hour, 20/day | 저자 메일 남발 방어 |
+| `POST /api/curricula/generate` | 10/hour | OpenAI 비용 폭주 방어 |
+| `POST /api/curricula/generate-template` | 20/hour | 템플릿 LLM 호출 폭주 방어 |
+
+- 모든 라우터에 `@limiter.limit("…")` 데코레이터 + 함수 시그니처에 `request: Request` 인자 추가
+- 클라이언트 호출 시 차이 없음 (FastAPI가 Request 자동 주입)
+
+### 제한 수치 결정 근거
+- **시연 중 안 막히게 보수적으로** 잡음
+- 학습자 1명이 발표 시연에서 저자 메일 3통 보내도 여유
+- AI 커리큘럼 생성도 10번까지 가능 — 매니저 시연 충분
+
+### DB 없이 갈 때의 한계 (감안)
+1. 서버 재시작 시 카운트 초기화 (메모리 백엔드)
+2. 발송 이력 분석/추적 불가 (`author_email_logs` 같은 테이블 없음)
+3. "같은 저자에게 7일에 1통" 같은 수신자별 정책 X (sender 기준만)
+4. 여러 서버 인스턴스로 확장 시 정확도 떨어짐
+- → V2에서 `author_email_logs` 테이블 추가 시 1·2·3 해결
+
+### 검증
+- `python -m compileall -q app` 통과
+- `python -c "from app.main import app"` 통과 (59 routes)
+- 실제 429 응답 확인은 시연 직전 수동 테스트로 진행
+
+### 단톡 안내 사항
+- `slowapi` 의존성 추가 — pull 후 `pip install -r requirements.txt` 한 번 필요
+- `.env` / DB / package.json 변경 없음
+
+---
+
 ## 2026-05-26 - Claude (알림 기능 1차 구현 — 헤더 🔔 + DB 기반 알림함)
 
 ### 배경
