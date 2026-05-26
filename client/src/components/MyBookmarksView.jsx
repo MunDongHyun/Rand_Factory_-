@@ -30,7 +30,7 @@ function MyBookmarksView({ bookmarkedIds, onToggleBookmark, onOpenArticle }) {
 
   return (
     <div className="bookmarkPage">
-      <h2 className="bookmarkPageTitle">내 북마크</h2>
+      <h2 className="sectionTitle">내 북마크</h2>
       {visibleItems.length === 0 ? (
         <p className="bookmarkEmpty">아직 북마크한 아티클이 없습니다. 카드의 별을 눌러 저장해보세요.</p>
       ) : (

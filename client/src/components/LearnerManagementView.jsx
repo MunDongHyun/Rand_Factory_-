@@ -2,6 +2,9 @@ import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'react-toastify';
 import api from '../lib/api';
 import '../styles/LearnerManagement.css';
+import eyeIcon from '../public/eye_icon.png';
+import eyeCloseIcon from '../public/eye-closed_icon.png';
+import copyIcon from '../public/copy_icon.png';
 
 const maskInviteCode = (code) => (code ? code.replace(/[^-]/g, '•') : '');
 
@@ -189,14 +192,13 @@ function LearnerManagementView({ user }) {
   return (
     <div className="learnerMgmtContainer">
       <header className="learnerMgmtHeader">
-        <h2 className="learnerMgmtTitle">내 회사 학습자 관리</h2>
+        <h2 className="sectionTitle">내 회사 학습자 관리</h2>
         <p className="learnerMgmtSubtitle">
           {user?.user_company ? `${user.user_company} 소속 학습자` : '소속 학습자'} · {learners.length}명
         </p>
       </header>
 
       <div className="learnerMgmtSplit">
-        {/* 좌측: 초대 코드 + 검색/정렬 + 학습자 목록 */}
         <aside className="learnerMgmtSide">
           {user?.user_invite_code && (
             <div className="learnerMgmtInviteCard">
@@ -212,7 +214,8 @@ function LearnerManagementView({ user }) {
                   aria-label={codeVisible ? '코드 숨기기' : '코드 보기'}
                   title={codeVisible ? '코드 숨기기' : '코드 보기'}
                 >
-                  {codeVisible ? '🙈' : '👁'}
+                  {codeVisible ? 
+                  <img src={eyeCloseIcon} alt="코드 숨기기" className="inviteActionIcon"/> : <img src={eyeIcon} alt="코드 보기" className="inviteActionIcon"/>}
                 </button>
                 <button
                   type="button"
@@ -221,7 +224,7 @@ function LearnerManagementView({ user }) {
                   aria-label="초대 코드 복사"
                   title="초대 코드 복사"
                 >
-                  📋
+                  <img src={copyIcon} alt="코드 복사" className="inviteActionIcon"/>
                 </button>
               </div>
               <p className="learnerMgmtInviteHint">
