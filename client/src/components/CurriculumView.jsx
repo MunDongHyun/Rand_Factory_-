@@ -8,7 +8,6 @@ import curri_nulll from '../public/curri_null.png';
 import download_img from '../public/download_img.png';
 import delete_img from '../public/delete_img.png';
 import '../styles/Curriculum.css';
-
 import rodingRafaGif from '../public/roding_rafa.gif';
 import randLogo from '../public/roding_rafa.png';
 
@@ -178,7 +177,7 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef }) {
   const [selectedWeek, setSelectedWeek] = useState(null);
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
 
-  // ✨ templateModal 상태에 deadline 추가
+  const [reportModal, setReportModal] = useState({ open: false, file: null, loading: false });
   const [templateModal, setTemplateModal] = useState({ open: false, week: null, assignmentIdx: null, title: '', content: '', deadline: '', fullscreen: false, generating: false });
 
   const [templateMessageIndex, setTemplateMessageIndex] = useState(0);
@@ -407,10 +406,7 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef }) {
 
   const saveTemplate = async () => {
     if (!selectedCurriculum) return;
-
-    const isConfirmed = window.confirm(
-      "과제를 배포하시면 이후 템플릿 수정이나 재배포가 불가능합니다.\n정말 배포하시겠습니까?"
-    );
+    const isConfirmed = window.confirm("과제를 배포하시면 이후 템플릿 수정이나 재배포가 불가능합니다.\n정말 배포하시겠습니까?");
     if (!isConfirmed) return; 
 
     const weekPlan = normalizeWeekPlan(selectedCurriculum.cur_week_plan).map((step) => ({ ...step }));
@@ -1054,15 +1050,12 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef }) {
           <>
             <div className="confirmOverlay" style={{ zIndex: 99998 }} onClick={() => setTemplateModal({ ...templateModal, open: false })} />
             <div className={`confirmModal templateModal ${templateModal.fullscreen ? 'fullscreen' : ''}`} style={{ zIndex: 99999, display: 'flex', flexDirection: 'column', height: '90vh', overflow: 'hidden' }}>
-              
-              {/* ✨ 모달 헤더 (마감일 설정 인풋이 여기에 추가되었습니다) */}
               <div className="modalTopBar" style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h3 className="templateSectionTitle" style={{ margin: 0 }}>과제 양식(템플릿) 배포</h3>
                 <div className="modalHeaderActions" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   
-                  {/* ✨ 마감일 달력 폼 */}
                   <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: '600', color: '#4a5568' }}>
-                    <span>⏰ 마감일 설정:</span>
+                    <span>마감일 설정:</span>
                     <input 
                       type="datetime-local" 
                       value={templateModal.deadline || ''} 
