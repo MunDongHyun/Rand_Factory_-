@@ -34,6 +34,14 @@ class Settings(BaseSettings):
     smtp_password: str | None = None
     smtp_from_name: str = "LandFactory"
 
+    # Cloudflare R2 attachment storage
+    r2_account_id: str | None = None
+    r2_access_key_id: str | None = None
+    r2_secret_access_key: str | None = None
+    r2_bucket_name: str | None = None
+    r2_endpoint_url: str | None = None
+    r2_region: str = "auto"
+
     @property
     def database_url(self) -> str:
         return (

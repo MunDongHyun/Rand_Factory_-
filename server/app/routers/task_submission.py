@@ -4,11 +4,12 @@ import re
 import uuid
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+from urllib.parse import quote
 
 import filetype
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
-from fastapi.responses import FileResponse
+from fastapi.responses import StreamingResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -26,11 +27,17 @@ from app.schemas.task_submission import (
     TaskSubmissionWithLearnerResponse,
 )
 from app.services import notification_service
+from app.services.attachment_storage import (
+    AttachmentNotFoundError,
+    AttachmentStorageError,
+    delete_attachment as delete_stored_attachment,
+    open_attachment,
+    save_attachment,
+)
 
 router = APIRouter(prefix="/api/task-submissions", tags=["task-submissions"])
 
 # 첨부파일 저장 루트 (server/uploads/task_attachments/{submission_id}/{stored_name})
-ATTACHMENT_ROOT = Path(__file__).resolve().parents[2] / "uploads" / "task_attachments"
 ATTACHMENT_MAX_BYTES = 20 * 1024 * 1024  # 한 파일당 20MB
 
 # magic bytes 기반으로 명백한 실행 파일/스크립트 차단 (사용자 declared MIME만 신뢰하지 않음)
@@ -84,6 +91,12 @@ def _strip_html(value) -> str:
     text = _HTML_TAG_PATTERN.sub("", str(value))
     text = _HTML_WHITESPACE_ENTITY.sub(" ", text)
     return text.strip()
+
+
+def _attachment_content_disposition(filename: str) -> str:
+    fallback = _sanitize_filename(filename).encode("ascii", "ignore").decode("ascii") or "attachment"
+    encoded = quote(filename, safe="")
+    return f'attachment; filename="{fallback}"; filename*=UTF-8\'\'{encoded}'
 
 
 def _attachment_to_legacy_dict(attachment: TaskSubmissionAttachment) -> dict:
@@ -529,9 +542,6 @@ async def upload_attachment(
     # magic byte 기반 MIME 추정 + 실행 파일 차단 (사용자 declared MIME만 믿지 않음)
     safe_mime = _detect_safe_mime(contents, file.content_type, safe_name)
     stored_name = f"{uuid.uuid4().hex}_{safe_name}"
-    target_dir = ATTACHMENT_ROOT / str(submission_id)
-    target_path = target_dir / stored_name
-
     # 원자성: DB row 먼저 등록(flush) → 파일 쓰기 → commit
     # 파일 쓰기 실패 시 DB rollback으로 orphan 파일/row 모두 방지
     attachment = TaskSubmissionAttachment(
@@ -546,9 +556,8 @@ async def upload_attachment(
     db.flush()
 
     try:
-        target_dir.mkdir(parents=True, exist_ok=True)
-        target_path.write_bytes(contents)
-    except OSError:
+        save_attachment(submission_id, stored_name, contents, safe_mime)
+    except AttachmentStorageError:
         db.rollback()
         raise HTTPException(status_code=500, detail="첨부파일을 저장하지 못했습니다")
 
@@ -559,11 +568,7 @@ async def upload_attachment(
     except Exception:
         db.rollback()
         # 파일은 이미 디스크에 기록됐으므로 orphan 방지로 정리
-        if target_path.is_file():
-            try:
-                target_path.unlink()
-            except OSError:
-                pass
+        delete_stored_attachment(submission_id, stored_name)
         raise HTTPException(status_code=500, detail="첨부파일 등록에 실패했습니다")
 
     db.refresh(submission)
@@ -599,14 +604,24 @@ def download_attachment(
     if not attachment:
         raise HTTPException(status_code=404, detail="첨부파일을 찾을 수 없습니다")
 
-    file_path = ATTACHMENT_ROOT / str(submission_id) / stored_name
-    if not file_path.is_file():
+    try:
+        stored_attachment = open_attachment(
+            submission_id,
+            stored_name,
+            attachment.file_mime_type or "application/octet-stream",
+        )
+    except AttachmentNotFoundError:
         raise HTTPException(status_code=404, detail="첨부파일을 찾을 수 없습니다")
+    except AttachmentStorageError:
+        raise HTTPException(status_code=500, detail="첨부파일을 다운로드하지 못했습니다")
 
-    return FileResponse(
-        path=file_path,
-        media_type=attachment.file_mime_type or "application/octet-stream",
-        filename=attachment.file_original_name or stored_name,
+    headers = {"Content-Disposition": _attachment_content_disposition(attachment.file_original_name or stored_name)}
+    if stored_attachment.content_length is not None:
+        headers["Content-Length"] = str(stored_attachment.content_length)
+    return StreamingResponse(
+        stored_attachment.body,
+        media_type=stored_attachment.content_type or "application/octet-stream",
+        headers=headers,
     )
 
 
@@ -640,20 +655,13 @@ def delete_attachment(
     if not attachment:
         raise HTTPException(status_code=404, detail="첨부파일을 찾을 수 없습니다")
 
-    # 원자성: DB soft delete + commit 먼저 → 파일 unlink 는 best-effort
-    # 파일 unlink가 실패해도 DB의 file_deleted_at 때문에 다운로드는 막힘.
-    # 남은 orphan 파일은 추후 정리 작업으로 회수
+    # DB soft delete + commit 먼저 → storage delete 는 best-effort.
+    # 저장소 삭제가 실패해도 file_deleted_at 때문에 다운로드는 차단됨.
     attachment.file_deleted_at = datetime.now(timezone.utc)
     submission.task_submission_type = _submission_type_from_content(submission)
     db.commit()
     db.refresh(submission)
 
-    file_path = ATTACHMENT_ROOT / str(submission_id) / stored_name
-    if file_path.is_file():
-        try:
-            file_path.unlink()
-        except OSError:
-            # 디스크 권한/잠금 등 — DB는 이미 deleted 상태라 다운로드는 차단됨
-            pass
+    delete_stored_attachment(submission_id, stored_name)
 
     return _submission_response(submission)

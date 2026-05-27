@@ -3410,3 +3410,27 @@ WHERE c.cur_deleted_at IS NULL AND c.cur_status = 'active'
 - 같은 파일 충돌 주의: `Signup.jsx`, `Dashboard.jsx`, `routers/user.py` 등은 이번 사이클에서 만진 파일이라 Codex가 동시 작업 시 위험
 
 ---
+## 2026-05-27 - Cloudflare R2 첨부파일 저장소 도입
+
+### 변경
+- `server/app/services/attachment_storage.py` 추가
+  - R2 설정이 모두 있으면 `put_object` / `get_object` / `delete_object` 사용
+  - R2에 객체가 없을 때 기존 로컬 저장소(`server/uploads/task_attachments`) fallback 조회 유지
+- `server/app/routers/task_submission.py`
+  - 첨부 업로드를 로컬 `write_bytes` 대신 storage service 경유로 변경
+  - 첨부 다운로드를 `FileResponse` 대신 `StreamingResponse`로 변경
+  - 첨부 삭제를 DB soft delete 후 storage delete best-effort 방식으로 변경
+  - 한글 파일명 다운로드를 위해 `Content-Disposition`에 `filename*` 추가
+- `server/app/core/config.py`
+  - `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_ENDPOINT_URL` 설정 추가
+- `server/requirements.txt`
+  - `boto3` 추가
+
+### 검증
+- `boto3` 서버 venv 설치 완료
+- R2 env 값 존재 확인 완료
+- `config.py`, `attachment_storage.py`, `task_submission.py` syntax compile 통과
+- R2 `head_bucket` 실제 연결 테스트는 현재 `R2_ENDPOINT_URL` 값이 Cloudflare Account ID 형식이 아니라 실패
+  - endpoint는 `https://<ACCOUNT_ID>.r2.cloudflarestorage.com` 형태 필요
+
+---
