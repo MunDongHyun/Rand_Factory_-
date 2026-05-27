@@ -13,6 +13,7 @@ class TaskSubmissionCreate(BaseModel):
     task_week_number: int
     task_submitted_content: dict | None = None
     task_submission_type: TaskSubmissionType = "text"
+    task_deadline: datetime | None = None
 
 
 class TaskSubmissionFeedbackUpdate(BaseModel):

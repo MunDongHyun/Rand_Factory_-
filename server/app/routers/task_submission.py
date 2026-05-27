@@ -209,6 +209,7 @@ def create_submission(
         task_week_number=body.task_week_number,
         task_submission_type=body.task_submission_type,
         task_submitted_content=body.task_submitted_content or {},
+        task_deadline=body.task_deadline,
     )
     db.add(submission)
     db.commit()
