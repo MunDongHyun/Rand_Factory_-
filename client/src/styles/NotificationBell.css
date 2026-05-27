@@ -8,10 +8,17 @@
   background: transparent;
   border: none;
   cursor: pointer;
-  padding: 6px 8px;
+  padding: 0;
+  width: 40px;
+  height: 40px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  transition: transform 0.15s ease;
+}
+
+.notifBellBtn:hover {
+  transform: scale(1.08);
 }
 
 .notifBellIcon {
@@ -44,11 +51,25 @@
   max-height: 480px;
   background: var(--card, #fff);
   border: 1px solid var(--line, #e0e0e0);
-  border-radius: 8px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.05);
   z-index: 1000;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  animation: notifDropdownIn 0.18s ease-out;
+  transform-origin: top right;
+}
+
+@keyframes notifDropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .notifDropdownHeader {
@@ -72,6 +93,23 @@
   cursor: pointer;
   font-size: 12.5px;
   padding: 2px 4px;
+  transition: color 0.15s ease, opacity 0.15s ease;
+}
+
+.notifReadAllBtn:hover {
+  opacity: 0.75;
+}
+
+.notifClearReadBtn:hover {
+  opacity: 0.85;
+}
+
+.notifItemDeleteBtn {
+  transition: opacity 0.18s ease, color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.notifItemDeleteBtn:hover {
+  transform: scale(1.1);
 }
 
 .notifDropdownBody {
@@ -86,19 +124,72 @@
   font-size: 13px;
 }
 
+.notifDropdownActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notifClearReadBtn {
+  background: transparent;
+  border: none;
+  color: var(--ink-muted, #888);
+  cursor: pointer;
+  font-size: 12.5px;
+  padding: 2px 4px;
+}
+
+.notifClearReadBtn:hover {
+  color: #e53935;
+}
+
+.notifItemRow {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--line, #f0f0f0);
+  transition: background 0.15s ease;
+}
+
+.notifItemRow:hover {
+  background: var(--bg-alt, #f8f9fb);
+}
+
 .notifItem {
-  width: 100%;
+  flex: 1;
   text-align: left;
   background: transparent;
   border: none;
-  border-bottom: 1px solid var(--line, #f0f0f0);
   padding: 12px 14px;
   cursor: pointer;
   display: block;
+  transition: background 0.15s ease;
 }
 
 .notifItem:hover {
-  background: var(--bg-alt, #f8f9fb);
+  background: transparent;
+}
+
+.notifItemDeleteBtn {
+  background: transparent;
+  border: none;
+  color: var(--ink-muted, #999);
+  cursor: pointer;
+  padding: 12px 12px 0 4px;
+  font-size: 18px;
+  line-height: 1;
+  align-self: flex-start;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.notifItemRow:hover .notifItemDeleteBtn {
+  opacity: 1;
+}
+
+.notifItemDeleteBtn:hover {
+  color: #e53935;
+  background: rgba(229, 57, 53, 0.06);
 }
 
 .notifItem.unread {

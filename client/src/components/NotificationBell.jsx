@@ -104,6 +104,27 @@ function NotificationBell({ onViewChange }) {
     }
   };
 
+  const handleDeleteOne = async (notifId) => {
+    try {
+      await api.delete(`/notifications/${notifId}`);
+      setItems((prev) => prev.filter((n) => n.notif_id !== notifId));
+      refreshUnreadCount();
+    } catch {
+      toast.error('알림 삭제에 실패했습니다.');
+    }
+  };
+
+  const handleClearRead = async () => {
+    try {
+      await api.post('/notifications/clear-read');
+      setItems((prev) => prev.filter((n) => !n.notif_read_at));
+    } catch {
+      toast.error('읽은 알림 삭제에 실패했습니다.');
+    }
+  };
+
+  const hasRead = items.some((n) => n.notif_read_at);
+
   return (
     <div className="notifBell" ref={dropdownRef}>
       <button
@@ -125,11 +146,18 @@ function NotificationBell({ onViewChange }) {
         <div className="notifDropdown" role="dialog">
           <div className="notifDropdownHeader">
             <span className="notifDropdownTitle">알림</span>
-            {unreadCount > 0 && (
-              <button type="button" className="notifReadAllBtn" onClick={handleReadAll}>
-                모두 읽음
-              </button>
-            )}
+            <div className="notifDropdownActions">
+              {unreadCount > 0 && (
+                <button type="button" className="notifReadAllBtn" onClick={handleReadAll}>
+                  모두 읽음
+                </button>
+              )}
+              {hasRead && (
+                <button type="button" className="notifClearReadBtn" onClick={handleClearRead}>
+                  읽은 알림 비우기
+                </button>
+              )}
+            </div>
           </div>
           <div className="notifDropdownBody">
             {loading && <div className="notifEmpty">불러오는 중…</div>}
@@ -137,21 +165,31 @@ function NotificationBell({ onViewChange }) {
               <div className="notifEmpty">새 알림이 없습니다</div>
             )}
             {!loading && items.map((item) => (
-              <button
-                key={item.notif_id}
-                type="button"
-                className={`notifItem ${item.notif_read_at ? '' : 'unread'}`}
-                onClick={() => handleItemClick(item)}
-              >
-                <div className="notifItemTitle">
-                  {!item.notif_read_at && <span className="notifUnreadDot" aria-hidden="true" />}
-                  {item.notif_title}
-                </div>
-                {item.notif_body && (
-                  <div className="notifItemBody">{item.notif_body}</div>
-                )}
-                <div className="notifItemMeta">{formatRelativeTime(item.notif_created_at)}</div>
-              </button>
+              <div key={item.notif_id} className="notifItemRow">
+                <button
+                  type="button"
+                  className={`notifItem ${item.notif_read_at ? '' : 'unread'}`}
+                  onClick={() => handleItemClick(item)}
+                >
+                  <div className="notifItemTitle">
+                    {!item.notif_read_at && <span className="notifUnreadDot" aria-hidden="true" />}
+                    {item.notif_title}
+                  </div>
+                  {item.notif_body && (
+                    <div className="notifItemBody">{item.notif_body}</div>
+                  )}
+                  <div className="notifItemMeta">{formatRelativeTime(item.notif_created_at)}</div>
+                </button>
+                <button
+                  type="button"
+                  className="notifItemDeleteBtn"
+                  onClick={(e) => { e.stopPropagation(); handleDeleteOne(item.notif_id); }}
+                  aria-label="알림 삭제"
+                  title="알림 삭제"
+                >
+                  ×
+                </button>
+              </div>
             ))}
           </div>
         </div>

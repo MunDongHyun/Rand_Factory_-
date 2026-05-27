@@ -2,6 +2,55 @@
 
 ---
 
+## 2026-05-27 - Claude (알림 삭제 + 헤더/카드 자잘 UX 정리)
+
+### 배경
+- 발표 전 자잘 UX 정리. 시연 동선 위주로 보이는 부분 보강
+- 매니저 알림이 쌓일 때 정리할 방법이 "모두 읽음"뿐이라 불편
+
+### 변경 1 — 알림 삭제 (개별 + 일괄)
+- 백엔드: `Notification.notif_deleted_at` soft delete 컬럼이 모델·_base_query 필터에 이미 준비돼 있어 엔드포인트 2개만 추가
+  - `DELETE /api/notifications/{id}` — 본인 알림 개별 soft delete
+  - `POST /api/notifications/clear-read` — 본인 '읽은' 알림 일괄 soft delete (안 읽은 알림 보호)
+- 프론트 `NotificationBell.jsx`:
+  - 알림 항목 우측에 × 버튼 추가 (평소 숨김, hover 시 노출)
+  - 헤더에 "읽은 알림 비우기" 버튼 — 읽은 알림이 있을 때만 표시
+  - 삭제 후 클라이언트 list 즉시 반영 + unread count 갱신
+- 라우트 수: 59 → 61
+
+### 변경 2 — 헤더 아이콘 정렬 정리
+- `.bellIcon`의 음의 margin / `align-self: flex-start` 제거 → 종 아이콘 종·횡 정렬 정상화
+- `.bookmarkIcon` `align-self` 제거
+- `.headerBookmarkBtn`, `.hamburgerBtn` 박스 36 → 40으로 통일 (아이콘 크기와 매칭)
+- `.headerIcons gap` 34 → 20으로 보수적 조정
+- `.hamburgerBtn span` 22 → 26 (시각 너비 다른 아이콘과 균형)
+- 종 그래픽이 박스 중앙보다 위에 치우친 구조라 `margin-top` 미세 조정 적용 (사용자가 13px로 직접 조정)
+
+### 변경 3 — NotificationBell hover 통일
+- `.notifBellBtn` 옅은 회색 배경 박스 제거 → 다른 헤더 버튼과 동일하게 `transform: scale(1.08)`만 사용
+
+### 변경 4 — 알림 드롭다운 전환 정리
+- 드롭다운 등장 애니메이션: 0.18s ease-out (`opacity` + `translateY(-6px)` + `scale(0.98)`)
+- 라운드 8 → 12, 그림자 이중으로 부드럽게
+- 알림 항목 hover 영역을 `.notifItemRow`로 확장 (X 버튼 영역까지 같이 강조)
+- X 버튼 hover 시 `scale(1.1)` + 빨강 톤
+- 헤더 액션 버튼 hover 시 opacity 살짝 감소
+
+### 변경 5 — 학습자 칩 hover
+- `.assignedLearnerChip` 클릭 가능했지만 cursor·hover 효과 0 → cursor pointer + hover 시 primary 그린 border/color + 옅은 box-shadow + 배지도 같이 primary 톤
+- `:not(.active)` 적용해 학습자 시점으로 선택된 칩과 색 충돌 방지
+
+### 변경 파일
+- 백엔드: `server/app/routers/notification.py`
+- 프론트: `client/src/components/NotificationBell.jsx`, `client/src/styles/NotificationBell.css`, `client/src/styles/Dashboard.css`, `client/src/styles/Curriculum.css`
+
+### 검증
+- `python -m compileall -q app` 통과
+- `from app.main import app` → routes 61 확인
+- `npm run build` 통과
+
+---
+
 ## 2026-05-27 - Claude (마감일 DatePicker 도입 — react-datepicker)
 
 ### 배경

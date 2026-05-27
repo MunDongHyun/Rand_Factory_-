@@ -112,3 +112,37 @@ def mark_all_as_read(
         Notification.notif_deleted_at.is_(None),
     ).update({Notification.notif_read_at: now}, synchronize_session=False)
     db.commit()
+
+
+@router.delete("/{notif_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_notification(
+    notif_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """본인 알림 개별 soft delete."""
+    notification = (
+        _base_query(db, current_user.user_id)
+        .filter(Notification.notif_id == notif_id)
+        .first()
+    )
+    if not notification:
+        raise HTTPException(status_code=404, detail="알림을 찾을 수 없습니다")
+
+    notification.notif_deleted_at = datetime.now(timezone.utc)
+    db.commit()
+
+
+@router.post("/clear-read", status_code=status.HTTP_204_NO_CONTENT)
+def clear_read_notifications(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """본인의 '읽은' 알림을 일괄 soft delete. 안 읽은 알림은 보호."""
+    now = datetime.now(timezone.utc)
+    db.query(Notification).filter(
+        Notification.notif_user_id == current_user.user_id,
+        Notification.notif_read_at.isnot(None),
+        Notification.notif_deleted_at.is_(None),
+    ).update({Notification.notif_deleted_at: now}, synchronize_session=False)
+    db.commit()
