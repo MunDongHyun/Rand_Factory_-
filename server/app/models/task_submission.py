@@ -35,6 +35,7 @@ class TaskSubmission(Base):
         nullable=True,
         default="submitted",
     )
+    task_deadline: Mapped[DateTime | None] = mapped_column(DateTime, nullable=True)
 
     curriculum: Mapped["Curriculum"] = relationship("Curriculum", back_populates="task_submissions")
     learner: Mapped["User"] = relationship("User", back_populates="task_submissions")
