@@ -50,6 +50,18 @@ _BLOCKED_MIME_PREFIXES = (
     "application/x-bat",
 )
 
+# 허용 확장자 (도큐먼트 / 이미지 / 압축). 매니저가 다운받아 열어도 안전한 형식만.
+# .html/.js/.svg/.jar/.vbs/.ps1 등은 매니저 환경 노출 위험 있어 차단.
+_ALLOWED_EXTENSIONS = {
+    # 도큐먼트
+    ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+    ".txt", ".csv", ".md", ".hwp", ".hwpx",
+    # 이미지
+    ".jpg", ".jpeg", ".png", ".gif", ".webp",
+    # 압축
+    ".zip", ".7z",
+}
+
 
 def _detect_safe_mime(contents: bytes, declared: str | None, fallback_name: str) -> str:
     """업로드된 바이트의 magic byte로 실제 MIME 추정.
@@ -539,6 +551,12 @@ async def upload_attachment(
         raise HTTPException(status_code=400, detail="빈 파일은 업로드할 수 없습니다")
 
     safe_name = _sanitize_filename(file.filename or "file")
+    ext = Path(safe_name).suffix.lower()
+    if ext not in _ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=415,
+            detail="허용되지 않는 파일 형식입니다 (문서·이미지·압축 파일만 가능)",
+        )
     # magic byte 기반 MIME 추정 + 실행 파일 차단 (사용자 declared MIME만 믿지 않음)
     safe_mime = _detect_safe_mime(contents, file.content_type, safe_name)
     stored_name = f"{uuid.uuid4().hex}_{safe_name}"

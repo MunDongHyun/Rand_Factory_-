@@ -169,7 +169,7 @@ const getDDayString = (deadlineStr) => {
   return `D+${Math.abs(diffDays)} (마감됨)`;
 };
 
-function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef }) {
+function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, notificationTarget }) {
   const [manageModalOpen, setManageModalOpen] = useState(false);
   const [manageStep, setManageStep] = useState('select');
   const [modalOpen, setModalOpen] = useState(false);
@@ -243,12 +243,23 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef }) {
     let mounted = true; setLoading(true); setError(null);
     api.get('/curricula').then((res) => {
       if (!mounted) return; const list = Array.isArray(res.data) ? res.data : []; setCurriculums(list);
-      if (list.length > 0) setSelectedId(list[0].cur_id);
+      const targetId = Number(notificationTarget?.curriculumId);
+      const targetExists = Number.isFinite(targetId) && list.some((c) => Number(c.cur_id) === targetId);
+      if (targetExists) setSelectedId(targetId);
+      else if (list.length > 0) setSelectedId(list[0].cur_id);
     }).catch((err) => {
       if (!mounted) return; setError(err.response?.data?.detail || '커리큘럼을 불러오지 못했어요.');
     }).finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
   }, []);
+
+  useEffect(() => {
+    const targetId = Number(notificationTarget?.curriculumId);
+    if (!Number.isFinite(targetId) || curriculums.length === 0) return;
+    if (curriculums.some((c) => Number(c.cur_id) === targetId)) {
+      setSelectedId(targetId);
+    }
+  }, [notificationTarget, curriculums]);
 
   useEffect(() => {
     api.get('/users/learners').then((res) => setLearners(Array.isArray(res.data) ? res.data : [])).catch(() => setLearners([]));
@@ -292,6 +303,24 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef }) {
       })
       .finally(() => setSubmissionsLoading(false));
   }, [selectedId]);
+
+  useEffect(() => {
+    if (!notificationTarget || notificationTarget.refType !== 'task_submission') return;
+
+    const targetSubmissionId = Number(notificationTarget.refId);
+    if (!Number.isFinite(targetSubmissionId) || submissions.length === 0) return;
+
+    const targetSubmission = submissions.find((s) => Number(s.task_submission_id) === targetSubmissionId);
+    if (!targetSubmission) return;
+
+    setViewMode('learner');
+    setSelectedLearnerId(targetSubmission.task_learner_id);
+    setSelectedSubmissionId(targetSubmission.task_submission_id);
+    setSelectedWeek(targetSubmission.task_week_number);
+    window.requestAnimationFrame(() => {
+      document.querySelector('.curriculumWrapper')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, [notificationTarget, submissions]);
 
   const handleAttachmentDownload = async (submissionId, attachment) => {
     try { await downloadAttachment(submissionId, attachment); } catch (err) { toast.error(err.response?.data?.detail || '첨부파일 다운로드에 실패했습니다.'); }

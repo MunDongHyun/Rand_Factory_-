@@ -42,12 +42,25 @@ class Settings(BaseSettings):
     r2_endpoint_url: str | None = None
     r2_region: str = "auto"
 
+    # CORS allow_origins (쉼표 구분). 비면 dev 기본값
+    cors_origins: str = "http://localhost:5173,http://localhost:3000"
+
+    # 벡터 검색 거리 임계값 (Chroma cosine distance, 작을수록 유사)
+    # rag_service: 단일 쿼리 벡터 검색 컷오프
+    # article_search: BM25+벡터 하이브리드 결과 컷오프 (별도 튜닝됨)
+    rag_distance_threshold: float = 0.355
+    article_search_distance_threshold: float = 0.35
+
     @property
     def database_url(self) -> str:
         return (
             f"mysql+pymysql://{self.db_user}:{self.db_password}"
             f"@{self.db_host}:{self.db_port}/{self.db_name}"
         )
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
 
 settings = Settings()

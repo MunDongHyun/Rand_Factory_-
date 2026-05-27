@@ -37,6 +37,7 @@ function Dashboard({ user, onUserUpdate, onLogout }) {
   const [view, setView] = useState('articles');
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [pendingAuthorNumb, setPendingAuthorNumb] = useState(null);
+  const [curriculumTarget, setCurriculumTarget] = useState(null);
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -205,6 +206,7 @@ function Dashboard({ user, onUserUpdate, onLogout }) {
   const resetDashboard = () => {
     setView('articles');
     setSelectedArticle(null);
+    setCurriculumTarget(null);
     setSelectedCategory(null);
     setSearchQuery('');
     setSections(originalSections);
@@ -253,6 +255,16 @@ function Dashboard({ user, onUserUpdate, onLogout }) {
     cameFromArticleDetailRef.current = true;
     setPendingAuthorNumb(authorNumb);
     setView('emailing');
+  };
+
+  const handleViewChange = (nextView, target = null) => {
+    if (nextView === 'curriculum') {
+      setCurriculumTarget(target ? { ...target, receivedAt: Date.now() } : null);
+    } else if (nextView !== 'curriculum') {
+      setCurriculumTarget(null);
+    }
+    setView(nextView);
+    setSelectedArticle(null);
   };
 
   const viewRef = useRef(view);
@@ -409,10 +421,7 @@ function Dashboard({ user, onUserUpdate, onLogout }) {
         canUseCurriculum={canUseCurriculum}
         canManageLearners={canManageLearners}
         currentView={view}
-        onViewChange={(v) => {
-          setView(v);
-          setSelectedArticle(null);
-        }}
+        onViewChange={handleViewChange}
         onLogout={onLogout}
         onScrollToTop={scrollToTop}
         onSearch={handleSearch}
@@ -455,8 +464,8 @@ function Dashboard({ user, onUserUpdate, onLogout }) {
 
         {view === 'curriculum' && canUseCurriculum && (
           user?.user_role === 'j'
-            ? <LearnerCurriculumView curriculumDetailRef={curriculumDetailRef} />
-            : <CurriculumView onOpenArticle={openArticleDetail} onModalToggle={setIsSubModalOpen} curriculumDetailRef={curriculumDetailRef} />
+            ? <LearnerCurriculumView curriculumDetailRef={curriculumDetailRef} notificationTarget={curriculumTarget} />
+            : <CurriculumView onOpenArticle={openArticleDetail} onModalToggle={setIsSubModalOpen} curriculumDetailRef={curriculumDetailRef} notificationTarget={curriculumTarget} />
         )}
 
         {view === 'learners' && canManageLearners && (

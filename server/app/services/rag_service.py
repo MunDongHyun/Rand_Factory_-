@@ -66,7 +66,7 @@ def transform_query_for_search(user_query: str) -> str:
 
 def search_similar_article_ids(query_text: str, k: int = 100, max_results: int = 10) -> List[int]:
     vs = _get_vectorstore()
-    DISTANCE_THRESHOLD = 0.355  
+    DISTANCE_THRESHOLD = settings.rag_distance_threshold
     
     optimized_query = transform_query_for_search(query_text)
     
@@ -128,7 +128,7 @@ def ingest_article(article_id: int, title: str, content: str, **kwargs) -> int:
 
 def search_similar_with_scores(query_text: str, k: int = 100, max_results: int = 10) -> list[tuple[int, float, str]]:
     vs = _get_vectorstore()
-    DISTANCE_THRESHOLD = 0.355
+    DISTANCE_THRESHOLD = settings.rag_distance_threshold
     
     optimized_query = transform_query_for_search(query_text)
     

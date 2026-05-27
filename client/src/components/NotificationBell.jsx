@@ -16,12 +16,15 @@ const formatRelativeTime = (iso) => {
   return `${Math.floor(diffSec / 86400)}일 전`;
 };
 
-// notif_link 형식: "dashboard:{view}:{id}" — 일단 view 이름만 사용 (deep link는 V2)
-const parseViewFromLink = (link) => {
-  if (!link || typeof link !== 'string') return null;
+// notif_link 형식: "dashboard:{view}:{id}"
+const parseDashboardLink = (link) => {
+  if (!link || typeof link !== 'string') return {};
   const parts = link.split(':');
-  if (parts[0] === 'dashboard' && parts[1]) return parts[1];
-  return null;
+  if (parts[0] !== 'dashboard' || !parts[1]) return {};
+  return {
+    view: parts[1],
+    id: parts[2] ? Number(parts[2]) : null,
+  };
 };
 
 function NotificationBell({ onViewChange }) {
@@ -80,8 +83,14 @@ function NotificationBell({ onViewChange }) {
         // 읽음 처리 실패는 조용히 무시
       }
     }
-    const view = parseViewFromLink(item.notif_link);
-    if (view && onViewChange) onViewChange(view);
+    const { view, id } = parseDashboardLink(item.notif_link);
+    if (view && onViewChange) {
+      onViewChange(view, {
+        curriculumId: Number.isFinite(id) ? id : null,
+        refType: item.notif_ref_type,
+        refId: item.notif_ref_id,
+      });
+    }
     refreshUnreadCount();
   };
 

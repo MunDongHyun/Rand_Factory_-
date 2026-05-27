@@ -30,8 +30,10 @@ deliverables/
 # 학습자 업로드 첨부파일 (로컬 디스크 저장)
 server/uploads/
 
-# AI 산출물 압축본 (zip은 git에 두지 않음)
-ai/thumbnails/*.zip
+# AI generated artifacts
+ai/curriculum_output/
+ai/summary/
+ai/thumbnails/
 
 # IDE
 .vscode/

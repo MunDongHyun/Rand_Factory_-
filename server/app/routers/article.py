@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from collections import Counter
 
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.ai_summaries import AiSummary
@@ -184,7 +185,7 @@ def list_articles(
             else:
                 merged_distances[aid] = dist
 
-        DISTANCE_THRESHOLD = 0.35  
+        DISTANCE_THRESHOLD = settings.article_search_distance_threshold
         filtered_results = [(aid, dist) for aid, dist in merged_distances.items() if dist <= DISTANCE_THRESHOLD]
         
         # 필터링 후 남은 게 없다면 빈 리스트 반환 -> 팝업 띄움!

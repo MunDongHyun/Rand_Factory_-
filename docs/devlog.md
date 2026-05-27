@@ -3434,3 +3434,33 @@ WHERE c.cur_deleted_at IS NULL AND c.cur_status = 'active'
   - endpoint는 `https://<ACCOUNT_ID>.r2.cloudflarestorage.com` 형태 필요
 
 ---
+
+## 2026-05-27 - 알림 딥링크 / 운영 설정 정리 / AI 산출물 추적 해제
+
+### 변경
+- 알림 클릭 흐름 개선
+  - `NotificationBell`에서 `dashboard:{view}:{id}` 링크의 view/id를 함께 파싱하도록 변경
+  - 알림의 `notif_ref_type`, `notif_ref_id`를 `Dashboard`로 전달
+  - 매니저가 과제 제출 알림을 클릭하면 해당 커리큘럼 선택 후 학습자 제출물 화면으로 이동하고, 대상 제출물을 자동 선택
+- 운영 설정 정리
+  - `.env.example`에 R2 설정값 6개와 `CORS_ORIGINS` 예시 추가
+  - `config.py`에 `cors_origins`, `rag_distance_threshold`, `article_search_distance_threshold` 설정 추가
+  - `main.py` CORS 허용 origin을 환경변수 기반으로 변경
+  - RAG/아티클 검색 distance threshold를 하드코딩에서 settings 참조로 변경
+- 첨부파일 업로드 제한 보강
+  - 문서/이미지/압축 파일 중심의 확장자 whitelist 추가
+  - `.html`, `.js`, `.svg`, `.jar`, `.vbs`, `.ps1` 등 매니저 환경 노출 위험이 있는 형식 차단
+- AI 생성 산출물 git 정리
+  - `ai/curriculum_output/`, `ai/summary/`, `ai/thumbnails/`를 `.gitignore`에 추가
+  - `git rm --cached -r`로 git 추적만 해제하고 로컬 파일은 유지
+
+### 검증
+- `server\venv\Scripts\python.exe -m compileall -q app` 통과
+- `server\venv\Scripts\python.exe -c "from app.main import app; print(len(app.routes))"` 통과, route 59개 유지
+- `client`에서 `npm run build` 통과
+
+### 주의
+- `ai/` 산출물은 로컬에는 남아 있지만, 다음 커밋 이후 git 추적 대상에서 제외됨
+- 기존에 워크트리에 떠 있던 `deliverables/*`, 루트 `package*.json` 삭제 상태는 이번 작업에서 건드리지 않음
+
+---
