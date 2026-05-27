@@ -4,6 +4,19 @@ import { toast } from 'react-toastify';
 import api from '../lib/api';
 import { sanitizeHtml } from '../lib/sanitize';
 import { downloadAttachment, formatBytes } from '../lib/attachments';
+import { FEEDBACK_QUICK_COMMENTS, appendQuickComment } from '../lib/feedbackTemplates';
+import DatePicker, { registerLocale } from 'react-datepicker';
+import { ko } from 'date-fns/locale/ko';
+import 'react-datepicker/dist/react-datepicker.css';
+
+registerLocale('ko', ko);
+
+const formatDateLocal = (d) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
 import curri_nulll from '../public/curri_null.png';
 import download_img from '../public/download_img.png';
 import delete_img from '../public/delete_img.png';
@@ -286,7 +299,10 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef }) {
 
   const handleFeedbackSave = async (submissionId, status = 'feedback_given') => {
     const text = (feedbackDraft[submissionId] || '').trim();
-    if (!text) { toast.warn('피드백 내용을 입력하세요.'); return; }
+    if (!text) {
+      toast.warn(status === 'resubmit_requested' ? '재제출 사유를 입력해야 합니다.' : '피드백 내용을 입력하세요.');
+      return;
+    }
     setFeedbackSavingId(submissionId);
     try {
       const res = await api.patch(`/task-submissions/${submissionId}/feedback`, { task_manager_feedback: text, task_status: status });
@@ -995,6 +1011,22 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef }) {
                     )}
                     <div className="managerFeedbackForm inline">
                       <p className="learner-submission-label-small">{s.task_manager_feedback ? '피드백 수정' : '피드백 작성'}</p>
+                      <div className="quickCommentChips">
+                        {FEEDBACK_QUICK_COMMENTS.map((c, i) => (
+                          <button
+                            type="button"
+                            key={i}
+                            className="quickCommentChip"
+                            onClick={() => setFeedbackDraft(prev => ({
+                              ...prev,
+                              [s.task_submission_id]: appendQuickComment(prev[s.task_submission_id], c),
+                            }))}
+                            disabled={feedbackSavingId === s.task_submission_id}
+                          >
+                            {c}
+                          </button>
+                        ))}
+                      </div>
                       <textarea
                         className="managerFeedbackTextarea"
                         placeholder="학습자에게 전달할 피드백을 입력하세요"
@@ -1111,17 +1143,6 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef }) {
               <div className="modalTopBar">
                 <h3 className="templateSectionTitle">과제 양식(템플릿) 배포</h3>
                 <div className="modalHeaderActions">
-
-                  <label className="template-deadline-label">
-                    <span>마감일 설정:</span>
-                    <input
-                      type="date"
-                      className="template-deadline-input"
-                      value={templateModal.deadline || ''}
-                      onChange={(e) => setTemplateModal(prev => ({ ...prev, deadline: e.target.value }))}
-                    />
-                  </label>
-
                   <button type="button" className="template-action-btn admin ai-regenerate-btn" onClick={handleRegenerateTemplate} disabled={templateModal.generating}>
                     {templateModal.generating ? 'AI 작성 중...' : 'AI 템플릿 재작성'}
                   </button>
@@ -1134,6 +1155,46 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef }) {
               <p className="assignSectionHint">
                 {`학습자에게 전달될 '${templateModal.title}'의 작성 양식 가이드를 작성해주세요.\n표나 양식을 지정해주면 학습자가 쉽게 채워넣을 수 있습니다.`}
               </p>
+
+              <div className="templateDeadlineRow">
+                <span className="templateDeadlineLabel">마감일</span>
+                <div className="templateDeadlinePicker">
+                  <DatePicker
+                    selected={templateModal.deadline ? new Date(templateModal.deadline) : null}
+                    onChange={(d) => setTemplateModal(prev => ({ ...prev, deadline: d ? formatDateLocal(d) : '' }))}
+                    dateFormat="yyyy.MM.dd (eee)"
+                    locale="ko"
+                    minDate={new Date()}
+                    placeholderText="날짜 선택"
+                    className="templateDeadlineInput"
+                    calendarClassName="templateDeadlineCalendar"
+                    showPopperArrow={false}
+                  />
+                  {templateModal.deadline && (
+                    <span className="templateDeadlineBadge">{getDDayString(templateModal.deadline)}</span>
+                  )}
+                </div>
+                <div className="templateDeadlineQuick">
+                  {[
+                    { label: '+1주', days: 7 },
+                    { label: '+2주', days: 14 },
+                    { label: '+4주', days: 28 },
+                  ].map(({ label, days }) => (
+                    <button
+                      type="button"
+                      key={days}
+                      className="quickDeadlineBtn"
+                      onClick={() => {
+                        const d = new Date();
+                        d.setDate(d.getDate() + days);
+                        setTemplateModal(prev => ({ ...prev, deadline: formatDateLocal(d) }));
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="templateEditorWrapper">
                 {templateModal.generating && (
                   <div className="template-loading-overlay">

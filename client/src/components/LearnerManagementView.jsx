@@ -1,7 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'react-toastify';
 import api from '../lib/api';
+import { sanitizeHtml } from '../lib/sanitize';
+import { downloadAttachment, formatBytes } from '../lib/attachments';
+import { FEEDBACK_QUICK_COMMENTS, appendQuickComment } from '../lib/feedbackTemplates';
 import '../styles/LearnerManagement.css';
+import '../styles/Curriculum.css';
 import eyeIcon from '../public/eye_icon.png';
 import eyeCloseIcon from '../public/eye-closed_icon.png';
 import copyIcon from '../public/copy_icon.png';
@@ -13,6 +17,28 @@ const formatDate = (val) => {
   const d = new Date(val);
   if (Number.isNaN(d.getTime())) return '';
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+};
+
+const formatDateTime = (val) => {
+  if (!val) return '';
+  const d = new Date(val);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+};
+
+const formatRelative = (val) => {
+  if (!val) return '활동 없음';
+  const d = new Date(val);
+  if (Number.isNaN(d.getTime())) return '활동 없음';
+  const diffMs = Date.now() - d.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return '방금';
+  if (diffMin < 60) return `${diffMin}분 전`;
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour}시간 전`;
+  const diffDay = Math.floor(diffHour / 24);
+  if (diffDay < 30) return `${diffDay}일 전`;
+  return formatDate(val);
 };
 
 const SUBMISSION_STATUS_LABEL = {
@@ -54,6 +80,11 @@ function LearnerManagementView({ user }) {
   const [submissionsLoading, setSubmissionsLoading] = useState(false);
   const [submissionsError, setSubmissionsError] = useState(null);
 
+  // 제출 카드 펼침 + 피드백 작성 상태
+  const [expandedSubmissionId, setExpandedSubmissionId] = useState(null);
+  const [feedbackDraft, setFeedbackDraft] = useState({});
+  const [feedbackSavingId, setFeedbackSavingId] = useState(null);
+
   useEffect(() => {
     setLoading(true);
     api.get('/users/learners')
@@ -77,8 +108,12 @@ function LearnerManagementView({ user }) {
       setEditAssign(false);
       setSubmissions([]);
       setSubmissionsError(null);
+      setExpandedSubmissionId(null);
+      setFeedbackDraft({});
       return;
     }
+    setExpandedSubmissionId(null);
+    setFeedbackDraft({});
     setSummaryLoading(true);
     setSummaryError(null);
     setEditAssign(false);
@@ -94,6 +129,46 @@ function LearnerManagementView({ user }) {
       .catch((err) => setSubmissionsError(err.response?.data?.detail || '제출 이력을 불러오지 못했어요.'))
       .finally(() => setSubmissionsLoading(false));
   }, [selectedLearnerId]);
+
+  const handleToggleExpand = (sid) => {
+    setExpandedSubmissionId((prev) => (prev === sid ? null : sid));
+  };
+
+  const handleAttachmentDownload = async (submissionId, attachment) => {
+    try {
+      await downloadAttachment(submissionId, attachment);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || '첨부파일 다운로드에 실패했습니다.');
+    }
+  };
+
+  const handleFeedbackSave = async (submissionId, status = 'feedback_given') => {
+    const text = (feedbackDraft[submissionId] || '').trim();
+    if (!text) {
+      toast.warn(status === 'resubmit_requested' ? '재제출 사유를 입력해야 합니다.' : '피드백 내용을 입력하세요.');
+      return;
+    }
+    setFeedbackSavingId(submissionId);
+    try {
+      const res = await api.patch(`/task-submissions/${submissionId}/feedback`, {
+        task_manager_feedback: text,
+        task_status: status,
+      });
+      setSubmissions((prev) =>
+        prev.map((s) => (s.task_submission_id === submissionId ? { ...s, ...res.data } : s))
+      );
+      setFeedbackDraft((prev) => ({ ...prev, [submissionId]: '' }));
+      toast.success(status === 'feedback_given' ? '피드백을 저장했습니다.' : '재제출을 요청했습니다.');
+      // 활동 요약 카운트 갱신
+      api.get(`/users/${selectedLearnerId}/activity-summary`)
+        .then((r) => setSummary(r.data))
+        .catch(() => {});
+    } catch (err) {
+      toast.error(err.response?.data?.detail || '피드백 저장에 실패했습니다.');
+    } finally {
+      setFeedbackSavingId(null);
+    }
+  };
 
   const handleCopyInviteCode = async () => {
     if (!user?.user_invite_code) return;
@@ -331,6 +406,24 @@ function LearnerManagementView({ user }) {
               <div className="learnerMgmtDetailGrid">
                 <div className="learnerMgmtSection">
                   <h4 className="learnerMgmtSectionTitle">학습 활동 요약</h4>
+                  <div className="learnerMgmtProgressRow">
+                    <div className="learnerMgmtProgressMeta">
+                      <span className="learnerMgmtProgressLabel">진행률</span>
+                      <span className="learnerMgmtProgressValue">
+                        {summaryLoading ? '⋯' : `${summary?.progress_avg ?? 0}%`}
+                      </span>
+                    </div>
+                    <div className="learner-progress-bg">
+                      <div
+                        className="learner-progress-bar"
+                        data-progress={summary?.progress_avg ?? 0}
+                        style={{ width: `${summary?.progress_avg ?? 0}%` }}
+                      />
+                    </div>
+                    <span className="learnerMgmtLastActivity">
+                      최근 활동: {summaryLoading ? '⋯' : formatRelative(summary?.last_activity_at)}
+                    </span>
+                  </div>
                   <div className="learnerMgmtStats">
                     <div className="learnerMgmtStat">
                       <p className="learnerMgmtStatLabel">배정 커리큘럼</p>
@@ -352,7 +445,7 @@ function LearnerManagementView({ user }) {
                     </div>
                   </div>
                   {summaryError && (
-                    <p className="learnerMgmtSectionError" style={{ marginTop: '8px' }}>{summaryError}</p>
+                    <p className="learnerMgmtSectionError">{summaryError}</p>
                   )}
                 </div>
 
@@ -440,21 +533,135 @@ function LearnerManagementView({ user }) {
                       const statusKey = s.task_status || 'submitted';
                       const statusLabel = SUBMISSION_STATUS_LABEL[statusKey] || '제출';
                       const statusCls = SUBMISSION_STATUS_CLASS[statusKey] || 'waiting';
+                      const isExpanded = expandedSubmissionId === s.task_submission_id;
+                      const attachments = Array.isArray(s.task_submitted_content?.attachments)
+                        ? s.task_submitted_content.attachments
+                        : [];
+                      const isSaving = feedbackSavingId === s.task_submission_id;
                       return (
-                        <li key={s.task_submission_id} className="learnerMgmtSubmissionItem">
-                          <div className="learnerMgmtSubmissionLeft">
-                            <span className="learnerMgmtSubmissionWeek">{s.task_week_number}주차</span>
-                            <span
-                              className="learnerMgmtSubmissionCur"
-                              title={cur ? cur.cur_title : `#${s.task_curriculum_id}`}
-                            >
-                              {cur ? cur.cur_title : `#${s.task_curriculum_id}`}
-                            </span>
-                          </div>
-                          <div className="learnerMgmtSubmissionRight">
-                            <span className={`learnerMgmtSubmissionStatus ${statusCls}`}>{statusLabel}</span>
-                            <span className="learnerMgmtSubmissionDate">{formatDate(s.task_submitted_at)}</span>
-                          </div>
+                        <li
+                          key={s.task_submission_id}
+                          className={`learnerMgmtSubmissionItem${isExpanded ? ' expanded' : ''}`}
+                        >
+                          <button
+                            type="button"
+                            className="learnerMgmtSubmissionHeader"
+                            onClick={() => handleToggleExpand(s.task_submission_id)}
+                            aria-expanded={isExpanded}
+                          >
+                            <div className="learnerMgmtSubmissionLeft">
+                              <span className="learnerMgmtSubmissionWeek">{s.task_week_number}주차</span>
+                              <span
+                                className="learnerMgmtSubmissionCur"
+                                title={cur ? cur.cur_title : `#${s.task_curriculum_id}`}
+                              >
+                                {cur ? cur.cur_title : `#${s.task_curriculum_id}`}
+                              </span>
+                            </div>
+                            <div className="learnerMgmtSubmissionRight">
+                              <span className={`learnerMgmtSubmissionStatus ${statusCls}`}>{statusLabel}</span>
+                              <span className="learnerMgmtSubmissionDate">{formatDate(s.task_submitted_at)}</span>
+                              <span className="learnerMgmtSubmissionExpandIcon" aria-hidden="true">
+                                {isExpanded ? '▲' : '▼'}
+                              </span>
+                            </div>
+                          </button>
+                          {isExpanded && (
+                            <div className="learnerMgmtSubmissionExpanded">
+                              <div className="managerSubmissionContent">
+                                <p className="learner-submission-label">제출 내용</p>
+                                <div
+                                  className="learner-submission-content template-render"
+                                  dangerouslySetInnerHTML={{
+                                    __html: sanitizeHtml(s.task_submitted_content?.text) || '(내용 없음)',
+                                  }}
+                                />
+                              </div>
+                              {attachments.length > 0 && (
+                                <div className="managerSubmissionAttachments">
+                                  <p className="learner-submission-label-small">[첨부파일]</p>
+                                  <ul className="managerSubmissionAttachmentList">
+                                    {attachments.map((a, i) => (
+                                      <li key={i} className="learner-submission-attach-item">
+                                        <button
+                                          type="button"
+                                          className="learner-submission-attach-link"
+                                          onClick={() => handleAttachmentDownload(s.task_submission_id, a)}
+                                        >
+                                          {a.filename || a.stored_name}
+                                        </button>
+                                        <span className="managerSubmissionAttachmentSize">{formatBytes(a.size)}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                              {s.task_manager_feedback && (
+                                <div className="learner-feedback-box">
+                                  <p className="learner-feedback-label">
+                                    현재 피드백
+                                    <span className="learner-feedback-date">{formatDateTime(s.task_feedback_at)}</span>
+                                  </p>
+                                  <div className="learner-feedback-text">{s.task_manager_feedback}</div>
+                                </div>
+                              )}
+                              <div className="managerFeedbackForm inline">
+                                <p className="learner-submission-label-small">
+                                  {s.task_manager_feedback ? '피드백 수정' : '피드백 작성'}
+                                </p>
+                                <div className="quickCommentChips">
+                                  {FEEDBACK_QUICK_COMMENTS.map((c, i) => (
+                                    <button
+                                      type="button"
+                                      key={i}
+                                      className="quickCommentChip"
+                                      onClick={() =>
+                                        setFeedbackDraft((prev) => ({
+                                          ...prev,
+                                          [s.task_submission_id]: appendQuickComment(
+                                            prev[s.task_submission_id],
+                                            c
+                                          ),
+                                        }))
+                                      }
+                                      disabled={isSaving}
+                                    >
+                                      {c}
+                                    </button>
+                                  ))}
+                                </div>
+                                <textarea
+                                  className="managerFeedbackTextarea"
+                                  placeholder="학습자에게 전달할 피드백을 입력하세요"
+                                  value={feedbackDraft[s.task_submission_id] ?? ''}
+                                  onChange={(e) =>
+                                    setFeedbackDraft((prev) => ({
+                                      ...prev,
+                                      [s.task_submission_id]: e.target.value,
+                                    }))
+                                  }
+                                />
+                                <div className="managerFeedbackBtns">
+                                  <button
+                                    type="button"
+                                    className="managerFeedbackBtn secondary"
+                                    onClick={() => handleFeedbackSave(s.task_submission_id, 'resubmit_requested')}
+                                    disabled={isSaving}
+                                  >
+                                    재제출 요청
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="managerFeedbackBtn primary"
+                                    onClick={() => handleFeedbackSave(s.task_submission_id, 'feedback_given')}
+                                    disabled={isSaving}
+                                  >
+                                    {isSaving ? '저장 중...' : '피드백 저장'}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </li>
                       );
                     })}

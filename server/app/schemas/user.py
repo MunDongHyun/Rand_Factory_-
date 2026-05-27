@@ -63,3 +63,5 @@ class UserActivitySummary(BaseModel):
     submissions_count: int = 0     # 학습자가 제출한 과제 수
     feedbacks_received: int = 0    # 학습자가 받은 피드백 수
     feedbacks_given: int = 0       # 매니저가 작성한 피드백 수
+    progress_avg: int = 0          # 학습자 배정 커리큘럼 평균 진행률(0~100), 학습자가 아니면 0
+    last_activity_at: datetime | None = None  # 마지막 제출 시각

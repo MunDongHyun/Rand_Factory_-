@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import Optional, List
 from langchain_community.vectorstores import Chroma
 from langchain_core.documents import Document
@@ -18,8 +19,14 @@ def _get_vectorstore() -> Chroma:
     return _vectorstore
 
 
+@lru_cache(maxsize=512)
 def transform_query_for_search(user_query: str) -> str:
-    """사용자의 검색어를 벡터 검색에 최적화된 형태로 재작성합니다."""
+    """사용자의 검색어를 벡터 검색에 최적화된 형태로 재작성합니다.
+
+    동일 검색어 재입력 시 LLM 호출을 건너뛰기 위해 프로세스 단위 LRU 캐시 적용.
+    LangChain 응답이 결정적이지 않을 수 있으나, 검색어 정규화 목적상 같은 입력에는
+    같은 결과를 돌려주는 것이 사용자 경험상 더 일관적이다.
+    """
     llm = ChatOpenAI(model="gpt-5.4-mini", temperature=0, api_key=settings.openai_api_key)
     
     prompt = f"""

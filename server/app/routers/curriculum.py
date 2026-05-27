@@ -31,6 +31,41 @@ from app.services import curriculum_service
 router = APIRouter(prefix="/api/curricula", tags=["curricula"])
 
 
+def _weeks_with_template_changed(
+    old_wp: object,
+    new_wp: object,
+) -> set[int]:
+    """양식(`template_content`)이 기존 set 상태에서 다른 값으로 바뀐 주차 집합.
+
+    첫 set(기존이 비어 있다가 새 값 입력)은 변경으로 보지 않음 → 잠금 대상 아님.
+    """
+    if not isinstance(old_wp, list) or not isinstance(new_wp, list):
+        return set()
+    old_by_week: dict[int, list] = {}
+    for w in old_wp:
+        if isinstance(w, dict) and w.get("week") is not None:
+            old_by_week[w["week"]] = w.get("assignments") or []
+    changed: set[int] = set()
+    for w in new_wp:
+        if not isinstance(w, dict):
+            continue
+        week_no = w.get("week")
+        if week_no is None:
+            continue
+        new_as = w.get("assignments") or []
+        old_as = old_by_week.get(week_no, [])
+        for i, na in enumerate(new_as):
+            if not isinstance(na, dict):
+                continue
+            new_tc = (na.get("template_content") or "").strip()
+            oa = old_as[i] if i < len(old_as) and isinstance(old_as[i], dict) else {}
+            old_tc = (oa.get("template_content") or "").strip()
+            if old_tc and new_tc != old_tc:
+                changed.add(week_no)
+                break
+    return changed
+
+
 def _validate_assigned_learners(
     learner_ids: list[int] | None,
     user: User,
@@ -253,6 +288,29 @@ def update_curriculum(
             current_user,
             db,
         )
+
+    if "cur_week_plan" in update_data:
+        changed_weeks = _weeks_with_template_changed(
+            curriculum.cur_week_plan,
+            update_data["cur_week_plan"],
+        )
+        if changed_weeks:
+            locked = (
+                db.query(TaskSubmission.task_week_number)
+                .filter(
+                    TaskSubmission.task_curriculum_id == cur_id,
+                    TaskSubmission.task_week_number.in_(list(changed_weeks)),
+                )
+                .distinct()
+                .all()
+            )
+            locked_weeks = sorted({r.task_week_number for r in locked})
+            if locked_weeks:
+                week_str = ", ".join(f"{w}주차" for w in locked_weeks)
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"이미 학습자 제출이 있는 양식은 수정할 수 없습니다: {week_str}",
+                )
 
     for field, value in update_data.items():
         setattr(curriculum, field, value)

@@ -19,7 +19,6 @@ class TaskSubmissionCreate(BaseModel):
 class TaskSubmissionFeedbackUpdate(BaseModel):
     task_manager_feedback: str
     task_status: TaskStatus = "feedback_given"
-    task_score: int | None = Field(default=None, ge=0, le=100)
 
 
 class TaskSubmissionAttachmentResponse(BaseModel):
@@ -47,7 +46,6 @@ class TaskSubmissionResponse(BaseModel):
     task_submitted_content: dict | None = None
     task_submitted_at: datetime | None = None
     task_manager_feedback: str | None = None
-    task_score: int | None = None
     task_resubmit_requested: str = "N"
     task_feedback_at: datetime | None = None
     task_status: TaskStatus | None = None
@@ -67,7 +65,6 @@ class TaskSubmissionWithLearnerResponse(BaseModel):
     task_submitted_content: dict | None = None
     task_submitted_at: datetime | None = None
     task_manager_feedback: str | None = None
-    task_score: int | None = None
     task_resubmit_requested: str = "N"
     task_feedback_at: datetime | None = None
     task_status: TaskStatus | None = None

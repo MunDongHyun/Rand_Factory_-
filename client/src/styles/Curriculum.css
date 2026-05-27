@@ -2114,3 +2114,39 @@
 .learner-resubmit-wrap { display: flex; justify-content: flex-end; border-top: 1px dashed #e2e8f0; padding-top: 20px; }
 .btn-resubmit { background: #fff; border: 1px solid #cbd5e0; color: #4a5568; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; }
 .managerFeedbackForm.inline { position: static; margin: 0; padding: 0; box-shadow: none; border-top: none; }
+
+/* 매니저 피드백 - 빠른 코멘트 칩 */
+.quickCommentChips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.quickCommentChip { background: #f0f4f8; border: 1px solid #cbd5e0; color: #2d3748; font-size: 12px; padding: 4px 10px; border-radius: 14px; cursor: pointer; font-weight: 500; }
+.quickCommentChip:hover:not(:disabled) { background: #e2e8f0; }
+.quickCommentChip:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* 양식 배포 모달 - 마감일 영역 */
+.templateDeadlineRow { display: flex; align-items: center; gap: 16px; padding: 12px 0; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; margin-bottom: 16px; flex-wrap: wrap; }
+.templateDeadlineLabel { font-size: 14px; font-weight: 700; color: #2d3748; }
+.templateDeadlinePicker { display: flex; align-items: center; gap: 10px; }
+.templateDeadlineInput { border: 1px solid #cbd5e0; border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 600; color: #2d3748; min-width: 200px; outline: none; background: #fff; cursor: pointer; }
+.templateDeadlineInput:focus { border-color: #4A7C59; box-shadow: 0 0 0 3px rgba(74, 124, 89, 0.15); }
+.templateDeadlineBadge { font-size: 12px; font-weight: 700; color: #e53e3e; background: #fff5f5; padding: 4px 10px; border-radius: 12px; }
+.templateDeadlineQuick { display: flex; gap: 6px; margin-left: auto; }
+.quickDeadlineBtn { background: #f0f4f8; border: 1px solid #cbd5e0; color: #2d3748; font-size: 12px; padding: 6px 12px; border-radius: 14px; cursor: pointer; font-weight: 600; }
+.quickDeadlineBtn:hover { background: #e2e8f0; border-color: #4A7C59; color: #4A7C59; }
+
+/* react-datepicker 톤 맞춤 (popup 적용) */
+.templateDeadlineCalendar { font-family: inherit; border: 1px solid #cbd5e0; border-radius: 8px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); padding: 8px; }
+.templateDeadlineCalendar .react-datepicker__header { background: #fff; border-bottom: 1px solid #edf2f7; padding-top: 8px; }
+.templateDeadlineCalendar .react-datepicker__current-month { font-size: 14px; font-weight: 700; color: #2d3748; margin-bottom: 8px; }
+.templateDeadlineCalendar .react-datepicker__day-name { color: #718096; font-size: 12px; font-weight: 600; width: 36px; line-height: 28px; }
+.templateDeadlineCalendar .react-datepicker__day { color: #2d3748; font-size: 13px; width: 36px; line-height: 32px; border-radius: 8px; margin: 2px; }
+.templateDeadlineCalendar .react-datepicker__day:hover { background: #ebf8ff; color: #4A7C59; }
+.templateDeadlineCalendar .react-datepicker__day--selected,
+.templateDeadlineCalendar .react-datepicker__day--keyboard-selected { background: #4A7C59 !important; color: #fff !important; font-weight: 700; }
+.templateDeadlineCalendar .react-datepicker__day--today { font-weight: 700; color: #4A7C59; }
+.templateDeadlineCalendar .react-datepicker__day--disabled { color: #cbd5e0; cursor: not-allowed; }
+.templateDeadlineCalendar .react-datepicker__day--outside-month { color: #cbd5e0; }
+.templateDeadlineCalendar .react-datepicker__day-names .react-datepicker__day-name:first-child,
+.templateDeadlineCalendar .react-datepicker__week .react-datepicker__day:first-child { color: #e53e3e; }
+.templateDeadlineCalendar .react-datepicker__day--selected:first-child,
+.templateDeadlineCalendar .react-datepicker__day--keyboard-selected:first-child { color: #fff !important; }
+.templateDeadlineCalendar .react-datepicker__navigation-icon::before { border-color: #4a5568; }
+.templateDeadlineCalendar .react-datepicker__navigation:hover .react-datepicker__navigation-icon::before { border-color: #4A7C59; }

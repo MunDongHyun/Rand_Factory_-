@@ -2,6 +2,160 @@
 
 ---
 
+## 2026-05-27 - Claude (마감일 DatePicker 도입 — react-datepicker)
+
+### 배경
+- 양식 배포 모달의 마감일 입력이 네이티브 `<input type="date">` + 모달 헤더 한 줄에 끼어있어 시각 비중 낮고 브라우저별 외관 들쭉날쭉
+- 매니저가 한눈에 D-Day를 못 봤고 빠른 선택지 없음
+
+### 변경 — react-datepicker 11 도입
+- 의존성 추가: `react-datepicker`, `date-fns` (peer)
+- `CurriculumView.jsx` 상단에서 `registerLocale('ko', ko)` 1회 등록
+- 모달 레이아웃 재배치:
+  - **헤더에서 마감일 영역 제거** (AI 재작성/전체보기 버튼만 남김)
+  - **본문 상단(에디터 위)에 별도 영역 신설**: 마감일 라벨 + DatePicker + D-Day 배지 + 빠른 선택 칩
+- DatePicker 설정:
+  - `dateFormat="yyyy.MM.dd (eee)"` 한국어 요일 표시
+  - `locale="ko"` / `minDate={new Date()}` (지난 마감일 차단)
+  - `showPopperArrow={false}` / `calendarClassName="templateDeadlineCalendar"` 우리 톤 매핑
+- 빠른 선택 칩: 오늘 기준 `+1주 / +2주 / +4주` 3개
+- D-Day 배지: 기존 `getDDayString` 재사용 → 날짜 옆에 표시
+- 헬퍼 `formatDateLocal(date)`: 기존 컨벤션(`yyyy-MM-dd` 문자열)과 호환되게 변환
+
+### 디자인 톤 매핑 (Curriculum.css)
+- 입력 input: 라운드 8px / focus 시 `--primary` (#4A7C59) green ring
+- 캘린더 popup: 흰 카드 + 옅은 shadow + 라운드 8px
+- 선택된 날 / 오늘: `--primary` green
+- 일요일: 빨강 유지 (한국 컨벤션)
+- 빠른 선택 칩: 회색조 알약 + hover 시 green border
+- D-Day 배지: 빨강 톤 알약
+
+### 변경 파일
+- 수정: `client/src/components/CurriculumView.jsx`, `client/src/styles/Curriculum.css`
+- 의존성: `client/package.json` (`react-datepicker`, `date-fns` 추가)
+
+### 검증
+- `npm run build` 통과 (모듈 592 → 912, index.js gzip 340 → 390KB ≈ +50KB)
+- vite chunk-size 경고는 기존 사항
+
+### 검수 권장 시나리오
+1. 양식 배포 모달 열기 → 본문 상단에 마감일 영역 노출 확인
+2. DatePicker 클릭 → popup 캘린더 우리 톤(green/round) 적용 확인
+3. 오늘 이전 날짜 선택 불가 (회색)
+4. `+1주` 칩 클릭 → 1주 뒤 날짜 자동 입력 + 옆에 D-7 배지 표시
+5. 한국어 요일 (`수`, `목`...) 표시 확인
+
+### 후속
+- 기존 사용 안 되는 `.template-deadline-label`, `.template-deadline-input` CSS 클래스 남아있음. 정리는 V2
+
+---
+
+## 2026-05-27 - Claude (학습자 진행률 + 마감일/양식 1회 배포 검증 + RAG 캐시)
+
+### 배경
+- 발표 직전 임팩트 묶음. 직전 사이클(매니저 피드백 강화) 위에 학습자 측 가시성·운영 안정성·시연 속도 보강
+- `task_deadline` 컬럼은 풀로 들어와 있지만 검증 로직이 없어 마감 의미 없음 / 양식이 한 번 배포된 후 학습자 작업 중 매니저가 임의 수정 가능 / 동일 RAG 검색어를 매번 LLM 호출
+
+### 변경 1 — RAG 검색어 LRU 캐시
+- `services/rag_service.py::transform_query_for_search` 에 `@functools.lru_cache(maxsize=512)` 적용
+- 동일 검색어 재입력 시 LLM 호출 0 → 응답 속도 / OpenAI 비용 절감
+- 결정적이지 않은 LLM 응답이지만 검색어 정규화 용도라 같은 입력에 같은 결과 돌려주는 게 UX상 일관적
+
+### 변경 2 — 학습자 진행률 + 마지막 활동 시각
+- `schemas/user.py::UserActivitySummary` 에 `progress_avg: int = 0`, `last_activity_at: datetime | None = None` 추가
+- `routers/user.py::get_user_activity_summary` 학습자(j) 한정 진행률 계산:
+  - 배정 활성 커리큘럼들의 `cur_week_plan` 에서 주차 목록 추출
+  - 학습자의 `(cur_id, week)` distinct 제출 집합과 교집합 → done_weeks
+  - `int(round(100 * done_weeks / total_weeks))`
+  - cur_week_plan이 list가 아닐 경우 `cur_duration_weeks` 폴백
+- `last_activity_at` = `MAX(task_submitted_at)` (학습자 본인 제출 기준)
+- 프론트 `LearnerManagementView`:
+  - 학습 활동 요약 섹션 통계 카드 위에 `.learner-progress-bg` 진행률 바 + `진행률 N%` 텍스트
+  - 우측에 "최근 활동: N일 전" (custom `formatRelative` 헬퍼)
+  - 기존 통계 카드 그리드(3컬럼)는 그대로 유지
+  - inline `style={{ marginTop: '8px' }}` 정적 값 제거 (CLAUDE.md inline style 룰)
+
+### 변경 3 — 마감일 검증 (백엔드)
+- `routers/task_submission.py` 신규 헬퍼 `_week_max_deadline(curriculum, week_number)`:
+  - `cur_week_plan[week].assignments[].deadline` ISO 문자열 파싱 → `tzinfo=UTC` 보정 후 max
+  - 주차 내 모든 deadline이 비면 None 반환 → 검증 skip(마감 없는 과제)
+- `create_submission`에서 deadline 지난 경우 400 `"제출 마감일이 지났습니다"`
+- 통과 시 새 `TaskSubmission.task_deadline` 컬럼에 해당 max deadline 채워 감사·통계용으로 보관
+
+### 변경 4 — 양식 1회 배포 검증 (학습자 제출 후 잠금)
+- `routers/curriculum.py` 신규 헬퍼 `_weeks_with_template_changed(old_wp, new_wp)`:
+  - 기존 `template_content`가 set돼 있고 새 값이 다른 주차만 set 반환 (첫 set은 변경으로 보지 않음)
+- `update_curriculum` PATCH에서 `cur_week_plan` 들어오면 위 헬퍼로 변경 주차 추출 → `TaskSubmission`에 같은 (cur_id, week) 제출이 1건이라도 있으면 400 `"이미 학습자 제출이 있는 양식은 수정할 수 없습니다: N주차"`
+- `deadline` 변경은 제외 (마감 연장은 허용)
+- 정책 의도: 학습자가 양식 보고 작업을 시작한 주차는 매니저가 임의 수정해서 학습자를 혼란시키지 않도록 보호
+
+### 변경 파일
+- 백엔드: `services/rag_service.py`, `schemas/user.py`, `routers/user.py`, `routers/task_submission.py`, `routers/curriculum.py`
+- 프론트엔드: `components/LearnerManagementView.jsx`, `styles/LearnerManagement.css`
+
+### 검증
+- `python -m compileall -q app` 통과
+- `npm run build` 통과 (vite chunk-size 경고는 기존 사항)
+
+### 검수 권장 시나리오
+1. 매니저 계정으로 학습자 관리 페이지 → 좌측 학습자 선택 → 우측 "진행률 N%" 바 + "최근 활동: N일 전" 표시 확인
+2. 학습자 계정으로 마감일 지난 과제 제출 시도 → 400 차단 확인
+3. 학습자가 1주차 제출 완료 후 → 매니저가 1주차 양식 수정 시도 → 400 차단 확인, 마감일 연장은 통과
+4. 같은 검색어로 RAG 검색 2회 반복 → 두 번째 응답 시간 단축 (LLM transform 캐시 적중)
+
+### 후속
+- 학습자 진행률 좌측 카드 배지 노출은 N+1 호출 우려로 보류 (서버에 batch endpoint 도입 후 V2)
+- 첫 set + 즉시 잠금 같은 더 엄격한 양식 정책은 동현님 합의 시 V2
+
+---
+
+## 2026-05-27 - Claude (매니저 피드백 강화 + task_score 제거)
+
+### 배경
+- 학습자 관리 페이지(`LearnerManagementView`)가 "최근 제출 이력" 카드만 노출하고 클릭 액션이 없어 매니저가 피드백을 주려면 CurriculumView로 이동해야 했음
+- `task_score` 컬럼은 모델/스키마/라우터에 존재하지만 UI 입력이 없어 줄곧 NULL로 유지되던 죽은 필드 → 팀 결정으로 제거 (DB 컬럼 DROP은 팀원이 별도 처리)
+
+### 변경 1 — task_score 코드 참조 제거
+- `models/task_submission.py`: `task_score` 컬럼 정의 제거
+- `schemas/task_submission.py`: `TaskSubmissionFeedbackUpdate` 입력 / `TaskSubmissionResponse` / `TaskSubmissionWithLearnerResponse` 3곳에서 필드 제거
+- `routers/task_submission.py`: `_submission_response`, by-curriculum 응답 매핑, `update_feedback` PATCH 본문 처리 3곳 제거
+- DB 컬럼은 NULL인 채로 유지 (CLAUDE.md 폐기 chatbot 패턴과 동일). 다른 팀원 환경 영향 없음
+
+### 변경 2 — LearnerManagementView 제출 카드 인라인 펼침
+- 제출 카드 클릭 시 그 자리에서 본문(`task_submitted_content.text`) + 첨부파일 + 매니저 피드백(작성/수정/표시) 영역이 펼쳐짐
+- CurriculumView의 매니저 피드백 패턴과 동일 UX. 기존 `managerSubmission*` / `managerFeedback*` / `learner-submission-*` / `learner-feedback-*` 클래스 재사용 위해 `Curriculum.css` import 추가
+- 한 번에 하나만 펼침 (`expandedSubmissionId` 단일 상태). 학습자 전환 시 자동 닫힘
+- 피드백 저장 후 활동 요약 카운트 재요청해 우측 통계 카드 즉시 갱신
+
+### 변경 3 — 재제출 요청 시 피드백 필수 검증 (프론트 + 백엔드)
+- 프론트: `handleFeedbackSave`에서 빈 텍스트일 때 status별 메시지 분기 ("재제출 사유를 입력해야 합니다" / "피드백 내용을 입력하세요"). CurriculumView·LearnerManagementView 양쪽 동일
+- 백엔드: `PATCH /task-submissions/{id}/feedback` 에서 `task_manager_feedback` strip 후 빈 값이면 400. status가 resubmit_requested 일 때는 메시지 분기. 프론트 우회(직접 API 호출) 차단
+
+### 변경 4 — 빠른 코멘트 템플릿
+- 신규 `client/src/lib/feedbackTemplates.js`: `FEEDBACK_QUICK_COMMENTS` 4개 + `appendQuickComment(current, comment)` 헬퍼 (기존 텍스트가 있으면 줄바꿈 후 append)
+- 텍스트:
+  1. "수고하셨습니다 :)"
+  2. "좋은 시도예요. 다음 부분을 더 보완해 주세요."
+  3. "이 부분을 다시 정리해 주시면 좋겠어요."
+  4. "관련 아티클을 참고해 보완해 주세요."
+- UI: 피드백 textarea 위에 chip 버튼 영역. 클릭 시 textarea에 이어 붙음 (덮어쓰기 X)
+- CSS: `Curriculum.css` 끝에 `.quickCommentChips` / `.quickCommentChip` 추가 (양쪽 컴포넌트가 Curriculum.css import)
+
+### 변경 파일
+- 백엔드: `models/task_submission.py`, `schemas/task_submission.py`, `routers/task_submission.py`
+- 프론트엔드: `components/LearnerManagementView.jsx`, `components/CurriculumView.jsx`, `styles/LearnerManagement.css`, `styles/Curriculum.css`
+- 신규: `client/src/lib/feedbackTemplates.js`
+
+### 검증
+- `python -m compileall -q app` 통과
+- `npm run build` 통과 (vite chunk-size 경고는 기존 사항)
+
+### 후속
+- DB `task_submissions.task_score` 컬럼 DROP은 팀원이 별도 처리 예정
+- 인수인계 1번(백엔드 마감일·양식 1회 배포 검증)은 본 사이클에서 다루지 않음 — `cur_deadline` → `task_deadline` 모델 이동된 상태라 별도 사이클에서 재정의
+
+---
+
 ## 2026-05-26 - Claude (sort_buffer 헬퍼 추출 + JSON_TABLE 푸시다운 + 페이지네이션)
 
 ### 배경

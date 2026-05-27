@@ -364,6 +364,37 @@
   margin: 0;
 }
 
+.learnerMgmtProgressRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.learnerMgmtProgressMeta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.learnerMgmtProgressLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+
+.learnerMgmtProgressValue {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.learnerMgmtLastActivity {
+  font-size: 11px;
+  color: var(--ink-muted);
+  text-align: right;
+}
+
 .learnerMgmtStats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -542,16 +573,62 @@
 }
 
 .learnerMgmtSubmissionItem {
+  display: block;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 13px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.learnerMgmtSubmissionItem.expanded {
+  border-color: var(--primary, #4A7C59);
+  background: var(--card);
+}
+
+.learnerMgmtSubmissionHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  width: 100%;
   padding: 10px 14px;
-  font-size: 13px;
-  min-width: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+
+.learnerMgmtSubmissionHeader:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.learnerMgmtSubmissionExpandIcon {
+  font-size: 10px;
+  color: var(--ink-muted);
+  margin-left: 2px;
+}
+
+.learnerMgmtSubmissionExpanded {
+  padding: 12px 14px 14px;
+  border-top: 1px dashed var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.learnerMgmtSubmissionExpanded .managerSubmissionContent,
+.learnerMgmtSubmissionExpanded .managerFeedbackForm {
+  margin: 0;
+}
+
+.learnerMgmtSubmissionExpanded .managerFeedbackTextarea {
+  width: 100%;
+  min-height: 80px;
+  box-sizing: border-box;
 }
 
 .learnerMgmtSubmissionLeft {

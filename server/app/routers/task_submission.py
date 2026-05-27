@@ -131,12 +131,41 @@ def _submission_response(submission: TaskSubmission) -> TaskSubmissionResponse:
         task_submitted_content=_content_with_attachments(submission),
         task_submitted_at=submission.task_submitted_at,
         task_manager_feedback=submission.task_manager_feedback,
-        task_score=submission.task_score,
         task_resubmit_requested=submission.task_resubmit_requested or "N",
         task_feedback_at=submission.task_feedback_at,
         task_status=submission.task_status,
         attachments=[a for a in submission.attachments if a.file_deleted_at is None],
     )
+
+
+def _week_max_deadline(curriculum: Curriculum, week_number: int) -> datetime | None:
+    """해당 주차 assignment들 중 가장 늦은 deadline. 없으면 None.
+
+    cur_week_plan[week].assignments[].deadline 은 ISO 문자열(`...Z` 또는 `+00:00`).
+    비어 있거나 파싱 실패한 deadline은 무시.
+    """
+    wp = curriculum.cur_week_plan
+    if not isinstance(wp, list):
+        return None
+    for item in wp:
+        if not isinstance(item, dict) or item.get("week") != week_number:
+            continue
+        deadlines: list[datetime] = []
+        for a in item.get("assignments", []) or []:
+            if not isinstance(a, dict):
+                continue
+            raw = a.get("deadline")
+            if not raw:
+                continue
+            try:
+                dt = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+            except ValueError:
+                continue
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            deadlines.append(dt)
+        return max(deadlines) if deadlines else None
+    return None
 
 
 def _week_exists(curriculum: Curriculum, week_number: int) -> bool:
@@ -203,13 +232,17 @@ def create_submission(
     if not _week_exists(curriculum, body.task_week_number):
         raise HTTPException(status_code=400, detail="Invalid curriculum week")
 
+    deadline = _week_max_deadline(curriculum, body.task_week_number)
+    if deadline is not None and datetime.now(timezone.utc) > deadline:
+        raise HTTPException(status_code=400, detail="제출 마감일이 지났습니다")
+
     submission = TaskSubmission(
         task_curriculum_id=body.task_curriculum_id,
         task_learner_id=current_user.user_id,
         task_week_number=body.task_week_number,
         task_submission_type=body.task_submission_type,
         task_submitted_content=body.task_submitted_content or {},
-        task_deadline=body.task_deadline,
+        task_deadline=deadline,
     )
     db.add(submission)
     db.commit()
@@ -341,7 +374,6 @@ def list_submissions_by_curriculum(
             task_submitted_content=_content_with_attachments(s),
             task_submitted_at=s.task_submitted_at,
             task_manager_feedback=s.task_manager_feedback,
-            task_score=s.task_score,
             task_resubmit_requested=s.task_resubmit_requested or "N",
             task_feedback_at=s.task_feedback_at,
             task_status=s.task_status,
@@ -416,10 +448,14 @@ def update_feedback(
     if not submission or not _can_access_submission(submission, current_user, db):
         raise HTTPException(status_code=404, detail="Task submission not found")
 
-    submission.task_manager_feedback = body.task_manager_feedback
+    feedback_text = (body.task_manager_feedback or "").strip()
+    if not feedback_text:
+        detail = "재제출 사유를 입력해야 합니다" if body.task_status == "resubmit_requested" else "피드백 내용이 비어 있습니다"
+        raise HTTPException(status_code=400, detail=detail)
+
+    submission.task_manager_feedback = feedback_text
     submission.task_feedback_at = datetime.now(timezone.utc)
     submission.task_status = body.task_status
-    submission.task_score = body.task_score
     submission.task_resubmit_requested = "Y" if body.task_status == "resubmit_requested" else "N"
     db.commit()
     db.refresh(submission)

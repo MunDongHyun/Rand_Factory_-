@@ -27,7 +27,6 @@ class TaskSubmission(Base):
     task_submitted_content: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     task_submitted_at: Mapped[DateTime | None] = mapped_column(DateTime, nullable=True, server_default=func.now())
     task_manager_feedback: Mapped[str | None] = mapped_column(Text, nullable=True)
-    task_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
     task_resubmit_requested: Mapped[str] = mapped_column(String(1), nullable=False, default="N", server_default="N")
     task_feedback_at: Mapped[DateTime | None] = mapped_column(DateTime, nullable=True)
     task_status: Mapped[str | None] = mapped_column(

@@ -285,6 +285,53 @@ def get_user_activity_summary(
             .scalar() or 0
         )
 
+    last_activity_at = (
+        db.query(func.max(TaskSubmission.task_submitted_at))
+        .filter(TaskSubmission.task_learner_id == user_id)
+        .scalar()
+    )
+
+    # 학습자 진행률: 배정 커리큘럼의 (총 주차 합) 대비 (학습자가 제출한 distinct 주차 합)
+    progress_avg = 0
+    if user.user_role == "j":
+        assigned_curricula = (
+            db.query(Curriculum.cur_id, Curriculum.cur_week_plan, Curriculum.cur_duration_weeks)
+            .filter(
+                Curriculum.cur_deleted_at.is_(None),
+                func.json_contains(
+                    Curriculum.cur_assigned_learner_ids,
+                    json.dumps(user_id),
+                ),
+            )
+            .all()
+        )
+        if assigned_curricula:
+            submitted_rows = (
+                db.query(TaskSubmission.task_curriculum_id, TaskSubmission.task_week_number)
+                .filter(TaskSubmission.task_learner_id == user_id)
+                .distinct()
+                .all()
+            )
+            submitted_set = {(r.task_curriculum_id, r.task_week_number) for r in submitted_rows}
+
+            total_weeks = 0
+            done_weeks = 0
+            for cur in assigned_curricula:
+                wp = cur.cur_week_plan
+                if isinstance(wp, list) and wp:
+                    weeks = [
+                        item.get("week")
+                        for item in wp
+                        if isinstance(item, dict) and item.get("week") is not None
+                    ]
+                else:
+                    weeks = list(range(1, (cur.cur_duration_weeks or 0) + 1))
+                total_weeks += len(weeks)
+                done_weeks += sum(1 for w in weeks if (cur.cur_id, w) in submitted_set)
+
+            if total_weeks > 0:
+                progress_avg = int(round(100 * done_weeks / total_weeks))
+
     return UserActivitySummary(
         user_id=user_id,
         user_role=user.user_role,
@@ -293,6 +340,8 @@ def get_user_activity_summary(
         submissions_count=int(submissions_count),
         feedbacks_received=int(feedbacks_received),
         feedbacks_given=int(feedbacks_given),
+        progress_avg=progress_avg,
+        last_activity_at=last_activity_at,
     )
 
 
