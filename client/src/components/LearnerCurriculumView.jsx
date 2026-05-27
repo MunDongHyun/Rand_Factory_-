@@ -19,8 +19,8 @@ const getDDayString = (deadlineStr) => {
   if (isNaN(deadlineDate.getTime())) return null;
 
   const today = new Date();
-  today.setHours(0, 0, 0, 0); 
-  deadlineDate.setHours(0, 0, 0, 0); 
+  today.setHours(0, 0, 0, 0);
+  deadlineDate.setHours(0, 0, 0, 0);
 
   const diffTime = deadlineDate - today;
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -431,6 +431,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
           assignmentIdx: activeTask.assignmentIdx,
           attachments: existingAttachments
         },
+        task_deadline: activeTask.assignmentData.deadline || null,
       });
       const submissionId = res.data?.task_submission_id;
 
@@ -563,7 +564,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
 
                                     const hasTemplate = !!a.template_content && a.template_content.trim() !== '';
                                     const isClickable = hasTemplate || !!sub;
-                                    
+
                                     const dDayStr = a.deadline ? getDDayString(a.deadline) : '마감일 미지정';
 
                                     return (
@@ -719,11 +720,17 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
                           <p className="learner-submission-label-small">📎 첨부파일</p>
                           <ul className="managerSubmissionAttachmentList">
                             {currentSubmission.task_submitted_content.attachments.map((a, i) => (
-                              <li key={i} className="managerSubmissionAttachmentItem learner-submission-attach-item">
-                                <button type="button" className="managerSubmissionAttachmentLink learner-submission-attach-link" onClick={() => handleAttachmentDownload(currentSubmission.task_submission_id, a)}>
+                              <li key={i} className="managerSubmissionAttachmentItem">
+                                <button
+                                  type="button"
+                                  className="managerSubmissionAttachmentLink"
+                                  onClick={() => handleAttachmentDownload(currentSubmission.task_submission_id, a)}
+                                >
                                   {a.filename || a.stored_name}
                                 </button>
-                                <span className="managerSubmissionAttachmentSize">{formatBytes(a.size)}</span>
+                                <span className="managerSubmissionAttachmentSize">
+                                  {formatBytes(a.size)}
+                                </span>
                               </li>
                             ))}
                           </ul>
