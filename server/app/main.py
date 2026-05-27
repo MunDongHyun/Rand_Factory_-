@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -16,9 +15,9 @@ from app.routers import (
     notification,
     rag,
     task_submission,
+    thumbnail,
     user,
 )
-from app.services.thumbnail_service import THUMBNAIL_DIR, URL_PREFIX as THUMBNAIL_URL_PREFIX
 
 
 # 필요한 DB 테이블이 있으면 스크립트에 명시해주면 테이블 자동 생성해주는 코드
@@ -48,14 +47,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-if THUMBNAIL_DIR.exists():
-    app.mount(THUMBNAIL_URL_PREFIX, StaticFiles(directory=THUMBNAIL_DIR), name="thumbnails")
-
 app.include_router(health.router)
 app.include_router(user.router)
 app.include_router(article.router)
 app.include_router(author.router)
 app.include_router(bookmark.router)
+app.include_router(thumbnail.router)
 app.include_router(rag.router)
 app.include_router(curriculum.router)
 app.include_router(task_submission.router)

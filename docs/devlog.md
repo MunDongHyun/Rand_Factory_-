@@ -2,6 +2,35 @@
 
 ---
 
+## 2026-05-27 - Codex (썸네일 R2 객체 저장소 이전)
+
+### 배경
+- `ai/thumbnails/`를 Git 추적에서 제외하면서 팀원 pull 환경에서 아티클 썸네일 파일이 내려오지 않는 문제가 발생.
+- 시연 안정성을 위해 임시로 Git에 복구했으나, 장기적으로는 첨부파일과 동일하게 Cloudflare R2에서 관리하는 구조가 적합.
+
+### 변경
+- `server/app/services/thumbnail_storage.py` 추가
+  - R2 `thumbnails/{filename}` 객체 조회
+  - R2 조회 실패 또는 객체 없음 시 기존 로컬 `ai/thumbnails/` fallback 유지
+- `server/app/routers/thumbnail.py` 추가
+  - `GET /api/thumbnails/{filename}` 라우트에서 R2/로컬 썸네일을 `StreamingResponse`로 반환
+- `server/app/services/thumbnail_service.py`
+  - 로컬 파일 존재 여부에 의존하지 않고 DB의 `article_thumbnail_filename` 기준 URL 반환
+- `server/app/main.py`
+  - 기존 `StaticFiles` mount 제거
+  - thumbnail router 등록
+- `server/scripts/upload_thumbnails_to_r2.py` 추가
+  - 로컬 썸네일 파일을 R2 `thumbnails/` prefix로 업로드하는 일회성 스크립트
+
+### 검증
+- `python -m compileall -q app scripts` 통과
+- `from app.main import app` routes 61 및 `/api/thumbnails/{filename:path}` 등록 확인
+- 로컬 fallback 라우트 응답 확인: `200 image/png`
+- R2 업로드 완료: 53개
+- R2 직접 조회 확인: `image/png`, 정상 Content-Length 반환
+
+---
+
 ## 2026-05-27 - Claude (알림 삭제 + 헤더/카드 자잘 UX 정리)
 
 ### 배경
