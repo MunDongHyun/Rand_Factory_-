@@ -2076,8 +2076,35 @@
 .learner-submission-label { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
 .learner-submission-content { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 24px; min-height: 200px; }
 .learner-submission-label-small { font-size: 13px; color: #718096; margin-bottom: 8px; }
-.learner-submission-attach-item { border: 1px solid #e2e8f0; background: #f8fafc; }
-.learner-submission-attach-link { font-weight: 600; }
+.learner-submission-attach-item {
+  display: flex;
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+}
+.learner-submission-attach-link {
+  flex: 1; /* 빈 공간을 모두 차지해 파일명을 왼쪽으로 밀어줍니다 */
+  text-align: left;
+  font-weight: 600;
+  font-size: 13px;
+  color: #3182ce;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  font-family: 'Pretendard', sans-serif;
+}
+.learner-submission-attach-link:hover {
+  text-decoration: underline;
+}
+.learner-submission-attach-item .managerSubmissionAttachmentSize {
+  font-size: 12px;
+  color: #a0aec0;
+  margin-left: 12px;
+}
 
 .learner-feedback-box { background: #ebf8ff; padding: 20px; border-radius: 8px; border-left: 4px solid #3182ce; margin-bottom: 24px; }
 .learner-feedback-label { color: #2b6cb0; font-weight: 700; margin-bottom: 8px; }
