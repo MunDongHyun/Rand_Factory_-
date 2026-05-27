@@ -1,3 +1,4 @@
+import logging
 from functools import lru_cache
 from typing import Optional, List
 from langchain_community.vectorstores import Chroma
@@ -7,6 +8,7 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from app.core.config import settings
 
+logger = logging.getLogger(__name__)
 _vectorstore: Optional[Chroma] = None
 
 def _get_vectorstore() -> Chroma:
@@ -57,10 +59,10 @@ def transform_query_for_search(user_query: str) -> str:
     try:
         response = llm.invoke(prompt)
         transformed_query = response.content.strip()
-        print(f"\n🔄 [Query Transform] 원본: '{user_query}' -> 변환: '{transformed_query}'")
+        logger.debug("Query transformed: %r -> %r", user_query, transformed_query)
         return transformed_query
     except Exception as e:
-        print(f"\n⚠️ [Query Transform Error] 변환 실패, 원본 검색어로 진행합니다. ({e})")
+        logger.warning("Query transform failed; falling back to original query: %s", e)
         return user_query
 
 
@@ -72,10 +74,10 @@ def search_similar_article_ids(query_text: str, k: int = 100, max_results: int =
     
     # 🌟 무의미한 검색어 및 부적절한 단어 차단 로직
     if optimized_query == "INVALID_QUERY":
-        print(f"무의미한 검색어로 판단되어 벡터 검색을 건너뜁니다.")
+        logger.info("Skipping vector search for invalid query")
         return []
     if optimized_query == "INAPPROPRIATE_QUERY":
-        print(f"부적절한 단어 감지됨 (검색 차단)")
+        logger.info("Blocking inappropriate query")
         raise HTTPException(
             status_code=400,
             detail="적절하지 못한 단어로 검색을 하셨습니다 검색어를 다시 입력해주세요"
@@ -94,10 +96,9 @@ def search_similar_article_ids(query_text: str, k: int = 100, max_results: int =
             if len(top_candidates) >= max_results: 
                 break
                 
-    print(f"\n🔍 검색어: '{query_text}' (터미널 확인용 상위 {len(top_candidates)}개)")
+    logger.debug("Vector search candidates for %r: %s", query_text, len(top_candidates))
     for aid, dist in top_candidates:
-        print(f"  - 아티클 ID: {aid} | 거리(Distance): {dist:.4f}")
-    print("-" * 40)
+        logger.debug("Vector candidate article_id=%s distance=%.4f", aid, dist)
 
     article_ids = []
     for aid, dist in top_candidates:
@@ -134,10 +135,10 @@ def search_similar_with_scores(query_text: str, k: int = 100, max_results: int =
     
     # 🌟 무의미한 검색어 및 부적절한 단어 차단 로직
     if optimized_query == "INVALID_QUERY":
-        print(f"무의미한 검색어로 판단되어 벡터 검색을 건너뜁니다.")
+        logger.info("Skipping vector search for invalid query")
         return []
     if optimized_query == "INAPPROPRIATE_QUERY":
-        print(f"부적절한 단어 감지됨 (검색 차단)")
+        logger.info("Blocking inappropriate query")
         raise HTTPException(
             status_code=400,
             detail="적절하지 못한 단어로 검색을 하셨습니다 검색어를 다시 입력해주세요"
@@ -156,10 +157,9 @@ def search_similar_with_scores(query_text: str, k: int = 100, max_results: int =
             if len(top_candidates) >= max_results:
                 break
                 
-    print(f"\n🔍 검색어: '{query_text}' (터미널 확인용 상위 {len(top_candidates)}개)")
+    logger.debug("Vector search candidates for %r: %s", query_text, len(top_candidates))
     for aid, dist, _ in top_candidates:
-        print(f"  - 아티클 ID: {aid} | 거리(Distance): {dist:.4f}")
-    print("-" * 40)
+        logger.debug("Vector candidate article_id=%s distance=%.4f", aid, dist)
 
     results = []
     for aid, dist, content in top_candidates:

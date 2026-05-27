@@ -205,6 +205,7 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
   const [selectedLearnerId, setSelectedLearnerId] = useState(null);
   const [selectedWeek, setSelectedWeek] = useState(null);
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
+  const [highlightedSubmissionId, setHighlightedSubmissionId] = useState(null);
 
   const [reportModal, setReportModal] = useState({ open: false, file: null, loading: false });
   const [templateModal, setTemplateModal] = useState({ open: false, week: null, assignmentIdx: null, title: '', content: '', deadline: '', fullscreen: false, generating: false });
@@ -316,11 +317,18 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
     setViewMode('learner');
     setSelectedLearnerId(targetSubmission.task_learner_id);
     setSelectedSubmissionId(targetSubmission.task_submission_id);
+    setHighlightedSubmissionId(targetSubmission.task_submission_id);
     setSelectedWeek(targetSubmission.task_week_number);
     window.requestAnimationFrame(() => {
       document.querySelector('.curriculumWrapper')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }, [notificationTarget, submissions]);
+
+  useEffect(() => {
+    if (!highlightedSubmissionId) return undefined;
+    const timer = window.setTimeout(() => setHighlightedSubmissionId(null), 2400);
+    return () => window.clearTimeout(timer);
+  }, [highlightedSubmissionId]);
 
   const handleAttachmentDownload = async (submissionId, attachment) => {
     try { await downloadAttachment(submissionId, attachment); } catch (err) { toast.error(err.response?.data?.detail || '첨부파일 다운로드에 실패했습니다.'); }
@@ -865,7 +873,7 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
                         return (
                           <div
                             key={`${task.week}-${task.title}-${idx}`}
-                            className={`extracted-accordion-item ${selectedSubmissionId === s?.task_submission_id ? 'active' : ''} ${s ? 'clickable' : 'default-cursor'}`}
+                            className={`extracted-accordion-item ${selectedSubmissionId === s?.task_submission_id ? 'active' : ''} ${highlightedSubmissionId === s?.task_submission_id ? 'notification-highlight' : ''} ${s ? 'clickable' : 'default-cursor'}`}
                             onClick={() => s ? setSelectedSubmissionId(s.task_submission_id) : null}
                           >
                             <div className={`extracted-accordion-header ${selectedSubmissionId === s?.task_submission_id ? 'expanded' : ''}`}>

@@ -502,6 +502,28 @@
   background: #f6f7f8;
 }
 
+.extracted-accordion-item.notification-highlight {
+  animation: notificationTargetPulse 2.4s ease-out;
+}
+
+@keyframes notificationTargetPulse {
+  0% {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(55, 115, 255, 0.22);
+    background: #eef5ff;
+  }
+  45% {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(55, 115, 255, 0.14);
+    background: #f7fbff;
+  }
+  100% {
+    border-color: #3A4A5C;
+    box-shadow: none;
+    background: transparent;
+  }
+}
+
 .extracted-week-label {
   font-family: 'Pretendard', sans-serif;
   font-weight: 500;

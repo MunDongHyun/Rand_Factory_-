@@ -1,10 +1,13 @@
 import json
+import logging
 
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 INSIGHTS_PROMPT = (
     "아래 아티클 본문을 분석해서 핵심 인사이트를 추출해줘.\n"
@@ -83,7 +86,7 @@ def create_ai_generated_content(keyword: str) -> dict:
         cleaned = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
         return json.loads(cleaned)
     except Exception as e:
-        print(f"Generation Error: {e}")
+        logger.warning("AI article generation failed: %s", e)
         # 폴백 데이터 반환
         return {
             "title": f"{keyword} 관련 비즈니스 리포트",

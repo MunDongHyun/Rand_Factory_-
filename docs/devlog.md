@@ -3435,6 +3435,28 @@ WHERE c.cur_deleted_at IS NULL AND c.cur_status = 'active'
 
 ---
 
+## 2026-05-27 - 1순위 고도화: 로그 정리 / 첨부 선검증 / 알림 강조
+
+### 변경
+- 루트 `package.json`, `package-lock.json` 삭제 상태는 의도된 정리로 유지
+- 서버 디버그 `print()` 정리
+  - RAG 검색/쿼리 변환/아티클 검색/AI 생성 실패 로그를 `logging` 기반으로 변경
+  - 기본 실행 콘솔에 검색어와 벡터 거리 로그가 무조건 노출되지 않도록 개선
+- 첨부파일 프론트 선검증 추가
+  - 서버 whitelist와 맞춰 문서/이미지/압축 확장자만 선택 가능하도록 검증
+  - 20MB 초과, 빈 파일, 허용되지 않은 확장자는 제출 전에 사용자에게 안내
+- 알림 딥링크 시각 강조 추가
+  - 과제 제출 알림 클릭으로 열린 제출물 항목에 일시적인 highlight 애니메이션 적용
+  - 매니저가 이동 후 어떤 제출물이 자동 선택됐는지 바로 확인 가능
+
+### 검증
+- `server\.venv` 경로 오입력 후 재실행: `server\venv` 기준 compile 통과
+- `server\venv\Scripts\python.exe -m compileall -q app` 통과
+- `server\venv\Scripts\python.exe -c "from app.main import app; print(len(app.routes))"` 통과, route 59개 유지
+- `client`에서 `npm run build` 통과
+
+---
+
 ## 2026-05-27 - 알림 딥링크 / 운영 설정 정리 / AI 산출물 추적 해제
 
 ### 변경

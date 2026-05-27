@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { toast } from 'react-toastify';
 import api from '../lib/api';
 import { sanitizeHtml } from '../lib/sanitize';
-import { downloadAttachment, formatBytes } from '../lib/attachments';
+import { downloadAttachment, formatBytes, validateAttachmentFile } from '../lib/attachments';
 import '../styles/LearnerCurriculum.css';
 
 // --- 유틸 함수 ---
@@ -390,7 +390,21 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
-    setSubmitFiles((prev) => [...prev, ...files]);
+    const validFiles = [];
+    const rejected = [];
+
+    files.forEach((file) => {
+      const error = validateAttachmentFile(file);
+      if (error) rejected.push(`${file.name}: ${error}`);
+      else validFiles.push(file);
+    });
+
+    if (rejected.length > 0) {
+      toast.warn(`일부 파일을 추가하지 못했습니다:\n${rejected.join('\n')}`);
+    }
+    if (validFiles.length > 0) {
+      setSubmitFiles((prev) => [...prev, ...validFiles]);
+    }
     e.target.value = '';
   };
 
@@ -416,6 +430,17 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
 
     if (!hasContent && submitFiles.length === 0 && existingAttachments.length === 0) {
       setSubmitError('작성 내용이나 첨부파일 중 하나는 있어야 합니다.');
+      return;
+    }
+
+    const invalidFiles = submitFiles
+      .map((file) => {
+        const error = validateAttachmentFile(file);
+        return error ? `${file.name}: ${error}` : null;
+      })
+      .filter(Boolean);
+    if (invalidFiles.length > 0) {
+      setSubmitError(`업로드할 수 없는 첨부파일이 있습니다.\n${invalidFiles.join('\n')}`);
       return;
     }
 

@@ -3,6 +3,7 @@ from datetime import date, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, update
 from sqlalchemy.orm import Session
+import logging
 from collections import Counter
 
 
@@ -29,6 +30,7 @@ from app.services import article_service, rag_service, thumbnail_service
 from app.models.user_activity import UserActivity
 
 router = APIRouter(prefix="/api/articles", tags=["articles"])
+logger = logging.getLogger(__name__)
 
 
 def _extract_preview_summary_title(summary_text: dict | list | None) -> str | None:
@@ -163,9 +165,9 @@ def list_articles(
 
         vector_results = rag_service.search_similar_with_scores(query_text=keyword, k=50)
         
-        print(f"\n🔍 검색어: '{keyword}'")
+        logger.debug("Article search keyword=%r", keyword)
         for aid, dist, content in vector_results[:5]: 
-            print(f" - 아티클 ID: {aid} | 거리(Distance): {dist:.4f}")
+            logger.debug("Article search candidate article_id=%s distance=%.4f", aid, dist)
 
         # 🌟 2. 키워드 직접 매칭 시 'AI' 제외
         exact_matches = db.query(Article.article_id).filter(

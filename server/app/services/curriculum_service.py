@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -8,6 +9,8 @@ from typing import List
 from langchain_openai import ChatOpenAI
 from langchain_community.tools import DuckDuckGoSearchResults
 from langchain_core.prompts import ChatPromptTemplate
+
+logger = logging.getLogger(__name__)
 
 class TemplateOutput(BaseModel):
     html_content: str = Field(description="학습자가 바로 작성할 수 있도록 구성된 HTML 양식 코드")
@@ -26,7 +29,7 @@ load_dotenv(PROJECT_DIR / ".env", override=False)
 
 openai_api_key = os.getenv("OPENAI_API_KEY")
 if not openai_api_key:
-    print("경고: OPENAI_API_KEY를 찾을 수 없습니다.")
+    logger.warning("OPENAI_API_KEY is not configured")
 
 
 # 2. Pydantic 스키마 정의
@@ -104,7 +107,7 @@ def retrieve_real_urls_for_context(course_name: str, required_content: str) -> s
         formatted_web_context = "=== [실제 웹 참고 자료 (이 URL들만 사용할 것)] ===\n" + raw_results 
         return formatted_web_context
     except Exception as e:
-        print(f"Web Search Error: {e}")
+        logger.warning("Web search failed: %s", e)
         return "=== [웹 참고 자료 검색 실패. 내부 자료를 권장하도록 안내하세요.] ==="
 
 def generate_week_plan(cur_title: str, cur_duration_weeks: int, cur_target_job: str, cur_target_industry: str, cur_learning_goal: str, required_content: str):
