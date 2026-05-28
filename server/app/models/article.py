@@ -32,6 +32,7 @@ class Article(Base):
         onupdate=func.now(),
     )
     article_thumbnail_filename: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    article_pdf_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
 
     ai_summaries: Mapped[list["AiSummary"]] = relationship("AiSummary", back_populates="article")
     authors: Mapped[list["Author"]] = relationship(

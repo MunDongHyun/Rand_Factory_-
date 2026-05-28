@@ -2,6 +2,63 @@
 
 ---
 
+## 2026-05-28 - Claude (객체저장소 활용 확장 — 산출물 / 리포트 / 아티클 원본)
+
+### 배경
+- 첨부 + 썸네일이 이미 R2에 있는 상태에서 "객체저장소를 쓴다"는 발표 어필을 완성하려면 매니저가 만든 산출물·관리자 리포트·아티클 원본까지 통합 보관이 필요
+- 인프라는 첨부 R2에서 검증된 `attachment_storage` 모듈을 그대로 활용
+
+### 변경 — `attachment_storage` 범용 helper 추가
+- `save_object(key, contents, content_type)` — R2 우선, 로컬 `server/uploads/{key}` fallback
+- `open_object(key, fallback_content_type)` — R2 우선, NoSuchKey면 로컬 fallback. StreamingResponse용 iterator 반환
+
+### 변경 1 — 커리큘럼 산출물 (TXT / PDF / DOCX)
+- `routers/curriculum.py`의 download 3핸들러에서 생성 직후 R2 best-effort 저장
+- 헬퍼 `_save_curriculum_export(curriculum_data, fmt, content, content_type)` — cur_id 없으면 건너뜀, 저장 실패해도 다운로드는 정상 진행 (warning 로그만)
+- 저장 경로: `curriculum_exports/{cur_id}/{YYYYMMDDTHHMMSS}.{ext}`
+
+### 변경 2 — 운영 리포트 PDF (관리자 주간/월간)
+- 신규 라우터 `routers/reports.py` 등록 (`main.py` 포함)
+  - `POST /api/reports/upload?kind=weekly|monthly` — 관리자만, multipart PDF, 30MB 제한
+  - 저장 경로: `reports/{kind}/{user_id}/{YYYYMMDDTHHMMSS}.pdf`
+- 프론트 `MasterDashboard.jsx` `handleDownloadReport`:
+  - `html2pdf().outputPdf('blob')` 으로 blob 얻은 뒤 (1) 클라이언트 다운로드 (2) 서버 업로드 best-effort
+  - 업로드 실패해도 사용자 다운로드는 영향 없음 (콘솔 warn만)
+
+### 변경 3 — 아티클 원본 PDF (관리자만 업로드·다운로드)
+- 모델 `models/article.py`: `article_pdf_key VARCHAR(512) NULL` 추가
+  - 기존 DB는 `docs/article_pdf_key_migration_2026_05_28.sql` 수동 적용 필요 (`create_all`은 기존 테이블 컬럼을 추가하지 않음)
+- 스키마 `schemas/article.py::ArticleResponse`: `article_has_pdf: bool = False` 노출 (key 자체는 보안상 미노출)
+- 라우터 `routers/article.py`:
+  - `POST /api/articles/{id}/pdf` — 관리자만, multipart, 30MB, 첫 5바이트 `%PDF-` 검사. 저장 후 `article_pdf_key` 반영
+  - `GET /api/articles/{id}/pdf` — 관리자만 (학습자/매니저는 404). 한글 파일명 RFC 5987
+  - 저장 경로: `articles/{article_id}/source.pdf`
+- 프론트 `MasterArticleCreateModal.jsx`: PDF 선택 필드 추가 (선택, 30MB 가드). 아티클 등록 성공 후 별도 호출로 업로드 — PDF만 실패해도 아티클 등록 자체는 성공 처리
+
+### 권한 정책
+- 모든 PDF/리포트는 관리자만 업로드
+- 아티클 원본 다운로드는 관리자 전용 (저작권 보호)
+- 매니저/학습자는 `article_has_pdf` 플래그만 받음 (UI에서 노출 여부는 별개)
+
+### 변경 파일
+- 백엔드: `services/attachment_storage.py`, `routers/reports.py`(신규), `routers/article.py`, `routers/curriculum.py`, `models/article.py`, `schemas/article.py`, `main.py`
+- 프론트: `components/MasterDashboard.jsx`, `components/master/MasterArticleCreateModal.jsx`
+
+### 검증
+- `python -m compileall -q app` 통과
+- `from app.main import app` routes 61 → 64 (+3: reports/upload, articles/{id}/pdf POST/GET)
+- `npm run build` 통과
+
+### 시연 멘트
+> "첨부파일·썸네일에 이어 매니저가 생성한 교육 산출물, 관리자 운영 리포트, 아티클 원본 PDF까지 객체저장소(R2)에 통합 보관합니다. 아티클 메타는 MySQL, 검색용 벡터는 Chroma, 바이너리·파일은 R2 구조로 관심사가 깔끔하게 분리돼 있습니다."
+
+### 후속
+- 매니저용 "최근 export 목록 보기" UI는 V2 (현재는 R2에만 쌓임)
+- 아티클 원본 다운로드 권한 확장(매니저·학습자) 정책 합의되면 라우터 한 줄 변경
+- DB 마이그레이션은 `ALTER TABLE articles ADD COLUMN article_pdf_key VARCHAR(512) NULL;` 수동 적용 필요
+
+---
+
 ## 2026-05-28 - Claude (XSS 보완 + 의존성 정리 + AI 모델명 통일)
 
 ### 변경

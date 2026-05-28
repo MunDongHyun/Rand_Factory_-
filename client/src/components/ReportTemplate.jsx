@@ -21,7 +21,7 @@ const ROLE_LABEL = { a: '관리자', m: '매니저', j: '학습자' };
 
 const ReportTemplate = forwardRef(function ReportTemplate(
   {
-    title = 'LANDFACTORY 운영 보고서',
+    title = 'ArtiCulum 운영 보고서',
     period,           // { kind: '주간' | '월간' | '커스텀', start, end }
     stats,            // /users/stats
     curriculumStats,  // /curricula/stats
@@ -92,7 +92,7 @@ const ReportTemplate = forwardRef(function ReportTemplate(
       <div className="reportPage">
         <header className="reportHeader">
           <div>
-            <p className="reportEyebrow">LANDFACTORY</p>
+            <p className="reportEyebrow">ArtiCulum</p>
             <h1 className="reportTitle">{title}</h1>
           </div>
           <div className="reportHeaderRight">
@@ -258,7 +258,7 @@ const ReportTemplate = forwardRef(function ReportTemplate(
         </section>
 
         <footer className="reportFooter">
-          본 보고서는 LANDFACTORY 시스템에서 자동 생성되었습니다.
+          본 보고서는 ArtiCulum 시스템에서 자동 생성되었습니다.
         </footer>
       </div>
     </div>

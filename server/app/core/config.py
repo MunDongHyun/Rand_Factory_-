@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     smtp_port: int = 465
     smtp_user: str | None = None
     smtp_password: str | None = None
-    smtp_from_name: str = "LandFactory"
+    smtp_from_name: str = "ArtiCulum"
 
     # Cloudflare R2 attachment storage
     r2_account_id: str | None = None

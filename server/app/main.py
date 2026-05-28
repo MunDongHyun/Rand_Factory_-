@@ -14,6 +14,7 @@ from app.routers import (
     health,
     notification,
     rag,
+    reports,
     task_submission,
     thumbnail,
     user,
@@ -29,7 +30,7 @@ Base.metadata.create_all(bind=engine)
 
 
 app = FastAPI(
-    title="landfactory API",
+    title="ArtiCulum API",
     description="DBR/HBR article-based AI learning platform API",
     version="0.2.0",
 )
@@ -57,3 +58,4 @@ app.include_router(rag.router)
 app.include_router(curriculum.router)
 app.include_router(task_submission.router)
 app.include_router(notification.router)
+app.include_router(reports.router)

@@ -1,4 +1,4 @@
-# landfactory
+# ArtiCulum
 
 **LLM·RAG 기반 DBR/HBR 아티클 요약 및 사내 매니저 주도형 AI 교육 커리큘럼 서비스**
 
@@ -50,7 +50,7 @@ DBR/HBR 아티클을 LLM·RAG 로 요약·검색하고, 회사 매니저가 학�
 ## 프로젝트 구조
 
 ```text
-landfactory/
+articulum/
 ├─ client/                  # React (Vite) 프론트엔드
 │  ├─ src/
 │  │  ├─ components/         # 화면 컴포넌트 (Dashboard, Curriculum, Master 등)

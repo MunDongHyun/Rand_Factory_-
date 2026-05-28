@@ -32,6 +32,7 @@ class ArticleResponse(BaseModel):
     article_updated_at: datetime | None = None
     article_thumbnail_url: str | None = None
     article_has_summary: bool = False
+    article_has_pdf: bool = False
     article_preview_summary_title: str | None = None
 
 

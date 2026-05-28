@@ -12,9 +12,12 @@ const INITIAL = {
   content: '',
 };
 
+const ARTICLE_PDF_MAX_BYTES = 30 * 1024 * 1024;
+
 function MasterArticleCreateModal({ open, onClose, onCreated }) {
   const [form, setForm] = useState(INITIAL);
   const [categoryOptions, setCategoryOptions] = useState([]);
+  const [pdfFile, setPdfFile] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
@@ -28,10 +31,32 @@ function MasterArticleCreateModal({ open, onClose, onCreated }) {
   useEffect(() => {
     if (!open) {
       setForm(INITIAL);
+      setPdfFile(null);
       setError(null);
       setSaving(false);
     }
   }, [open]);
+
+  const handlePdfSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setPdfFile(null);
+      return;
+    }
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+      toast.warn('PDF 파일만 업로드할 수 있습니다.');
+      setPdfFile(null);
+      e.target.value = '';
+      return;
+    }
+    if (file.size > ARTICLE_PDF_MAX_BYTES) {
+      toast.warn('PDF는 30MB 이하만 업로드할 수 있습니다.');
+      setPdfFile(null);
+      e.target.value = '';
+      return;
+    }
+    setPdfFile(file);
+  };
 
   if (!open) return null;
 
@@ -59,8 +84,20 @@ function MasterArticleCreateModal({ open, onClose, onCreated }) {
         article_source_url: form.article_source_url.trim(),
         content: form.content.trim() || null,
       });
+      let created = res.data;
+      // 원본 PDF 첨부가 있으면 별도 호출 (실패해도 아티클 등록 자체는 성공으로 처리)
+      if (pdfFile && created?.article_id) {
+        try {
+          const fd = new FormData();
+          fd.append('file', pdfFile, pdfFile.name);
+          const pdfRes = await api.post(`/articles/${created.article_id}/pdf`, fd);
+          created = pdfRes.data;
+        } catch (pdfErr) {
+          toast.warn('아티클은 등록됐지만 원본 PDF 업로드는 실패했습니다.');
+        }
+      }
       toast.success('아티클이 등록되었습니다.');
-      if (onCreated) onCreated(res.data);
+      if (onCreated) onCreated(created);
       onClose();
     } catch (err) {
       const detail = err.response?.data?.detail;
@@ -170,6 +207,19 @@ function MasterArticleCreateModal({ open, onClose, onCreated }) {
               rows={10}
               disabled={saving}
             />
+          </div>
+
+          <div className="masterArticleField">
+            <label>원본 PDF (선택, 최대 30MB)</label>
+            <input
+              type="file"
+              accept="application/pdf,.pdf"
+              onChange={handlePdfSelect}
+              disabled={saving}
+            />
+            {pdfFile && (
+              <p className="masterArticleHint">선택됨: {pdfFile.name} ({Math.round(pdfFile.size / 1024)} KB)</p>
+            )}
           </div>
 
           {error && <p className="masterArticleError">{error}</p>}

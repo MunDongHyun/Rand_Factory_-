@@ -1,6 +1,8 @@
 from datetime import date, timedelta
+from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy import func, update
 from sqlalchemy.orm import Session
 import logging
@@ -27,7 +29,15 @@ from app.schemas.article import (
     TimelineResponse,
 )
 from app.services import article_service, rag_service, thumbnail_service
+from app.services.attachment_storage import (
+    AttachmentNotFoundError,
+    AttachmentStorageError,
+    open_object,
+    save_object,
+)
 from app.models.user_activity import UserActivity
+
+ARTICLE_PDF_MAX_BYTES = 30 * 1024 * 1024  # 한 아티클당 30MB
 
 router = APIRouter(prefix="/api/articles", tags=["articles"])
 logger = logging.getLogger(__name__)
@@ -65,6 +75,7 @@ def _to_response(
 ) -> ArticleResponse:
     response = ArticleResponse.model_validate(article)
     response.article_thumbnail_url = thumbnail_service.get_thumbnail_url(article)
+    response.article_has_pdf = bool(article.article_pdf_key)
     if summary_article_ids is not None:
         response.article_has_summary = article.article_id in summary_article_ids
     if preview_summary_titles is not None:
@@ -439,3 +450,67 @@ def get_article(
         **base.model_dump(),
         authors=[AuthorBrief.model_validate(a) for a in article.authors],
     )
+
+
+@router.post("/{article_id}/pdf", response_model=ArticleResponse, status_code=status.HTTP_200_OK)
+async def upload_article_pdf(
+    article_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """관리자가 아티클 원본 PDF를 업로드. 저장 경로 articles/{id}/source.pdf"""
+    if current_user.user_role != "a":
+        raise HTTPException(status_code=403, detail="관리자만 원본 PDF를 업로드할 수 있습니다")
+
+    article = db.query(Article).filter(Article.article_id == article_id).first()
+    if not article:
+        raise HTTPException(status_code=404, detail="게시글을 찾을 수 없습니다")
+
+    contents = await file.read()
+    if not contents:
+        raise HTTPException(status_code=400, detail="빈 파일은 업로드할 수 없습니다")
+    if len(contents) > ARTICLE_PDF_MAX_BYTES:
+        raise HTTPException(status_code=413, detail="파일이 너무 큽니다 (최대 30MB)")
+    # 간단한 PDF magic byte 확인
+    if not contents.startswith(b"%PDF-"):
+        raise HTTPException(status_code=415, detail="PDF 형식만 업로드할 수 있습니다")
+
+    key = f"articles/{article_id}/source.pdf"
+    try:
+        save_object(key, contents, "application/pdf")
+    except AttachmentStorageError as exc:
+        raise HTTPException(status_code=500, detail="원본 PDF를 저장하지 못했습니다") from exc
+
+    article.article_pdf_key = key
+    db.commit()
+    db.refresh(article)
+    return _to_response(article)
+
+
+@router.get("/{article_id}/pdf")
+def download_article_pdf(
+    article_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """관리자 전용 원본 PDF 다운로드."""
+    if current_user.user_role != "a":
+        raise HTTPException(status_code=404, detail="원본을 찾을 수 없습니다")
+
+    article = db.query(Article).filter(Article.article_id == article_id).first()
+    if not article or not article.article_pdf_key:
+        raise HTTPException(status_code=404, detail="원본을 찾을 수 없습니다")
+
+    try:
+        stored = open_object(article.article_pdf_key, "application/pdf")
+    except AttachmentNotFoundError:
+        raise HTTPException(status_code=404, detail="원본 파일이 존재하지 않습니다")
+    except AttachmentStorageError:
+        raise HTTPException(status_code=500, detail="원본 다운로드에 실패했습니다")
+
+    safe_title = quote(f"{article.article_title}.pdf", safe="")
+    headers = {"Content-Disposition": f"attachment; filename*=UTF-8''{safe_title}"}
+    if stored.content_length is not None:
+        headers["Content-Length"] = str(stored.content_length)
+    return StreamingResponse(stored.body, media_type=stored.content_type, headers=headers)

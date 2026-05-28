@@ -1,4 +1,5 @@
 from datetime import datetime, timezone, timedelta
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Query as QueryParam, Request, status, Body
 from fastapi.responses import StreamingResponse
 from sqlalchemy import func, text
@@ -16,6 +17,28 @@ from app.core.security import get_current_user
 from app.models.curriculum import Curriculum
 from app.models.task_submission import TaskSubmission
 from app.models.user import User
+from app.services.attachment_storage import save_object, AttachmentStorageError
+
+logger = logging.getLogger(__name__)
+
+
+def _save_curriculum_export(
+    curriculum_data: dict, fmt: str, content: bytes, content_type: str
+) -> None:
+    """매니저가 다운로드한 커리큘럼 산출물을 R2(또는 로컬)에 best-effort 보관.
+
+    실패해도 다운로드 자체에는 영향을 주지 않고 로그만 남김.
+    cur_id가 없으면 식별 불가라 저장 건너뜀.
+    """
+    cur_id = curriculum_data.get("cur_id")
+    if not cur_id:
+        return
+    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
+    key = f"curriculum_exports/{cur_id}/{ts}.{fmt}"
+    try:
+        save_object(key, content, content_type)
+    except AttachmentStorageError as exc:
+        logger.warning("Curriculum export save failed cur_id=%s fmt=%s: %s", cur_id, fmt, exc)
 from app.schemas.curriculum import (
     CurriculumCreate,
     CurriculumGenerateRequest,
@@ -335,7 +358,7 @@ async def download_curriculum_txt(
 
     lines = []
     lines.append("=" * 60)
-    lines.append(" LandFactory 과제 템플릿 패키지")
+    lines.append(" ArtiCulum 과제 템플릿 패키지")
     lines.append(f" {cur_title} 실무 온보딩 과정")
     lines.append("=" * 60 + "\n")
 
@@ -396,8 +419,11 @@ async def download_curriculum_txt(
     lines.append("연결성: 이전 주차 산출물을 다음 과제에 잘 활용했는가?")
     lines.append("-" * 60 + "\n")
 
+    text_content = "\n".join(lines)
+    _save_curriculum_export(curriculum_data, "txt", text_content.encode("utf-8"), "text/plain; charset=utf-8")
+
     return StreamingResponse(
-        io.StringIO("\n".join(lines)),
+        io.StringIO(text_content),
         media_type="text/plain",
         headers={"Content-Disposition": f"attachment; filename=curriculum.txt"},
     )
@@ -469,7 +495,7 @@ async def download_curriculum_pdf(
             pdf.cell(0, h, txt=line, border=b, ln=True, fill=fill)
 
     set_font('', 16)
-    pdf.cell(0, 10, txt="LandFactory 과제 템플릿 패키지", ln=True, align='C')
+    pdf.cell(0, 10, txt="ArtiCulum 과제 템플릿 패키지", ln=True, align='C')
     set_font('', 14)
     pdf.cell(0, 10, txt=f"{cur_title} 실무 온보딩 과정", ln=True, align='C')
     pdf.ln(5)
@@ -543,11 +569,12 @@ async def download_curriculum_pdf(
     safe_print(rubric, border=1, h=8)
     pdf_out = pdf.output(dest="S")
     pdf_bytes = pdf_out.encode("latin-1") if isinstance(pdf_out, str) else bytes(pdf_out)
+    _save_curriculum_export(curriculum_data, "pdf", pdf_bytes, "application/pdf")
     pdf_stream = io.BytesIO(pdf_bytes)
 
     return StreamingResponse(
-        pdf_stream, 
-        media_type="application/pdf", 
+        pdf_stream,
+        media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename=curriculum.pdf"}
     )
 
@@ -571,7 +598,7 @@ async def download_curriculum_docx(
     style.font.name = 'Malgun Gothic'
     style._element.rPr.rFonts.set(qn('w:eastAsia'), 'Malgun Gothic')
 
-    doc.add_heading("LandFactory 과제 템플릿 패키지", 0)
+    doc.add_heading("ArtiCulum 과제 템플릿 패키지", 0)
     doc.add_paragraph(f"{cur_title} 실무 온보딩 과정").bold = True
 
     # 1. 과정 개요
@@ -670,11 +697,18 @@ async def download_curriculum_docx(
 
     file_stream = io.BytesIO()
     doc.save(file_stream)
+    docx_bytes = file_stream.getvalue()
+    _save_curriculum_export(
+        curriculum_data,
+        "docx",
+        docx_bytes,
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    )
     file_stream.seek(0)
 
     return StreamingResponse(
-        file_stream, 
-        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document", 
+        file_stream,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         headers={"Content-Disposition": f"attachment; filename=curriculum.docx"}
     )
     

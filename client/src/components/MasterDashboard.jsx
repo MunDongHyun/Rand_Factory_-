@@ -372,10 +372,10 @@ function MasterDashboard({ user, onLogout }) {
       const element = reportRef.current;
       if (!element) throw new Error('보고서 영역을 찾지 못했습니다.');
 
-      const filename = `landfactory_${kind}_report_${new Date().toISOString().slice(0, 10)}.pdf`;
+      const filename = `articulum_${kind}_report_${new Date().toISOString().slice(0, 10)}.pdf`;
       const html2pdf = (await import('html2pdf.js')).default;
 
-      await html2pdf()
+      const worker = html2pdf()
         .from(element)
         .set({
           margin: 0,
@@ -387,8 +387,31 @@ function MasterDashboard({ user, onLogout }) {
             mode: ['css', 'legacy'],
             before: '.reportPage:not(:first-child)',
           },
-        })
-        .save();
+        });
+
+      // PDF blob 얻어서 (1) 클라이언트 다운로드 (2) R2 best-effort 업로드
+      const blob = await worker.outputPdf('blob');
+
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(blobUrl);
+
+      // R2 업로드는 실패해도 사용자 다운로드는 정상 진행
+      try {
+        const fd = new FormData();
+        fd.append('file', blob, filename);
+        await api.post(`/reports/upload?kind=${kind}`, fd);
+      } catch (uploadErr) {
+        // 운영 보관 실패는 사용자에게 알리지 않음 (다운로드는 이미 완료)
+        // 콘솔에만 흔적
+        // eslint-disable-next-line no-console
+        console.warn('Report R2 upload skipped:', uploadErr?.response?.status || uploadErr?.message);
+      }
     } catch (err) {
       toast.error(err.response?.data?.detail || err.message || 'PDF 생성에 실패했습니다.');
     } finally {
@@ -402,7 +425,7 @@ function MasterDashboard({ user, onLogout }) {
 
       {/* 헤더 */}
       <header className="masterHeader">
-        <div className="masterLogo">LANDFACTORY</div>
+        <div className="masterLogo">ArtiCulum</div>
         <div className="masterHeaderActions">
           <button
             className="masterReportBtn"
