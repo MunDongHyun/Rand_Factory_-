@@ -684,7 +684,7 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
                         className="template-render learnerTemplateRender learner-editor-container"
                         contentEditable={false}
                         ref={submitEditorRef}
-                        dangerouslySetInnerHTML={{ __html: activeTask.assignmentData.template_content || '' }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(activeTask.assignmentData.template_content) || '' }}
                       />
 
                       <div className="learner-attach-box">

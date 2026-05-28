@@ -29,7 +29,7 @@ def transform_query_for_search(user_query: str) -> str:
     LangChain 응답이 결정적이지 않을 수 있으나, 검색어 정규화 목적상 같은 입력에는
     같은 결과를 돌려주는 것이 사용자 경험상 더 일관적이다.
     """
-    llm = ChatOpenAI(model="gpt-5.4-mini", temperature=0, api_key=settings.openai_api_key)
+    llm = ChatOpenAI(model=settings.ai_model, temperature=0, api_key=settings.openai_api_key)
     
     prompt = f"""
     당신은 RAG 시스템의 검색 도우미입니다. 사용자의 검색어를 벡터 DB 검색에 최적화된 형태로 재작성해주세요.

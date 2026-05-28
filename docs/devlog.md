@@ -2,6 +2,22 @@
 
 ---
 
+## 2026-05-28 - Claude (XSS 보완 + 의존성 정리 + AI 모델명 통일)
+
+### 변경
+1. **XSS 보안**: `LearnerCurriculumView.jsx:687` 매니저가 작성한 `template_content`를 학습자 화면에 `dangerouslySetInnerHTML`로 그대로 주입하고 있었음 → `sanitizeHtml(...)` 적용. 다른 곳(제출 본문 등)은 이미 sanitize 거치는데 여기만 예외였음
+2. **의존성 정리**: `client/package.json`에서 사용하지 않는 `jodit`, `jodit-react` 제거 (TipTap으로 갈아탄 후 잔재). `npm uninstall jodit jodit-react`
+3. **AI 모델명 통일**: 하드코딩 6곳 → `settings.ai_model`
+   - `services/rag_service.py:32`
+   - `services/article_service.py:39, 80`
+   - `services/curriculum_service.py:64, 114, 164` (기존 `os.getenv("AI_MODEL", ...)` 패턴도 정리, settings import 추가)
+
+### 검증
+- `python -m compileall -q app` 통과, `from app.main import app` routes 61 유지
+- `npm run build` 통과
+
+---
+
 ## 2026-05-27 - Codex (썸네일 R2 객체 저장소 이전)
 
 ### 배경

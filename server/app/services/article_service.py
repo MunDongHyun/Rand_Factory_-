@@ -36,7 +36,7 @@ def extract_insights(title: str, content: str) -> dict:
     """아티클 본문에서 keywords와 insights를 LLM으로 추출."""
     prompt = ChatPromptTemplate.from_template(INSIGHTS_PROMPT)
     llm = ChatOpenAI(
-        model="gpt-5.4-mini",
+        model=settings.ai_model,
         temperature=0.2,
         api_key=settings.openai_api_key,
     )
@@ -77,7 +77,7 @@ def create_ai_generated_content(keyword: str) -> dict:
         "비즈니스 전문가로서 '{keyword}'에 대한 심층 분석 아티클을 작성하세요. "
         "반드시 JSON 형식으로 응답하세요: {{\"title\": \"제목\", \"content\": \"본문\"}}"
     )
-    llm = ChatOpenAI(model="gpt-5.4-mini", api_key=settings.openai_api_key)
+    llm = ChatOpenAI(model=settings.ai_model, api_key=settings.openai_api_key)
     chain = prompt | llm | StrOutputParser()
 
     try:

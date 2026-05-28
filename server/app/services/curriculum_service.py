@@ -10,6 +10,8 @@ from langchain_openai import ChatOpenAI
 from langchain_community.tools import DuckDuckGoSearchResults
 from langchain_core.prompts import ChatPromptTemplate
 
+from app.core.config import settings
+
 logger = logging.getLogger(__name__)
 
 class TemplateOutput(BaseModel):
@@ -61,7 +63,7 @@ class CurriculumOutput(BaseModel):
 
 # 3. 유효성 검증 및 보안 필터링 로직 
 def validate_curriculum_input(cur_title: str, cur_target_job: str, cur_target_industry: str, cur_learning_goal: str, required_content: str) -> ValidationOutput:
-    ai_model = os.getenv("AI_MODEL", "gpt-5.4-mini")
+    ai_model = settings.ai_model
     llm = ChatOpenAI(model=ai_model, temperature=0.0, api_key=openai_api_key)
     structured_llm = llm.with_structured_output(ValidationOutput)
 
@@ -111,7 +113,7 @@ def retrieve_real_urls_for_context(course_name: str, required_content: str) -> s
         return "=== [웹 참고 자료 검색 실패. 내부 자료를 권장하도록 안내하세요.] ==="
 
 def generate_week_plan(cur_title: str, cur_duration_weeks: int, cur_target_job: str, cur_target_industry: str, cur_learning_goal: str, required_content: str):
-    ai_model = os.getenv("AI_MODEL", "gpt-5.4-mini")
+    ai_model = settings.ai_model
     llm = ChatOpenAI(model=ai_model, temperature=0.2, api_key=openai_api_key)
     
     structured_llm = llm.with_structured_output(CurriculumOutput)
@@ -161,7 +163,7 @@ def generate_week_plan(cur_title: str, cur_duration_weeks: int, cur_target_job: 
 
 # 과제 템플릿 생성하는 모델
 def generate_assignment_template(theme: str, learning_objective: str, assignment_title: str, step_by_step_guide: list[str], expected_output_format: str) -> str:
-    ai_model = os.getenv("AI_MODEL", "gpt-5.4-mini")
+    ai_model = settings.ai_model
     llm = ChatOpenAI(model=ai_model, temperature=0.3, api_key=openai_api_key)
     
     structured_llm = llm.with_structured_output(TemplateOutput)
