@@ -162,7 +162,7 @@ function LearnerManagementView({ user }) {
       // 활동 요약 카운트 갱신
       api.get(`/users/${selectedLearnerId}/activity-summary`)
         .then((r) => setSummary(r.data))
-        .catch(() => {});
+        .catch(() => { });
     } catch (err) {
       toast.error(err.response?.data?.detail || '피드백 저장에 실패했습니다.');
     } finally {
@@ -289,8 +289,8 @@ function LearnerManagementView({ user }) {
                   aria-label={codeVisible ? '코드 숨기기' : '코드 보기'}
                   title={codeVisible ? '코드 숨기기' : '코드 보기'}
                 >
-                  {codeVisible ? 
-                  <img src={eyeCloseIcon} alt="코드 숨기기" className="inviteActionIcon"/> : <img src={eyeIcon} alt="코드 보기" className="inviteActionIcon"/>}
+                  {codeVisible ?
+                    <img src={eyeCloseIcon} alt="코드 숨기기" className="inviteActionIcon" /> : <img src={eyeIcon} alt="코드 보기" className="inviteActionIcon" />}
                 </button>
                 <button
                   type="button"
@@ -299,7 +299,7 @@ function LearnerManagementView({ user }) {
                   aria-label="초대 코드 복사"
                   title="초대 코드 복사"
                 >
-                  <img src={copyIcon} alt="코드 복사" className="inviteActionIcon"/>
+                  <img src={copyIcon} alt="코드 복사" className="inviteActionIcon" />
                 </button>
               </div>
               <p className="learnerMgmtInviteHint">
@@ -404,27 +404,18 @@ function LearnerManagementView({ user }) {
               </div>
 
               <div className="learnerMgmtDetailGrid">
-                <div className="learnerMgmtSection">
-                  <h4 className="learnerMgmtSectionTitle">학습 활동 요약</h4>
-                  <div className="learnerMgmtProgressRow">
-                    <div className="learnerMgmtProgressMeta">
-                      <span className="learnerMgmtProgressLabel">진행률</span>
-                      <span className="learnerMgmtProgressValue">
-                        {summaryLoading ? '⋯' : `${summary?.progress_avg ?? 0}%`}
-                      </span>
-                    </div>
-                    <div className="learner-progress-bg">
-                      <div
-                        className="learner-progress-bar"
-                        data-progress={summary?.progress_avg ?? 0}
-                        style={{ width: `${summary?.progress_avg ?? 0}%` }}
-                      />
-                    </div>
-                    <span className="learnerMgmtLastActivity">
-                      최근 활동: {summaryLoading ? '⋯' : formatRelative(summary?.last_activity_at)}
-                    </span>
-                  </div>
+                <div className="learnerMgmtSection" style={{ position: "relative" }}>
+                  <h4 className="learnerMgmtSectionTitle" style={{ marginBottom: "20px" }}>학습 활동 요약</h4>
+                  <span className="learnerMgmtLastActivity">
+                    최근 활동: {summaryLoading ? '⋯' : formatRelative(summary?.last_activity_at)}
+                  </span>
                   <div className="learnerMgmtStats">
+                    <div className="learnerMgmtStat">
+                      <p className="learnerMgmtStatLabel">진행률</p>
+                      <p className="learnerMgmtStatValue">
+                        {summaryLoading ? '⋯' : `${summary?.progress_avg ?? 0}%`}
+                      </p>
+                    </div>
                     <div className="learnerMgmtStat">
                       <p className="learnerMgmtStatLabel">배정 커리큘럼</p>
                       <p className="learnerMgmtStatValue">
@@ -449,72 +440,72 @@ function LearnerManagementView({ user }) {
                   )}
                 </div>
 
-                <div className="learnerMgmtSection">
+                <div className="learnerMgmtSection" >
                   <div className="learnerMgmtSectionTopRow">
                     <h4 className="learnerMgmtSectionTitle">커리큘럼 배정</h4>
-                  {!editAssign && !curriculaLoading && curricula.length > 0 && (
-                    <button type="button" className="learnerMgmtEditBtn" onClick={startEditAssign}>
-                      관리
-                    </button>
-                  )}
-                </div>
+                    {!editAssign && !curriculaLoading && curricula.length > 0 && (
+                      <button type="button" className="learnerMgmtEditBtn" onClick={startEditAssign}>
+                        관리
+                      </button>
+                    )}
+                  </div>
 
-                {curriculaLoading ? (
-                  <p className="learnerMgmtMuted">불러오는 중...</p>
-                ) : !editAssign ? (
-                  assignedCurricula.length === 0 ? (
-                    <p className="learnerMgmtMuted">아직 배정된 커리큘럼이 없습니다.</p>
+                  {curriculaLoading ? (
+                    <p className="learnerMgmtMuted">불러오는 중...</p>
+                  ) : !editAssign ? (
+                    assignedCurricula.length === 0 ? (
+                      <p className="learnerMgmtMuted">아직 배정된 커리큘럼이 없습니다.</p>
+                    ) : (
+                      <ul className="learnerMgmtAssignList">
+                        {assignedCurricula.map((c) => (
+                          <li key={c.cur_id} className="learnerMgmtAssignItem" title={c.cur_title}>
+                            {c.cur_title}
+                          </li>
+                        ))}
+                      </ul>
+                    )
                   ) : (
-                    <ul className="learnerMgmtAssignList">
-                      {assignedCurricula.map((c) => (
-                        <li key={c.cur_id} className="learnerMgmtAssignItem" title={c.cur_title}>
-                          {c.cur_title}
-                        </li>
-                      ))}
-                    </ul>
-                  )
-                ) : (
-                  <>
-                    <div className="learnerMgmtAssignEdit">
-                      {curricula.length === 0 ? (
-                        <p className="learnerMgmtMuted">생성한 커리큘럼이 없습니다.</p>
-                      ) : (
-                        curricula.map((c) => {
-                          const checked = assignSelected.has(c.cur_id);
-                          return (
-                            <label key={c.cur_id} className="learnerMgmtAssignRow" title={c.cur_title}>
-                              <input
-                                type="checkbox"
-                                checked={checked}
-                                onChange={() => toggleAssign(c.cur_id)}
-                                disabled={assignSaving}
-                              />
-                              <span>{c.cur_title}</span>
-                            </label>
-                          );
-                        })
-                      )}
-                    </div>
-                    <div className="learnerMgmtAssignActions">
-                      <button
-                        type="button"
-                        className="learnerMgmtAssignCancelBtn"
-                        onClick={cancelEditAssign}
-                        disabled={assignSaving}
-                      >
-                        취소
-                      </button>
-                      <button
-                        type="button"
-                        className="learnerMgmtAssignSaveBtn"
-                        onClick={saveAssign}
-                        disabled={assignSaving}
-                      >
-                        {assignSaving ? '저장 중...' : '저장'}
-                      </button>
-                    </div>
-                  </>
-                )}
+                    <>
+                      <div className="learnerMgmtAssignEdit">
+                        {curricula.length === 0 ? (
+                          <p className="learnerMgmtMuted">생성한 커리큘럼이 없습니다.</p>
+                        ) : (
+                          curricula.map((c) => {
+                            const checked = assignSelected.has(c.cur_id);
+                            return (
+                              <label key={c.cur_id} className="learnerMgmtAssignRow" title={c.cur_title}>
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={() => toggleAssign(c.cur_id)}
+                                  disabled={assignSaving}
+                                />
+                                <span>{c.cur_title}</span>
+                              </label>
+                            );
+                          })
+                        )}
+                      </div>
+                      <div className="learnerMgmtAssignActions">
+                        <button
+                          type="button"
+                          className="learnerMgmtAssignCancelBtn"
+                          onClick={cancelEditAssign}
+                          disabled={assignSaving}
+                        >
+                          취소
+                        </button>
+                        <button
+                          type="button"
+                          className="learnerMgmtAssignSaveBtn"
+                          onClick={saveAssign}
+                          disabled={assignSaving}
+                        >
+                          {assignSaving ? '저장 중...' : '저장'}
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 

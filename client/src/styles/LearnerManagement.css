@@ -46,6 +46,7 @@
 .learnerMgmtDetailGrid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  margin-bottom: 32px;
   gap: 24px;
   align-items: start;
 }
@@ -262,7 +263,7 @@
 .learnerMgmtDetail {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 22px;
   padding: 24px 28px;
   min-width: 0;
   min-height: 0;
@@ -289,15 +290,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--line);
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ink);
 }
 
 .learnerMgmtDetailName {
-  font-size: 20px;
-  font-weight: 800;
-  color: var(--ink);
+  font-size: 24px;
+  font-weight: 700;
+  color: #3A4A5C;
   margin: 0;
 }
 
@@ -324,22 +325,23 @@
 .learnerMgmtInfo {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 14px 16px;
-  background: var(--bg);
-  border-radius: 10px;
-  margin-bottom: 18px;
+  gap: 3px;
+  margin-bottom: 40px;
+  padding: 0;
+  background: none;
+  border-radius: 0;
 }
 
 .learnerMgmtInfoRow {
   display: flex;
-  justify-content: space-between;
+  gap: 12px;
   font-size: 13px;
 }
 
 .learnerMgmtInfoLabel {
-  color: var(--ink-muted);
-  font-weight: 600;
+  color: var(--ink);
+  font-weight: 400;
+  min-width: 40px;
 }
 
 .learnerMgmtInfoValue {
@@ -358,10 +360,10 @@
 }
 
 .learnerMgmtSectionTitle {
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 500;
   color: var(--ink);
-  margin: 0;
+  margin: 0 0 10px 0;
 }
 
 .learnerMgmtProgressRow {
@@ -390,38 +392,49 @@
 }
 
 .learnerMgmtLastActivity {
+  position: absolute;
+  top: 18px;
+  right: 0;
   font-size: 11px;
   color: var(--ink-muted);
-  text-align: right;
 }
 
 .learnerMgmtStats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  min-height: 88px;
+  grid-template-columns: repeat(4, 1fr);
+  background: #F8FAFC;
+  border: 1.5px solid var(--line);
+  border-radius: 6px;
+  min-height: 80px;
 }
 
 .learnerMgmtStat {
-  background: var(--bg-alt);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 8px;
   text-align: center;
+}
+
+.learnerMgmtStat + .learnerMgmtStat {
+  border-left: 1px solid var(--line);
 }
 
 .learnerMgmtStatLabel {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 400;
   color: var(--ink-muted);
-  margin: 0 0 6px;
+  margin: 4px 0 0;
+  order: 2;
 }
 
 .learnerMgmtStatValue {
   font-size: 22px;
   font-weight: 800;
-  color: var(--ink);
+  color: #1a1a1a;
   margin: 0;
+  order: 1;
 }
 
 .learnerMgmtMuted {
@@ -465,10 +478,10 @@
 }
 
 .learnerMgmtAssignItem {
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 8px 12px;
+  border: 1.5px solid var(--line);
+  padding: 0 12px;
+  height: 35px;
+  line-height: 35px;
   font-size: 13px;
   color: var(--ink);
   white-space: nowrap;
@@ -479,15 +492,15 @@
 }
 
 .learnerMgmtAssignEdit {
+  background: var(--bg);
+  border: 1.5px solid var(--ink);
+  border-radius: 6px;
+  padding: 10px;
+  max-height: 220px;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 220px;
-  overflow-y: auto;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 10px;
-  background: var(--bg);
 }
 
 .learnerMgmtAssignRow {
@@ -552,14 +565,22 @@
   border-color: var(--accent);
 }
 
+
+
 .learnerMgmtAssignCancelBtn:disabled,
 .learnerMgmtAssignSaveBtn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
+.learnerMgmtSummaryWrapper {
+  position: relative;
+}
+
 /* --- 최근 제출 이력 --- */
 .learnerMgmtSubmissionsSection {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 24px;
   margin-top: 8px;
 }
 
@@ -574,17 +595,21 @@
 
 .learnerMgmtSubmissionItem {
   display: block;
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  background: #F8FAFC;
+  border: 1.5px solid #94B8C8;
+  border-left: 4px solid #94B8C8;
+  border-radius: 6px;
   font-size: 13px;
   min-width: 0;
   overflow: hidden;
 }
-
 .learnerMgmtSubmissionItem.expanded {
-  border-color: var(--primary, #4A7C59);
-  background: var(--card);
+  background: #F8FAFC;
+}
+
+.learnerMgmtSubmissionItem.expanded .learnerMgmtSubmissionHeader {
+  background: var(--bg);
+  color: #ffffff;
 }
 
 .learnerMgmtSubmissionHeader {
@@ -601,6 +626,7 @@
   color: inherit;
   text-align: left;
 }
+
 
 .learnerMgmtSubmissionHeader:hover {
   background: rgba(0, 0, 0, 0.02);
@@ -630,6 +656,8 @@
   min-height: 80px;
   box-sizing: border-box;
 }
+
+
 
 .learnerMgmtSubmissionLeft {
   display: flex;
