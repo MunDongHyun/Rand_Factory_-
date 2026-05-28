@@ -20,7 +20,9 @@ def get_thumbnail(filename: str):
     except ThumbnailStorageError:
         raise HTTPException(status_code=500, detail="Thumbnail storage error") from None
 
-    headers = {}
+    headers = {
+        "Cache-Control": "public, max-age=604800",
+    }
     if thumbnail.content_length is not None:
         headers["Content-Length"] = str(thumbnail.content_length)
 
