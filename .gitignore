@@ -27,6 +27,9 @@ dist/
 data/
 deliverables/
 
+# 루트 일회성 보조 스크립트 (다이어그램 overlay 등). 운영 스크립트는 server/scripts/
+scripts/
+
 # 학습자 업로드 첨부파일 (로컬 디스크 저장)
 server/uploads/
 

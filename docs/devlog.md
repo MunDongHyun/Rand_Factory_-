@@ -2,6 +2,14 @@
 
 ---
 
+## 2026-05-28 - Claude (README/.gitignore 정리)
+
+- README.md: 라우터·테이블 목록 갱신 (notification/reports/certificate/thumbnail 반영), 새 기능 섹션 (알림 삭제·수료증·마감일/양식 1회 배포·R2 객체저장소) 추가, 기술 스택에 react-datepicker·date-fns·DOMPurify·slowapi·boto3 추가, 환경변수에 R2_*·CORS_ORIGINS 명시, 폐기 항목(task_score, cur_deadline) 명시, 존재하지 않는 `article-lab/` 제거, 프로젝트 구조의 폴더명을 실제 폴더(`landfactory/`)로 정정
+- .gitignore: 루트 일회성 보조 스크립트 폴더 `scripts/` 제외 (다이어그램 overlay 등). 운영 스크립트는 `server/scripts/`에 별도 관리
+- (CLAUDE.md는 skip-worktree라 git 미반영, 로컬에서 같은 내용 동기 갱신)
+
+---
+
 ## 2026-05-28 - Claude (객체저장소 활용 확장 — 산출물 / 리포트 / 아티클 원본)
 
 ### 배경
