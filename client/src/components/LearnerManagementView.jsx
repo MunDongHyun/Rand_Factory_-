@@ -74,6 +74,9 @@ function LearnerManagementView({ user }) {
   const [editAssign, setEditAssign] = useState(false);
   const [assignSelected, setAssignSelected] = useState(() => new Set());
   const [assignSaving, setAssignSaving] = useState(false);
+  const [certificates, setCertificates] = useState([]);
+  const [certificatesLoading, setCertificatesLoading] = useState(false);
+  const [certificateActionId, setCertificateActionId] = useState(null);
 
   // 우측 상세 - 최근 제출 이력
   const [submissions, setSubmissions] = useState([]);
@@ -86,6 +89,7 @@ function LearnerManagementView({ user }) {
   const [feedbackSavingId, setFeedbackSavingId] = useState(null);
 
   useEffect(() => {
+    // 화면 진입 시 매니저 회사에 속한 학습자 목록을 한 번 불러온다.
     setLoading(true);
     api.get('/users/learners')
       .then((res) => setLearners(Array.isArray(res.data) ? res.data : []))
@@ -94,6 +98,7 @@ function LearnerManagementView({ user }) {
   }, []);
 
   useEffect(() => {
+    // 배정 관리와 수료증 발급 버튼을 위해 매니저가 접근 가능한 커리큘럼 목록을 유지한다.
     setCurriculaLoading(true);
     api.get('/curricula')
       .then((res) => setCurricula(Array.isArray(res.data) ? res.data : []))
@@ -102,12 +107,14 @@ function LearnerManagementView({ user }) {
   }, []);
 
   useEffect(() => {
+    // 학습자를 선택하면 우측 상세에 필요한 요약/제출/수료증 데이터를 함께 갱신한다.
     if (!selectedLearnerId) {
       setSummary(null);
       setSummaryError(null);
       setEditAssign(false);
       setSubmissions([]);
       setSubmissionsError(null);
+      setCertificates([]);
       setExpandedSubmissionId(null);
       setFeedbackDraft({});
       return;
@@ -128,6 +135,13 @@ function LearnerManagementView({ user }) {
       .then((res) => setSubmissions(Array.isArray(res.data) ? res.data : []))
       .catch((err) => setSubmissionsError(err.response?.data?.detail || '제출 이력을 불러오지 못했어요.'))
       .finally(() => setSubmissionsLoading(false));
+
+    setCertificatesLoading(true);
+    // 선택한 학습자에게 이미 발급된 수료증을 먼저 가져와 커리큘럼별 버튼 상태를 결정한다.
+    api.get('/certificates', { params: { learner_id: selectedLearnerId } })
+      .then((res) => setCertificates(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setCertificates([]))
+      .finally(() => setCertificatesLoading(false));
   }, [selectedLearnerId]);
 
   const handleToggleExpand = (sid) => {
@@ -177,6 +191,83 @@ function LearnerManagementView({ user }) {
       toast.success('초대 코드를 복사했습니다.');
     } catch {
       toast.error('복사에 실패했습니다.');
+    }
+  };
+
+  const downloadCertificate = async (certificate) => {
+    const res = await api.get(`/certificates/${certificate.cert_id}/download`, { responseType: 'blob' });
+    const blob = new Blob([res.data], { type: res.headers?.['content-type'] || 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const filename = `${certificate.cert_curriculum_title || '수료증'}_${certificate.cert_learner_name || '학습자'}.pdf`;
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleCertificateAction = async (curriculum) => {
+    if (!selectedLearnerId || certificateActionId) return;
+    const existing = certificates.find((cert) => cert.cert_curriculum_id === curriculum.cur_id);
+    setCertificateActionId(curriculum.cur_id);
+    try {
+      // 이미 발급된 수료증은 재발급하지 않고 바로 다운로드한다.
+      if (existing) {
+        await downloadCertificate(existing);
+        return;
+      }
+
+      // 서버의 수료 조건 검사를 통과한 경우에만 발급 요청을 보낸다.
+      const eligibilityRes = await api.get('/certificates/eligibility', {
+        params: {
+          curriculum_id: curriculum.cur_id,
+          learner_id: selectedLearnerId,
+        },
+      });
+      if (!eligibilityRes.data?.eligible) {
+        toast.info('아직 수료증 발급 조건을 만족하지 않았습니다.');
+        return;
+      }
+
+      const issueRes = await api.post('/certificates', {
+        cert_curriculum_id: curriculum.cur_id,
+        cert_learner_id: selectedLearnerId,
+        cert_title: 'ArtiCulum 수료증',
+      });
+      setCertificates((prev) => {
+        const others = prev.filter((cert) => cert.cert_id !== issueRes.data.cert_id);
+        return [issueRes.data, ...others];
+      });
+      toast.success('수료증을 발급했습니다.');
+      await downloadCertificate(issueRes.data);
+    } catch (err) {
+      const detail = err.response?.data?.detail;
+      const message = typeof detail === 'string'
+        ? detail
+        : detail?.message || '수료증 처리에 실패했습니다.';
+      toast.error(message);
+    } finally {
+      setCertificateActionId(null);
+    }
+  };
+
+  const handleSampleCertificateDownload = async () => {
+    // TODO: 수료증 템플릿 확정 후 제거. 실제 발급 기록 없이 샘플 PDF만 확인한다.
+    try {
+      const res = await api.get('/certificates/sample/download', { responseType: 'blob' });
+      const blob = new Blob([res.data], { type: res.headers?.['content-type'] || 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'articulum_certificate_sample.pdf';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || '샘플 수료증 다운로드에 실패했습니다.');
     }
   };
 
@@ -450,9 +541,14 @@ function LearnerManagementView({ user }) {
                     <div className="learnerMgmtSectionTopRow">
                       <h4 className="learnerMgmtSectionTitle">커리큘럼 배정</h4>
                       {!editAssign && !curriculaLoading && curricula.length > 0 && (
-                        <button type="button" className="learnerMgmtEditBtn" onClick={startEditAssign}>
-                          관리
-                        </button>
+                        <div className="learnerMgmtSectionActions">
+                          <button type="button" className="learnerMgmtEditBtn" onClick={handleSampleCertificateDownload}>
+                            샘플 수료증
+                          </button>
+                          <button type="button" className="learnerMgmtEditBtn" onClick={startEditAssign}>
+                            관리
+                          </button>
+                        </div>
                       )}
                     </div>
 
@@ -465,7 +561,19 @@ function LearnerManagementView({ user }) {
                         <ul className="learnerMgmtAssignList">
                           {assignedCurricula.map((c) => (
                             <li key={c.cur_id} className="learnerMgmtAssignItem" title={c.cur_title}>
-                              {c.cur_title}
+                              <span className="learnerMgmtAssignTitle">{c.cur_title}</span>
+                              <button
+                                type="button"
+                                className={`learnerMgmtCertBtn ${certificates.some((cert) => cert.cert_curriculum_id === c.cur_id) ? 'issued' : ''}`}
+                                onClick={() => handleCertificateAction(c)}
+                                disabled={certificatesLoading || certificateActionId === c.cur_id}
+                              >
+                                {certificateActionId === c.cur_id
+                                  ? '처리 중'
+                                  : certificates.some((cert) => cert.cert_curriculum_id === c.cur_id)
+                                    ? '다운로드'
+                                    : '수료증 발급'}
+                              </button>
                             </li>
                           ))}
                         </ul>

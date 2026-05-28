@@ -3608,6 +3608,42 @@ WHERE c.cur_deleted_at IS NULL AND c.cur_status = 'active'
 
 ---
 
+## 2026-05-28 - 수료증 발급 백엔드/UI 및 운영 리포트 고도화
+
+### 변경
+- 수료증 발급 기능 추가
+  - `certificates` 모델/스키마/라우터 추가
+  - 발급 가능 조건을 "모든 주차 제출 + 재제출 요청 없음 + 피드백 완료" 기준으로 계산
+  - 발급 시 수료증 번호(`AC-YYYYMMDD-xxxxxx`), 발급 당시 커리큘럼명/학습자명/발급자명 스냅샷 저장
+  - 수료증 PDF 생성 후 객체저장소 경로 `certificates/{cur_id}/{learner_id}/{ts}.pdf`에 저장
+  - 발급 목록/상세/다운로드 API 추가 및 soft delete 컬럼 제외 처리
+- 학습자 관리 화면 수료증 UI 연결
+  - 배정 커리큘럼별 `수료증 발급` / `다운로드` 버튼 추가
+  - 발급 전 eligibility 확인 후 조건 충족 시 발급 및 즉시 다운로드
+  - 템플릿 확인용 임시 `샘플 수료증` 다운로드 버튼 추가
+    - DB/R2 저장 없이 PDF만 내려주는 임시 기능
+    - 코드에 `TODO: 수료증 템플릿 확정 후 제거` 주석 표시
+- 운영 리포트 PDF 고도화
+  - 주간/월간 리포트에 직전 동일 기간 대비 증감 지표 추가
+  - 운영 요약 문장 및 학습 제출 보조 KPI 추가
+  - PDF 빈 페이지 발생 가능성을 줄이도록 리포트 페이지 높이/간격 조정
+- 프론트 핵심 흐름 주석 보강
+  - `CurriculumView`, `LearnerManagementView`, `MasterDashboard`, `ReportTemplate`, `MasterArticleCreateModal`에 맥락 주석 추가
+- 아티클 원본 PDF 일괄 업로드 보조 스크립트 추가
+  - `data/articles`의 PDF 파일을 DB 아티클과 매칭해 R2 `articles/{article_id}/source.pdf`로 저장
+
+### 검증
+- `server\venv\Scripts\python.exe -m py_compile server\app\routers\certificate.py` 통과
+- `server\venv\Scripts\python.exe -m py_compile server\app\models\certificate.py server\app\schemas\certificate.py server\app\routers\certificate.py` 통과
+- `server`에서 `from app.main import app; print(len(app.routes))` 확인, route 70개
+- `client`에서 `npm run build` 통과
+
+### 주의
+- `GET /api/certificates/sample/download`와 프론트 `샘플 수료증` 버튼은 템플릿 확인용 임시 기능이므로 최종 확정 후 제거 필요
+- 기존 DB에는 `docs/certificates_migration_2026_05_28.sql` 기준 테이블 생성 필요
+
+---
+
 ## 2026-05-27 - 알림 딥링크 / 운영 설정 정리 / AI 산출물 추적 해제
 
 ### 변경

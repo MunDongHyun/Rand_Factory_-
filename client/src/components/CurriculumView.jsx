@@ -170,6 +170,7 @@ const getDDayString = (deadlineStr) => {
 };
 
 function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, notificationTarget }) {
+  // 생성/미리보기/저장 모달 상태와 선택된 커리큘럼을 한 화면에서 함께 관리한다.
   const [manageModalOpen, setManageModalOpen] = useState(false);
   const [manageStep, setManageStep] = useState('select');
   const [modalOpen, setModalOpen] = useState(false);
@@ -220,6 +221,7 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
   ];
 
   const loadCurriculums = () => {
+    // 생성/삭제/배정 변경 후에도 선택 상태를 최대한 유지하기 위한 공통 reload 함수.
     setLoading(true); setError(null);
     return api.get('/curricula').then((res) => {
       const list = Array.isArray(res.data) ? res.data : []; setCurriculums(list);
@@ -241,6 +243,7 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
   };
 
   useEffect(() => {
+    // 알림에서 진입한 경우 해당 커리큘럼을 바로 선택하고, 아니면 첫 커리큘럼을 기본 선택한다.
     let mounted = true; setLoading(true); setError(null);
     api.get('/curricula').then((res) => {
       if (!mounted) return; const list = Array.isArray(res.data) ? res.data : []; setCurriculums(list);
@@ -255,6 +258,7 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
   }, []);
 
   useEffect(() => {
+    // 커리큘럼 목록 로드 이후 도착한 알림 타겟도 다시 반영한다.
     const targetId = Number(notificationTarget?.curriculumId);
     if (!Number.isFinite(targetId) || curriculums.length === 0) return;
     if (curriculums.some((c) => Number(c.cur_id) === targetId)) {
@@ -267,6 +271,7 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
   }, []);
 
   useEffect(() => {
+    // 모달이 열려 있을 때 배경 스크롤이 같이 움직이지 않도록 body 스크롤을 잠근다.
     const anyModalOpen = manageModalOpen || modalOpen || confirmOpen || assignModalOpen || templateModal.open;
     if (anyModalOpen) {
       document.body.style.overflow = 'hidden';
@@ -279,6 +284,7 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
   }, [manageModalOpen, modalOpen, confirmOpen, assignModalOpen, templateModal.open]);
 
   useEffect(() => {
+    // 템플릿 배포 모달은 브라우저 뒤로가기와 연동해서 전체 화면 편집 중 이탈을 자연스럽게 처리한다.
     if (!templateModal.open || !curriculumDetailRef) return;
     curriculumDetailRef.current = true;
     window.history.pushState({ templateOpen: true, t: Date.now() }, '');
@@ -294,6 +300,7 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
 
 
   useEffect(() => {
+    // 선택된 커리큘럼 기준으로 매니저가 볼 제출물 전체를 가져온다.
     if (!selectedId) { setSubmissions([]); return; }
     setSubmissionsLoading(true);
     api.get(`/task-submissions/by-curriculum/${selectedId}`)
@@ -306,6 +313,7 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
   }, [selectedId]);
 
   useEffect(() => {
+    // 과제 제출 알림을 클릭해 들어온 경우 해당 학습자/제출물을 자동 선택하고 잠깐 강조한다.
     if (!notificationTarget || notificationTarget.refType !== 'task_submission') return;
 
     const targetSubmissionId = Number(notificationTarget.refId);
@@ -335,6 +343,7 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
   };
 
   const handleFeedbackSave = async (submissionId, status = 'feedback_given') => {
+    // 같은 피드백 API로 피드백 완료와 재제출 요청을 모두 처리한다.
     const text = (feedbackDraft[submissionId] || '').trim();
     if (!text) {
       toast.warn(status === 'resubmit_requested' ? '재제출 사유를 입력해야 합니다.' : '피드백 내용을 입력하세요.');
@@ -407,6 +416,7 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
   };
 
   const handleGenerate = async (event) => {
+    // AI 생성은 시간이 걸리므로 진행 문구를 순차 노출한 뒤 미리보기 확인 단계로 넘긴다.
     event.preventDefault(); setFormError(null);
     const payload = buildGeneratePayload(form);
     if (!payload.cur_title) { setFormError('과정명을 입력해 주세요.'); return; }
@@ -441,6 +451,7 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
   };
 
   const handleSave = async () => {
+    // AI가 만든 미리보기 결과를 실제 커리큘럼으로 저장한다.
     if (!preview) return;
     setSaving(true); setFormError(null);
     try {
@@ -462,6 +473,7 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
   const previewWeeks = normalizeWeekPlan(preview?.cur_week_plan);
 
   const handleAssignSave = async () => {
+    // 선택된 커리큘럼의 학습자 배정 목록만 갱신한다.
     if (!selectedCurriculum) return;
     setAssignSaving(true);
     try {
@@ -472,6 +484,7 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
   };
 
   const saveTemplate = async () => {
+    // 배포된 템플릿은 학습자가 제출 기준으로 보게 되므로, 수정 전 확인을 한 번 더 받는다.
     if (!selectedCurriculum) return;
     const isConfirmed = window.confirm("과제를 배포하시면 이후 템플릿 수정이나 재배포가 불가능합니다.\n정말 배포하시겠습니까?");
     if (!isConfirmed) return;
@@ -508,6 +521,7 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
   };
 
   const handleRegenerateTemplate = async () => {
+    // 기존 과제 맥락을 유지한 채 해당 과제의 제출 양식만 다시 생성한다.
     if (!selectedCurriculum) return;
     const weekPlan = normalizeWeekPlan(selectedCurriculum.cur_week_plan);
     const targetWeek = weekPlan.find((s) => s.week === templateModal.week);

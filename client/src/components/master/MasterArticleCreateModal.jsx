@@ -38,6 +38,7 @@ function MasterArticleCreateModal({ open, onClose, onCreated }) {
   }, [open]);
 
   const handlePdfSelect = (e) => {
+    // 원본 PDF는 별도 객체저장소에 보관되므로 프론트에서도 확장자/용량을 먼저 걸러준다.
     const file = e.target.files?.[0];
     if (!file) {
       setPdfFile(null);
@@ -71,6 +72,7 @@ function MasterArticleCreateModal({ open, onClose, onCreated }) {
     form.article_source_url.trim();
 
   const handleSubmit = async () => {
+    // 아티클 본문 등록을 먼저 성공시킨 뒤, 원본 PDF는 best-effort로 추가 업로드한다.
     if (!isValid || saving) return;
     setSaving(true);
     setError(null);

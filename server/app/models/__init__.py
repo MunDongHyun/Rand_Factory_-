@@ -2,6 +2,7 @@ from app.models.ai_summaries import AiSummary
 from app.models.article import Article
 from app.models.author import Author, article_authors_mapping
 from app.models.bookmark import Bookmark
+from app.models.certificate import Certificate
 from app.models.curriculum import Curriculum
 from app.models.notification import Notification
 from app.models.task_submission import TaskSubmission, TaskSubmissionAttachment
@@ -13,6 +14,7 @@ __all__ = [
     "Article",
     "Author",
     "Bookmark",
+    "Certificate",
     "Curriculum",
     "Notification",
     "TaskSubmission",

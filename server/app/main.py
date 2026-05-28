@@ -10,6 +10,7 @@ from app.routers import (
     article,
     author,
     bookmark,
+    certificate,
     curriculum,
     health,
     notification,
@@ -53,6 +54,7 @@ app.include_router(user.router)
 app.include_router(article.router)
 app.include_router(author.router)
 app.include_router(bookmark.router)
+app.include_router(certificate.router)
 app.include_router(thumbnail.router)
 app.include_router(rag.router)
 app.include_router(curriculum.router)

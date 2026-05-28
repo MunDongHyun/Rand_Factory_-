@@ -10,6 +10,11 @@ from app.schemas.bookmark import (
     BookmarkCreateResponse,
     MyBookmarksResponse,
 )
+from app.schemas.certificate import (
+    CertificateEligibilityResponse,
+    CertificateIssueRequest,
+    CertificateResponse,
+)
 from app.schemas.curriculum import CurriculumCreate, CurriculumResponse, CurriculumUpdate
 from app.schemas.notification import (
     NotificationListResponse,
@@ -34,6 +39,9 @@ __all__ = [
     "BookmarkCreate",
     "BookmarkCreateResponse",
     "MyBookmarksResponse",
+    "CertificateEligibilityResponse",
+    "CertificateIssueRequest",
+    "CertificateResponse",
     "CurriculumCreate",
     "CurriculumResponse",
     "CurriculumUpdate",

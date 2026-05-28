@@ -327,6 +327,7 @@ function MasterDashboard({ user, onLogout }) {
   const isDeleted = detailMember?.user_deleted_at;
 
   const handleDownloadReport = async (kind /* 'weekly' | 'monthly' */) => {
+    // 주간/월간 운영 리포트는 화면 밖 ReportTemplate를 렌더링한 뒤 html2pdf로 캡처한다.
     if (reportGenerating) return;
     setReportGenerating(true);
     try {
@@ -335,9 +336,29 @@ function MasterDashboard({ user, onLogout }) {
       const start = new Date();
       start.setDate(start.getDate() - days + 1);
 
+      const reportDays = days * 2;
+      const sumCount = (items) => items.reduce((sum, p) => sum + (p.count || 0), 0);
+      // 현재 기간과 직전 동일 기간을 비교하기 위해 2배 기간을 받아 앞/뒤 절반으로 나눈다.
+      const splitCurrentPrevious = (items) => {
+        const safeItems = items || [];
+        return {
+          previous: safeItems.slice(0, Math.max(safeItems.length - days, 0)),
+          current: safeItems.slice(-days),
+        };
+      };
+      const buildComparison = (currentItems, previousItems) => {
+        // 직전 기간이 0이면 증감률은 표시하지 않고 증감량만 사용한다.
+        const current = sumCount(currentItems);
+        const previous = sumCount(previousItems);
+        const delta = current - previous;
+        const pct = previous > 0 ? Math.round((delta / previous) * 100) : null;
+        return { current, previous, delta, pct };
+      };
+
       const tasks = [
-        api.get('/users/stats/signups-timeline', { params: { days } }).then((r) => r.data.items || []),
-        api.get('/articles/stats/views-timeline', { params: { days } }).then((r) => r.data.items || []),
+        api.get('/users/stats/signups-timeline', { params: { days: reportDays } }).then((r) => r.data.items || []),
+        api.get('/articles/stats/views-timeline', { params: { days: reportDays } }).then((r) => r.data.items || []),
+        api.get('/task-submissions/stats/timeline', { params: { days: reportDays } }).then((r) => r.data.items || []),
       ];
 
       if (members.length === 0) {
@@ -347,9 +368,10 @@ function MasterDashboard({ user, onLogout }) {
       }
 
       const results = await Promise.all(tasks);
-      const reportSignups = results[0];
-      const reportViews = results[1];
-      const reportMembers = results[2] || members;
+      const signupsSplit = splitCurrentPrevious(results[0]);
+      const viewsSplit = splitCurrentPrevious(results[1]);
+      const submissionsSplit = splitCurrentPrevious(results[2]);
+      const reportMembers = results[3] || members;
 
       setReportData({
         period: {
@@ -359,8 +381,14 @@ function MasterDashboard({ user, onLogout }) {
         },
         stats,
         curriculumStats,
-        signupsTimeline: reportSignups,
-        viewsTimeline: reportViews,
+        signupsTimeline: signupsSplit.current,
+        viewsTimeline: viewsSplit.current,
+        submissionsTimeline: submissionsSplit.current,
+        comparisons: {
+          signups: buildComparison(signupsSplit.current, signupsSplit.previous),
+          views: buildComparison(viewsSplit.current, viewsSplit.previous),
+          submissions: buildComparison(submissionsSplit.current, submissionsSplit.previous),
+        },
         categoryStats,
         popularArticles,
         members: reportMembers,
