@@ -57,7 +57,7 @@ const STATUS_LABEL = {
 };
 
 // --- 메인 컴포넌트 ---
-function LearnerCurriculumView({ curriculumDetailRef }) {
+function LearnerCurriculumView({ curriculumDetailRef, notificationTarget }) {
   const [curriculums, setCurriculums] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -215,6 +215,36 @@ function LearnerCurriculumView({ curriculumDetailRef }) {
       curriculumDetailRef.current = false;
     };
   }, [activeTask, curriculumDetailRef]);
+
+  // 알림 딥링크: 알림의 curriculumId 로 해당 커리큘럼 자동 선택
+  useEffect(() => {
+    if (!notificationTarget) return;
+    const targetId = Number(notificationTarget.curriculumId);
+    if (!Number.isFinite(targetId)) return;
+    if (curriculums.some((c) => c.cur_id === targetId)) {
+      setSelectedId(targetId);
+    }
+  }, [notificationTarget, curriculums]);
+
+  // 알림 딥링크: refType === 'task_submission' 이면 해당 과제 카드 자동 펼침 + 진입
+  useEffect(() => {
+    if (!notificationTarget || notificationTarget.refType !== 'task_submission') return;
+    if (!selectedId) return;
+    const targetSubId = Number(notificationTarget.refId);
+    if (!Number.isFinite(targetSubId)) return;
+    const sub = submissions.find((s) => s.task_submission_id === targetSubId);
+    if (!sub) return;
+    const week = sub.task_week_number;
+    const assignmentIdx = sub.task_submitted_content?.assignmentIdx;
+    if (week == null || assignmentIdx == null) return;
+    const wp = normalizeWeekPlan(curriculums.find((c) => c.cur_id === selectedId)?.cur_week_plan);
+    const weekStep = wp.find((w) => w.week === week);
+    const assignmentData = weekStep?.assignments?.[assignmentIdx];
+    if (!assignmentData) return;
+    setExpandedWeek(week);
+    handleAssignmentClick(week, assignmentIdx, assignmentData);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notificationTarget, submissions, selectedId, curriculums]);
 
   // 이 부분의 DOM 요소(빈칸) 스타일은 변경 시 구조가 깨질 수 있으므로 인라인 스타일을 그대로 유지합니다.
   useEffect(() => {

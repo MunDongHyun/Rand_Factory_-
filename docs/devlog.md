@@ -2,6 +2,23 @@
 
 ---
 
+## 2026-05-28 - Claude (통합 테스트 발견 픽스 + 체크리스트)
+
+### 변경
+- 통합 테스트용 체크리스트 신규 `docs/integration_test_2026_05_28.md` 추가 (골든 패스 / 엣지 케이스 / R2 검증 / 결과 정리 ~120개 체크박스)
+- 매니저 승급 시 `user_company` 누락 방어 (`client/src/components/Dashboard.jsx`)
+  - 증상: 일반회원이 회사명 입력 후 가입 → OJT 구독 결제 → 매니저 승급 직후 헤더/학습자 관리 페이지에 회사명이 사라짐
+  - 원인 추정: `SubscribeModal onSuccess`의 `setUser(updatedUser)`가 user state를 통째 교체하면서 응답에 빠진 필드가 함께 누락될 수 있음
+  - 픽스: `onUserUpdate((prev) => ({ ...(prev || {}), ...updatedUser }))` 방어적 merge 패턴 적용. 백엔드는 그대로
+- 학습자 알림 딥링크 자동 진입 (`client/src/components/LearnerCurriculumView.jsx`)
+  - 증상: 학습자 알림 클릭 시 매니저와 달리 자동 선택/highlight 동작 없음. Dashboard는 `notificationTarget` prop을 전달하지만 컴포넌트가 destructure를 안 함
+  - 픽스: 시그니처에 `notificationTarget` 추가 + useEffect 2개로 (1) `curriculumId`로 커리큘럼 자동 선택 (2) `refType === 'task_submission'` 이면 submissions 매칭해서 주차 펼침 + `handleAssignmentClick` 호출 → 모달 진입
+
+### 검증
+- `npm run build` 통과
+
+---
+
 ## 2026-05-28 - Claude (README/.gitignore 정리)
 
 - README.md: 라우터·테이블 목록 갱신 (notification/reports/certificate/thumbnail 반영), 새 기능 섹션 (알림 삭제·수료증·마감일/양식 1회 배포·R2 객체저장소) 추가, 기술 스택에 react-datepicker·date-fns·DOMPurify·slowapi·boto3 추가, 환경변수에 R2_*·CORS_ORIGINS 명시, 폐기 항목(task_score, cur_deadline) 명시, 존재하지 않는 `article-lab/` 제거, 프로젝트 구조의 폴더명을 실제 폴더(`landfactory/`)로 정정

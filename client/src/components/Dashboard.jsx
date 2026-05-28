@@ -446,7 +446,8 @@ function Dashboard({ user, onUserUpdate, onLogout }) {
         onClose={() => setSubscribeOpen(false)}
         onSuccess={(updatedUser) => {
           setSubscribeOpen(false);
-          if (onUserUpdate) onUserUpdate(updatedUser);
+          // 응답에서 누락된 필드(user_company 등)가 있어도 이전 값 유지 (방어적 merge)
+          if (onUserUpdate) onUserUpdate((prev) => ({ ...(prev || {}), ...updatedUser }));
         }}
       />
 
