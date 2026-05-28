@@ -375,289 +375,296 @@ function LearnerManagementView({ user }) {
             </div>
           ) : (
             <>
-              <div className="learnerMgmtDetailHeader">
-                <h3 className="learnerMgmtDetailName">{selectedLearner.user_name}</h3>
-                <button
-                  type="button"
-                  className="learnerMgmtDetailClose"
-                  onClick={() => setSelectedLearnerId(null)}
-                  aria-label="선택 해제"
-                  title="선택 해제"
-                >
-                  ×
-                </button>
-              </div>
-
-              <div className="learnerMgmtInfo">
-                <div className="learnerMgmtInfoRow">
-                  <span className="learnerMgmtInfoLabel">이메일</span>
-                  <span className="learnerMgmtInfoValue">{selectedLearner.user_email || '-'}</span>
+              <div className="learnerMgmtDetailTop">
+                <div className="learnerMgmtDetailHeader">
+                  <h3 className="learnerMgmtDetailName">{selectedLearner.user_name}</h3>
+                  <button
+                    type="button"
+                    className="learnerMgmtDetailClose"
+                    onClick={() => setSelectedLearnerId(null)}
+                    aria-label="선택 해제"
+                    title="선택 해제"
+                  >
+                    ×
+                  </button>
                 </div>
-                <div className="learnerMgmtInfoRow">
-                  <span className="learnerMgmtInfoLabel">가입일</span>
-                  <span className="learnerMgmtInfoValue">{formatDate(selectedLearner.user_created_at)}</span>
-                </div>
-                <div className="learnerMgmtInfoRow">
-                  <span className="learnerMgmtInfoLabel">소속</span>
-                  <span className="learnerMgmtInfoValue">{selectedLearner.user_company || '-'}</span>
-                </div>
-              </div>
-
-              <div className="learnerMgmtDetailGrid">
-                <div className="learnerMgmtSection" style={{ position: "relative" }}>
-                  <h4 className="learnerMgmtSectionTitle" style={{ marginBottom: "20px" }}>학습 활동 요약</h4>
-                  <span className="learnerMgmtLastActivity">
-                    최근 활동: {summaryLoading ? '⋯' : formatRelative(summary?.last_activity_at)}
-                  </span>
-                  <div className="learnerMgmtStats">
-                    <div className="learnerMgmtStat">
-                      <p className="learnerMgmtStatLabel">진행률</p>
-                      <p className="learnerMgmtStatValue">
-                        {summaryLoading ? '⋯' : `${summary?.progress_avg ?? 0}%`}
-                      </p>
-                    </div>
-                    <div className="learnerMgmtStat">
-                      <p className="learnerMgmtStatLabel">배정 커리큘럼</p>
-                      <p className="learnerMgmtStatValue">
-                        {summaryLoading ? '⋯' : (summary?.curricula_assigned ?? 0)}
-                      </p>
-                    </div>
-                    <div className="learnerMgmtStat">
-                      <p className="learnerMgmtStatLabel">제출한 과제</p>
-                      <p className="learnerMgmtStatValue">
-                        {summaryLoading ? '⋯' : (summary?.submissions_count ?? 0)}
-                      </p>
-                    </div>
-                    <div className="learnerMgmtStat">
-                      <p className="learnerMgmtStatLabel">받은 피드백</p>
-                      <p className="learnerMgmtStatValue">
-                        {summaryLoading ? '⋯' : (summary?.feedbacks_received ?? 0)}
-                      </p>
-                    </div>
+                <div className="learnerMgmtInfo">
+                  <div className="learnerMgmtInfoRow">
+                    <span className="learnerMgmtInfoLabel">이메일</span>
+                    <span className="learnerMgmtInfoValue">{selectedLearner.user_email || '-'}</span>
                   </div>
-                  {summaryError && (
-                    <p className="learnerMgmtSectionError">{summaryError}</p>
-                  )}
+                  <div className="learnerMgmtInfoRow">
+                    <span className="learnerMgmtInfoLabel">가입일</span>
+                    <span className="learnerMgmtInfoValue">{formatDate(selectedLearner.user_created_at)}</span>
+                  </div>
+                  <div className="learnerMgmtInfoRow">
+                    <span className="learnerMgmtInfoLabel">소속</span>
+                    <span className="learnerMgmtInfoValue">{selectedLearner.user_company || '-'}</span>
+                  </div>
                 </div>
 
-                <div className="learnerMgmtSection" >
-                  <div className="learnerMgmtSectionTopRow">
-                    <h4 className="learnerMgmtSectionTitle">커리큘럼 배정</h4>
-                    {!editAssign && !curriculaLoading && curricula.length > 0 && (
-                      <button type="button" className="learnerMgmtEditBtn" onClick={startEditAssign}>
-                        관리
-                      </button>
+
+              </div>
+
+              <div className="learnerMgmtDeatilBody">
+
+
+                <div className="learnerMgmtDetailGrid">
+                  <div className="learnerMgmtSection" style={{ position: "relative" }}>
+                    <h4 className="learnerMgmtSectionTitle" style={{ marginBottom: "20px" }}>학습 활동 요약</h4>
+                    <span className="learnerMgmtLastActivity">
+                      최근 활동: {summaryLoading ? '⋯' : formatRelative(summary?.last_activity_at)}
+                    </span>
+                    <div className="learnerMgmtStats">
+                      <div className="learnerMgmtStat">
+                        <p className="learnerMgmtStatLabel">진행률</p>
+                        <p className="learnerMgmtStatValue">
+                          {summaryLoading ? '⋯' : `${summary?.progress_avg ?? 0}%`}
+                        </p>
+                      </div>
+                      <div className="learnerMgmtStat">
+                        <p className="learnerMgmtStatLabel">배정 커리큘럼</p>
+                        <p className="learnerMgmtStatValue">
+                          {summaryLoading ? '⋯' : (summary?.curricula_assigned ?? 0)}
+                        </p>
+                      </div>
+                      <div className="learnerMgmtStat">
+                        <p className="learnerMgmtStatLabel">제출한 과제</p>
+                        <p className="learnerMgmtStatValue">
+                          {summaryLoading ? '⋯' : (summary?.submissions_count ?? 0)}
+                        </p>
+                      </div>
+                      <div className="learnerMgmtStat">
+                        <p className="learnerMgmtStatLabel">받은 피드백</p>
+                        <p className="learnerMgmtStatValue">
+                          {summaryLoading ? '⋯' : (summary?.feedbacks_received ?? 0)}
+                        </p>
+                      </div>
+                    </div>
+                    {summaryError && (
+                      <p className="learnerMgmtSectionError">{summaryError}</p>
                     )}
                   </div>
 
-                  {curriculaLoading ? (
-                    <p className="learnerMgmtMuted">불러오는 중...</p>
-                  ) : !editAssign ? (
-                    assignedCurricula.length === 0 ? (
-                      <p className="learnerMgmtMuted">아직 배정된 커리큘럼이 없습니다.</p>
-                    ) : (
-                      <ul className="learnerMgmtAssignList">
-                        {assignedCurricula.map((c) => (
-                          <li key={c.cur_id} className="learnerMgmtAssignItem" title={c.cur_title}>
-                            {c.cur_title}
-                          </li>
-                        ))}
-                      </ul>
-                    )
-                  ) : (
-                    <>
-                      <div className="learnerMgmtAssignEdit">
-                        {curricula.length === 0 ? (
-                          <p className="learnerMgmtMuted">생성한 커리큘럼이 없습니다.</p>
-                        ) : (
-                          curricula.map((c) => {
-                            const checked = assignSelected.has(c.cur_id);
-                            return (
-                              <label key={c.cur_id} className="learnerMgmtAssignRow" title={c.cur_title}>
-                                <input
-                                  type="checkbox"
-                                  checked={checked}
-                                  onChange={() => toggleAssign(c.cur_id)}
-                                  disabled={assignSaving}
-                                />
-                                <span>{c.cur_title}</span>
-                              </label>
-                            );
-                          })
-                        )}
-                      </div>
-                      <div className="learnerMgmtAssignActions">
-                        <button
-                          type="button"
-                          className="learnerMgmtAssignCancelBtn"
-                          onClick={cancelEditAssign}
-                          disabled={assignSaving}
-                        >
-                          취소
+                  <div className="learnerMgmtSection" >
+                    <div className="learnerMgmtSectionTopRow">
+                      <h4 className="learnerMgmtSectionTitle">커리큘럼 배정</h4>
+                      {!editAssign && !curriculaLoading && curricula.length > 0 && (
+                        <button type="button" className="learnerMgmtEditBtn" onClick={startEditAssign}>
+                          관리
                         </button>
-                        <button
-                          type="button"
-                          className="learnerMgmtAssignSaveBtn"
-                          onClick={saveAssign}
-                          disabled={assignSaving}
-                        >
-                          {assignSaving ? '저장 중...' : '저장'}
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
+                      )}
+                    </div>
 
-              <div className="learnerMgmtSection learnerMgmtSubmissionsSection">
-                <h4 className="learnerMgmtSectionTitle">최근 제출 이력</h4>
-                {submissionsLoading ? (
-                  <p className="learnerMgmtMuted">불러오는 중...</p>
-                ) : submissionsError ? (
-                  <p className="learnerMgmtSectionError">{submissionsError}</p>
-                ) : submissions.length === 0 ? (
-                  <p className="learnerMgmtMuted">아직 제출한 과제가 없습니다.</p>
-                ) : (
-                  <ul className="learnerMgmtSubmissionsList">
-                    {submissions.slice(0, 8).map((s) => {
-                      const cur = curricula.find((c) => c.cur_id === s.task_curriculum_id);
-                      const statusKey = s.task_status || 'submitted';
-                      const statusLabel = SUBMISSION_STATUS_LABEL[statusKey] || '제출';
-                      const statusCls = SUBMISSION_STATUS_CLASS[statusKey] || 'waiting';
-                      const isExpanded = expandedSubmissionId === s.task_submission_id;
-                      const attachments = Array.isArray(s.task_submitted_content?.attachments)
-                        ? s.task_submitted_content.attachments
-                        : [];
-                      const isSaving = feedbackSavingId === s.task_submission_id;
-                      return (
-                        <li
-                          key={s.task_submission_id}
-                          className={`learnerMgmtSubmissionItem${isExpanded ? ' expanded' : ''}`}
-                        >
+                    {curriculaLoading ? (
+                      <p className="learnerMgmtMuted">불러오는 중...</p>
+                    ) : !editAssign ? (
+                      assignedCurricula.length === 0 ? (
+                        <p className="learnerMgmtMuted">아직 배정된 커리큘럼이 없습니다.</p>
+                      ) : (
+                        <ul className="learnerMgmtAssignList">
+                          {assignedCurricula.map((c) => (
+                            <li key={c.cur_id} className="learnerMgmtAssignItem" title={c.cur_title}>
+                              {c.cur_title}
+                            </li>
+                          ))}
+                        </ul>
+                      )
+                    ) : (
+                      <>
+                        <div className="learnerMgmtAssignEdit">
+                          {curricula.length === 0 ? (
+                            <p className="learnerMgmtMuted">생성한 커리큘럼이 없습니다.</p>
+                          ) : (
+                            curricula.map((c) => {
+                              const checked = assignSelected.has(c.cur_id);
+                              return (
+                                <label key={c.cur_id} className="learnerMgmtAssignRow" title={c.cur_title}>
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={() => toggleAssign(c.cur_id)}
+                                    disabled={assignSaving}
+                                  />
+                                  <span>{c.cur_title}</span>
+                                </label>
+                              );
+                            })
+                          )}
+                        </div>
+                        <div className="learnerMgmtAssignActions">
                           <button
                             type="button"
-                            className="learnerMgmtSubmissionHeader"
-                            onClick={() => handleToggleExpand(s.task_submission_id)}
-                            aria-expanded={isExpanded}
+                            className="learnerMgmtAssignCancelBtn"
+                            onClick={cancelEditAssign}
+                            disabled={assignSaving}
                           >
-                            <div className="learnerMgmtSubmissionLeft">
-                              <span className="learnerMgmtSubmissionWeek">{s.task_week_number}주차</span>
-                              <span
-                                className="learnerMgmtSubmissionCur"
-                                title={cur ? cur.cur_title : `#${s.task_curriculum_id}`}
-                              >
-                                {cur ? cur.cur_title : `#${s.task_curriculum_id}`}
-                              </span>
-                            </div>
-                            <div className="learnerMgmtSubmissionRight">
-                              <span className={`learnerMgmtSubmissionStatus ${statusCls}`}>{statusLabel}</span>
-                              <span className="learnerMgmtSubmissionDate">{formatDate(s.task_submitted_at)}</span>
-                              <span className="learnerMgmtSubmissionExpandIcon" aria-hidden="true">
-                                {isExpanded ? '▲' : '▼'}
-                              </span>
-                            </div>
+                            취소
                           </button>
-                          {isExpanded && (
-                            <div className="learnerMgmtSubmissionExpanded">
-                              <div className="managerSubmissionContent">
-                                <p className="learner-submission-label">제출 내용</p>
-                                <div
-                                  className="learner-submission-content template-render"
-                                  dangerouslySetInnerHTML={{
-                                    __html: sanitizeHtml(s.task_submitted_content?.text) || '(내용 없음)',
-                                  }}
-                                />
+                          <button
+                            type="button"
+                            className="learnerMgmtAssignSaveBtn"
+                            onClick={saveAssign}
+                            disabled={assignSaving}
+                          >
+                            {assignSaving ? '저장 중...' : '저장'}
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className="learnerMgmtSection learnerMgmtSubmissionsSection">
+                  <h4 className="learnerMgmtSectionTitle">최근 제출 이력</h4>
+                  {submissionsLoading ? (
+                    <p className="learnerMgmtMuted">불러오는 중...</p>
+                  ) : submissionsError ? (
+                    <p className="learnerMgmtSectionError">{submissionsError}</p>
+                  ) : submissions.length === 0 ? (
+                    <p className="learnerMgmtMuted">아직 제출한 과제가 없습니다.</p>
+                  ) : (
+                    <ul className="learnerMgmtSubmissionsList">
+                      {submissions.slice(0, 8).map((s) => {
+                        const cur = curricula.find((c) => c.cur_id === s.task_curriculum_id);
+                        const statusKey = s.task_status || 'submitted';
+                        const statusLabel = SUBMISSION_STATUS_LABEL[statusKey] || '제출';
+                        const statusCls = SUBMISSION_STATUS_CLASS[statusKey] || 'waiting';
+                        const isExpanded = expandedSubmissionId === s.task_submission_id;
+                        const attachments = Array.isArray(s.task_submitted_content?.attachments)
+                          ? s.task_submitted_content.attachments
+                          : [];
+                        const isSaving = feedbackSavingId === s.task_submission_id;
+                        return (
+                          <li
+                            key={s.task_submission_id}
+                            className={`learnerMgmtSubmissionItem${isExpanded ? ' expanded' : ''}`}
+                          >
+                            <button
+                              type="button"
+                              className="learnerMgmtSubmissionHeader"
+                              onClick={() => handleToggleExpand(s.task_submission_id)}
+                              aria-expanded={isExpanded}
+                            >
+                              <div className="learnerMgmtSubmissionLeft">
+                                <span className="learnerMgmtSubmissionWeek">{s.task_week_number}주차</span>
+                                <span
+                                  className="learnerMgmtSubmissionCur"
+                                  title={cur ? cur.cur_title : `#${s.task_curriculum_id}`}
+                                >
+                                  {cur ? cur.cur_title : `#${s.task_curriculum_id}`}
+                                </span>
                               </div>
-                              {attachments.length > 0 && (
-                                <div className="managerSubmissionAttachments">
-                                  <p className="learner-submission-label-small">[첨부파일]</p>
-                                  <ul className="managerSubmissionAttachmentList">
-                                    {attachments.map((a, i) => (
-                                      <li key={i} className="learner-submission-attach-item">
-                                        <button
-                                          type="button"
-                                          className="learner-submission-attach-link"
-                                          onClick={() => handleAttachmentDownload(s.task_submission_id, a)}
-                                        >
-                                          {a.filename || a.stored_name}
-                                        </button>
-                                        <span className="managerSubmissionAttachmentSize">{formatBytes(a.size)}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
+                              <div className="learnerMgmtSubmissionRight">
+                                <span className={`learnerMgmtSubmissionStatus ${statusCls}`}>{statusLabel}</span>
+                                <span className="learnerMgmtSubmissionDate">{formatDate(s.task_submitted_at)}</span>
+                                <span className="learnerMgmtSubmissionExpandIcon" aria-hidden="true">
+                                  {isExpanded ? '▲' : '▼'}
+                                </span>
+                              </div>
+                            </button>
+                            {isExpanded && (
+                              <div className="learnerMgmtSubmissionExpanded">
+                                <div className="managerSubmissionContent">
+                                  <p className="learner-submission-label">제출 내용</p>
+                                  <div
+                                    className="learner-submission-content template-render"
+                                    dangerouslySetInnerHTML={{
+                                      __html: sanitizeHtml(s.task_submitted_content?.text) || '(내용 없음)',
+                                    }}
+                                  />
                                 </div>
-                              )}
-                              {s.task_manager_feedback && (
-                                <div className="learner-feedback-box">
-                                  <p className="learner-feedback-label">
-                                    현재 피드백
-                                    <span className="learner-feedback-date">{formatDateTime(s.task_feedback_at)}</span>
+                                {attachments.length > 0 && (
+                                  <div className="managerSubmissionAttachments">
+                                    <p className="learner-submission-label-small">[첨부파일]</p>
+                                    <ul className="managerSubmissionAttachmentList">
+                                      {attachments.map((a, i) => (
+                                        <li key={i} className="learner-submission-attach-item">
+                                          <button
+                                            type="button"
+                                            className="learner-submission-attach-link"
+                                            onClick={() => handleAttachmentDownload(s.task_submission_id, a)}
+                                          >
+                                            {a.filename || a.stored_name}
+                                          </button>
+                                          <span className="managerSubmissionAttachmentSize">{formatBytes(a.size)}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                                {s.task_manager_feedback && (
+                                  <div className="learner-feedback-box">
+                                    <p className="learner-feedback-label">
+                                      현재 피드백
+                                      <span className="learner-feedback-date">{formatDateTime(s.task_feedback_at)}</span>
+                                    </p>
+                                    <div className="learner-feedback-text">{s.task_manager_feedback}</div>
+                                  </div>
+                                )}
+                                <div className="managerFeedbackForm inline">
+                                  <p className="learner-submission-label-small">
+                                    {s.task_manager_feedback ? '피드백 수정' : '피드백 작성'}
                                   </p>
-                                  <div className="learner-feedback-text">{s.task_manager_feedback}</div>
-                                </div>
-                              )}
-                              <div className="managerFeedbackForm inline">
-                                <p className="learner-submission-label-small">
-                                  {s.task_manager_feedback ? '피드백 수정' : '피드백 작성'}
-                                </p>
-                                <div className="quickCommentChips">
-                                  {FEEDBACK_QUICK_COMMENTS.map((c, i) => (
+                                  <div className="quickCommentChips">
+                                    {FEEDBACK_QUICK_COMMENTS.map((c, i) => (
+                                      <button
+                                        type="button"
+                                        key={i}
+                                        className="quickCommentChip"
+                                        onClick={() =>
+                                          setFeedbackDraft((prev) => ({
+                                            ...prev,
+                                            [s.task_submission_id]: appendQuickComment(
+                                              prev[s.task_submission_id],
+                                              c
+                                            ),
+                                          }))
+                                        }
+                                        disabled={isSaving}
+                                      >
+                                        {c}
+                                      </button>
+                                    ))}
+                                  </div>
+                                  <textarea
+                                    className="managerFeedbackTextarea"
+                                    placeholder="학습자에게 전달할 피드백을 입력하세요"
+                                    value={feedbackDraft[s.task_submission_id] ?? ''}
+                                    onChange={(e) =>
+                                      setFeedbackDraft((prev) => ({
+                                        ...prev,
+                                        [s.task_submission_id]: e.target.value,
+                                      }))
+                                    }
+                                  />
+                                  <div className="managerFeedbackBtns">
                                     <button
                                       type="button"
-                                      key={i}
-                                      className="quickCommentChip"
-                                      onClick={() =>
-                                        setFeedbackDraft((prev) => ({
-                                          ...prev,
-                                          [s.task_submission_id]: appendQuickComment(
-                                            prev[s.task_submission_id],
-                                            c
-                                          ),
-                                        }))
-                                      }
+                                      className="managerFeedbackBtn secondary"
+                                      onClick={() => handleFeedbackSave(s.task_submission_id, 'resubmit_requested')}
                                       disabled={isSaving}
                                     >
-                                      {c}
+                                      재제출 요청
                                     </button>
-                                  ))}
-                                </div>
-                                <textarea
-                                  className="managerFeedbackTextarea"
-                                  placeholder="학습자에게 전달할 피드백을 입력하세요"
-                                  value={feedbackDraft[s.task_submission_id] ?? ''}
-                                  onChange={(e) =>
-                                    setFeedbackDraft((prev) => ({
-                                      ...prev,
-                                      [s.task_submission_id]: e.target.value,
-                                    }))
-                                  }
-                                />
-                                <div className="managerFeedbackBtns">
-                                  <button
-                                    type="button"
-                                    className="managerFeedbackBtn secondary"
-                                    onClick={() => handleFeedbackSave(s.task_submission_id, 'resubmit_requested')}
-                                    disabled={isSaving}
-                                  >
-                                    재제출 요청
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="managerFeedbackBtn primary"
-                                    onClick={() => handleFeedbackSave(s.task_submission_id, 'feedback_given')}
-                                    disabled={isSaving}
-                                  >
-                                    {isSaving ? '저장 중...' : '피드백 저장'}
-                                  </button>
+                                    <button
+                                      type="button"
+                                      className="managerFeedbackBtn primary"
+                                      onClick={() => handleFeedbackSave(s.task_submission_id, 'feedback_given')}
+                                      disabled={isSaving}
+                                    >
+                                      {isSaving ? '저장 중...' : '피드백 저장'}
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
               </div>
             </>
           )}

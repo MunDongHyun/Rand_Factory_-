@@ -264,7 +264,7 @@
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 22px;
-  padding: 24px 28px;
+   padding: 24px 28px;
   min-width: 0;
   min-height: 0;
   overflow-x: hidden;
@@ -292,24 +292,35 @@
   justify-content: space-between;
   margin-bottom: 12px;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--ink);
+  border-bottom: 1px solid var(--card);
+}
+
+.learnerMgmtDetailTop {
+  background: var(--ink);
+  margin: -24px -50px 20px -28px; 
+  padding: 24px 28px 5px;
+}
+
+
+.learnerMgmtDetailBody {
+  padding: 24px 28px;
 }
 
 .learnerMgmtDetailName {
   font-size: 24px;
   font-weight: 700;
-  color: #3A4A5C;
+  color: var(--card);
   margin: 0;
 }
 
 .learnerMgmtDetailClose {
-  background: var(--card);
-  border: 1px solid var(--line);
+   background: rgba(255, 255, 255, 0.15);
+  border: none;
   border-radius: 50%;
   width: 30px;
   height: 30px;
   font-size: 18px;
-  color: var(--ink-muted);
+  color: #ffffff;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -318,8 +329,7 @@
 }
 
 .learnerMgmtDetailClose:hover {
-  background: var(--bg);
-  color: var(--ink);
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .learnerMgmtInfo {
@@ -339,13 +349,13 @@
 }
 
 .learnerMgmtInfoLabel {
-  color: var(--ink);
+  color:rgba(255, 255, 255, 0.5);
   font-weight: 400;
   min-width: 40px;
 }
 
 .learnerMgmtInfoValue {
-  color: var(--ink);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .learnerMgmtSection {
