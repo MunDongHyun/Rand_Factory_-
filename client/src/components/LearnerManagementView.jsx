@@ -80,6 +80,12 @@ function LearnerManagementView({ user }) {
 
   // 커리큘럼별 진행률 + 발급 자격 (매니저가 수료증 발급 타이밍 잡기 위함)
   const [progressData, setProgressData] = useState([]);
+  // 배정 커리큘럼이 많을 때 처음엔 2개만 보이고 "더 보기"로 펼침
+  const [curriculaExpanded, setCurriculaExpanded] = useState(false);
+  const ASSIGN_COLLAPSED_COUNT = 2;
+
+  // 최근 활동(피드백 완료) 섹션은 기본 접힘
+  const [recentExpanded, setRecentExpanded] = useState(false);
 
   // 우측 상세 - 최근 제출 이력
   const [submissions, setSubmissions] = useState([]);
@@ -119,10 +125,14 @@ function LearnerManagementView({ user }) {
       setSubmissionsError(null);
       setCertificates([]);
       setProgressData([]);
+      setCurriculaExpanded(false);
+      setRecentExpanded(false);
       setExpandedSubmissionId(null);
       setFeedbackDraft({});
       return;
     }
+    setCurriculaExpanded(false);
+    setRecentExpanded(false);
     setExpandedSubmissionId(null);
     setFeedbackDraft({});
     setSummaryLoading(true);
@@ -306,9 +316,33 @@ function LearnerManagementView({ user }) {
 
   const selectedLearner = learners.find((l) => l.user_id === selectedLearnerId) || null;
 
-  const assignedCurricula = curricula.filter(
-    (c) => Array.isArray(c.cur_assigned_learner_ids) && c.cur_assigned_learner_ids.includes(selectedLearnerId)
-  );
+  // 배정 커리큘럼: 진행률 높은 순 정렬 (발급 가능 우선 → 진행 중 → 발급률 낮은 순)
+  const assignedCurricula = useMemo(() => {
+    const filtered = curricula.filter(
+      (c) => Array.isArray(c.cur_assigned_learner_ids) && c.cur_assigned_learner_ids.includes(selectedLearnerId)
+    );
+    const progressMap = new Map(progressData.map((p) => [p.curriculum_id, p]));
+    const issuedSet = new Set(certificates.map((cert) => cert.cert_curriculum_id));
+    const rank = (cur) => {
+      const p = progressMap.get(cur.cur_id);
+      const pct = p?.progress_pct ?? 0;
+      // 우선순위: 1) 발급 가능 (액션 필요)  2) 발급됨  3) 진행 중 (높은 %)
+      if (p?.eligible && !issuedSet.has(cur.cur_id)) return [0, -pct];
+      if (issuedSet.has(cur.cur_id)) return [1, -pct];
+      return [2, -pct];
+    };
+    return [...filtered].sort((a, b) => {
+      const ra = rank(a);
+      const rb = rank(b);
+      if (ra[0] !== rb[0]) return ra[0] - rb[0];
+      return ra[1] - rb[1];
+    });
+  }, [curricula, selectedLearnerId, progressData, certificates]);
+
+  const visibleCurricula = curriculaExpanded
+    ? assignedCurricula
+    : assignedCurricula.slice(0, ASSIGN_COLLAPSED_COUNT);
+  const hiddenCount = assignedCurricula.length - visibleCurricula.length;
 
   const startEditAssign = () => {
     setAssignSelected(new Set(assignedCurricula.map((c) => c.cur_id)));
@@ -568,7 +602,7 @@ function LearnerManagementView({ user }) {
                         <p className="learnerMgmtMuted">아직 배정된 커리큘럼이 없습니다.</p>
                       ) : (
                         <ul className="learnerMgmtAssignList">
-                          {assignedCurricula.map((c) => {
+                          {visibleCurricula.map((c) => {
                             const progress = progressData.find((p) => p.curriculum_id === c.cur_id);
                             const issued = certificates.some((cert) => cert.cert_curriculum_id === c.cur_id);
                             const eligible = progress?.eligible ?? false;
@@ -579,12 +613,6 @@ function LearnerManagementView({ user }) {
                                   <span className="learnerMgmtAssignTitle">{c.cur_title}</span>
                                   {progress && progress.expected_weeks.length > 0 && (
                                     <div className="learnerMgmtAssignProgressRow">
-                                      <div className="learner-progress-bg">
-                                        <div
-                                          className="learner-progress-bar"
-                                          style={{ width: `${pct}%` }}
-                                        />
-                                      </div>
                                       <span className="learnerMgmtAssignProgressText">
                                         {progress.completed_weeks.length}/{progress.expected_weeks.length} · {pct}%
                                       </span>
@@ -618,6 +646,17 @@ function LearnerManagementView({ user }) {
                               </li>
                             );
                           })}
+                          {assignedCurricula.length > ASSIGN_COLLAPSED_COUNT && (
+                            <li className="learnerMgmtAssignToggleRow">
+                              <button
+                                type="button"
+                                className="learnerMgmtAssignToggleBtn"
+                                onClick={() => setCurriculaExpanded((v) => !v)}
+                              >
+                                {curriculaExpanded ? '접기' : `더 보기 (${hiddenCount}개)`}
+                              </button>
+                            </li>
+                          )}
                         </ul>
                       )
                     ) : (
@@ -665,156 +704,206 @@ function LearnerManagementView({ user }) {
                   </div>
                 </div>
 
-                <div className="learnerMgmtSection learnerMgmtSubmissionsSection">
-                  <h4 className="learnerMgmtSectionTitle">최근 제출 이력</h4>
-                  {submissionsLoading ? (
-                    <p className="learnerMgmtMuted">불러오는 중...</p>
-                  ) : submissionsError ? (
-                    <p className="learnerMgmtSectionError">{submissionsError}</p>
-                  ) : submissions.length === 0 ? (
-                    <p className="learnerMgmtMuted">아직 제출한 과제가 없습니다.</p>
-                  ) : (
-                    <ul className="learnerMgmtSubmissionsList">
-                      {submissions.slice(0, 8).map((s) => {
-                        const cur = curricula.find((c) => c.cur_id === s.task_curriculum_id);
-                        const statusKey = s.task_status || 'submitted';
-                        const statusLabel = SUBMISSION_STATUS_LABEL[statusKey] || '제출';
-                        const statusCls = SUBMISSION_STATUS_CLASS[statusKey] || 'waiting';
-                        const isExpanded = expandedSubmissionId === s.task_submission_id;
-                        const attachments = Array.isArray(s.task_submitted_content?.attachments)
-                          ? s.task_submitted_content.attachments
-                          : [];
-                        const isSaving = feedbackSavingId === s.task_submission_id;
-                        return (
-                          <li
-                            key={s.task_submission_id}
-                            className={`learnerMgmtSubmissionItem${isExpanded ? ' expanded' : ''}`}
-                          >
-                            <button
-                              type="button"
-                              className="learnerMgmtSubmissionHeader"
-                              onClick={() => handleToggleExpand(s.task_submission_id)}
-                              aria-expanded={isExpanded}
+                {(() => {
+                  const pendingSubs = submissions.filter(
+                    (s) => (s.task_status || 'submitted') !== 'feedback_given'
+                  );
+                  const completedSubs = submissions.filter(
+                    (s) => s.task_status === 'feedback_given'
+                  );
+                  const renderSubmissionCard = (s) => {
+                    const cur = curricula.find((c) => c.cur_id === s.task_curriculum_id);
+                    const statusKey = s.task_status || 'submitted';
+                    const statusLabel = SUBMISSION_STATUS_LABEL[statusKey] || '제출';
+                    const statusCls = SUBMISSION_STATUS_CLASS[statusKey] || 'waiting';
+                    const isExpanded = expandedSubmissionId === s.task_submission_id;
+                    const attachments = Array.isArray(s.task_submitted_content?.attachments)
+                      ? s.task_submitted_content.attachments
+                      : [];
+                    const isSaving = feedbackSavingId === s.task_submission_id;
+                    return (
+                      <li
+                        key={s.task_submission_id}
+                        className={`learnerMgmtSubmissionItem${isExpanded ? ' expanded' : ''}`}
+                      >
+                        <button
+                          type="button"
+                          className="learnerMgmtSubmissionHeader"
+                          onClick={() => handleToggleExpand(s.task_submission_id)}
+                          aria-expanded={isExpanded}
+                        >
+                          <div className="learnerMgmtSubmissionLeft">
+                            <span className="learnerMgmtSubmissionWeek">{s.task_week_number}주차</span>
+                            <span
+                              className="learnerMgmtSubmissionCur"
+                              title={cur ? cur.cur_title : `#${s.task_curriculum_id}`}
                             >
-                              <div className="learnerMgmtSubmissionLeft">
-                                <span className="learnerMgmtSubmissionWeek">{s.task_week_number}주차</span>
-                                <span
-                                  className="learnerMgmtSubmissionCur"
-                                  title={cur ? cur.cur_title : `#${s.task_curriculum_id}`}
-                                >
-                                  {cur ? cur.cur_title : `#${s.task_curriculum_id}`}
-                                </span>
-                              </div>
-                              <div className="learnerMgmtSubmissionRight">
-                                <span className={`learnerMgmtSubmissionStatus ${statusCls}`}>{statusLabel}</span>
-                                <span className="learnerMgmtSubmissionDate">{formatDate(s.task_submitted_at)}</span>
-                                <span className="learnerMgmtSubmissionExpandIcon" aria-hidden="true">
-                                  {isExpanded ? '▲' : '▼'}
-                                </span>
-                              </div>
-                            </button>
-                            {isExpanded && (
-                              <div className="learnerMgmtSubmissionExpanded">
-                                <div className="managerSubmissionContent">
-                                  <p className="learner-submission-label">제출 내용</p>
-                                  <div
-                                    className="learner-submission-content template-render"
-                                    dangerouslySetInnerHTML={{
-                                      __html: sanitizeHtml(s.task_submitted_content?.text) || '(내용 없음)',
-                                    }}
-                                  />
-                                </div>
-                                {attachments.length > 0 && (
-                                  <div className="managerSubmissionAttachments">
-                                    <p className="learner-submission-label-small">[첨부파일]</p>
-                                    <ul className="managerSubmissionAttachmentList">
-                                      {attachments.map((a, i) => (
-                                        <li key={i} className="learner-submission-attach-item">
-                                          <button
-                                            type="button"
-                                            className="learner-submission-attach-link"
-                                            onClick={() => handleAttachmentDownload(s.task_submission_id, a)}
-                                          >
-                                            {a.filename || a.stored_name}
-                                          </button>
-                                          <span className="managerSubmissionAttachmentSize">{formatBytes(a.size)}</span>
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                )}
-                                {s.task_manager_feedback && (
-                                  <div className="learner-feedback-box">
-                                    <p className="learner-feedback-label">
-                                      현재 피드백
-                                      <span className="learner-feedback-date">{formatDateTime(s.task_feedback_at)}</span>
-                                    </p>
-                                    <div className="learner-feedback-text">{s.task_manager_feedback}</div>
-                                  </div>
-                                )}
-                                <div className="managerFeedbackForm inline">
-                                  <p className="learner-submission-label-small">
-                                    {s.task_manager_feedback ? '피드백 수정' : '피드백 작성'}
-                                  </p>
-                                  <div className="quickCommentChips">
-                                    {FEEDBACK_QUICK_COMMENTS.map((c, i) => (
+                              {cur ? cur.cur_title : `#${s.task_curriculum_id}`}
+                            </span>
+                          </div>
+                          <div className="learnerMgmtSubmissionRight">
+                            <span className={`learnerMgmtSubmissionStatus ${statusCls}`}>{statusLabel}</span>
+                            <span className="learnerMgmtSubmissionDate">{formatDate(s.task_submitted_at)}</span>
+                            <span className="learnerMgmtSubmissionExpandIcon" aria-hidden="true">
+                              {isExpanded ? '▲' : '▼'}
+                            </span>
+                          </div>
+                        </button>
+                        {isExpanded && (
+                          <div className="learnerMgmtSubmissionExpanded">
+                            <div className="managerSubmissionContent">
+                              <p className="learner-submission-label">제출 내용</p>
+                              <div
+                                className="learner-submission-content template-render"
+                                dangerouslySetInnerHTML={{
+                                  __html: sanitizeHtml(s.task_submitted_content?.text) || '(내용 없음)',
+                                }}
+                              />
+                            </div>
+                            {attachments.length > 0 && (
+                              <div className="managerSubmissionAttachments">
+                                <p className="learner-submission-label-small">[첨부파일]</p>
+                                <ul className="managerSubmissionAttachmentList">
+                                  {attachments.map((a, i) => (
+                                    <li key={i} className="learner-submission-attach-item">
                                       <button
                                         type="button"
-                                        key={i}
-                                        className="quickCommentChip"
-                                        onClick={() =>
-                                          setFeedbackDraft((prev) => ({
-                                            ...prev,
-                                            [s.task_submission_id]: appendQuickComment(
-                                              prev[s.task_submission_id],
-                                              c
-                                            ),
-                                          }))
-                                        }
-                                        disabled={isSaving}
+                                        className="learner-submission-attach-link"
+                                        onClick={() => handleAttachmentDownload(s.task_submission_id, a)}
                                       >
-                                        {c}
+                                        {a.filename || a.stored_name}
                                       </button>
-                                    ))}
-                                  </div>
-                                  <textarea
-                                    className="managerFeedbackTextarea"
-                                    placeholder="학습자에게 전달할 피드백을 입력하세요"
-                                    value={feedbackDraft[s.task_submission_id] ?? ''}
-                                    onChange={(e) =>
-                                      setFeedbackDraft((prev) => ({
-                                        ...prev,
-                                        [s.task_submission_id]: e.target.value,
-                                      }))
-                                    }
-                                  />
-                                  <div className="managerFeedbackBtns">
-                                    <button
-                                      type="button"
-                                      className="managerFeedbackBtn secondary"
-                                      onClick={() => handleFeedbackSave(s.task_submission_id, 'resubmit_requested')}
-                                      disabled={isSaving}
-                                    >
-                                      재제출 요청
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="managerFeedbackBtn primary"
-                                      onClick={() => handleFeedbackSave(s.task_submission_id, 'feedback_given')}
-                                      disabled={isSaving}
-                                    >
-                                      {isSaving ? '저장 중...' : '피드백 저장'}
-                                    </button>
-                                  </div>
-                                </div>
+                                      <span className="managerSubmissionAttachmentSize">{formatBytes(a.size)}</span>
+                                    </li>
+                                  ))}
+                                </ul>
                               </div>
                             )}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-                </div>
+                            {s.task_manager_feedback && (
+                              <div className="learner-feedback-box">
+                                <p className="learner-feedback-label">
+                                  현재 피드백
+                                  <span className="learner-feedback-date">{formatDateTime(s.task_feedback_at)}</span>
+                                </p>
+                                <div className="learner-feedback-text">{s.task_manager_feedback}</div>
+                              </div>
+                            )}
+                            <div className="managerFeedbackForm inline">
+                              <p className="learner-submission-label-small">
+                                {s.task_manager_feedback ? '피드백 수정' : '피드백 작성'}
+                              </p>
+                              <div className="quickCommentChips">
+                                {FEEDBACK_QUICK_COMMENTS.map((c, i) => (
+                                  <button
+                                    type="button"
+                                    key={i}
+                                    className="quickCommentChip"
+                                    onClick={() =>
+                                      setFeedbackDraft((prev) => ({
+                                        ...prev,
+                                        [s.task_submission_id]: appendQuickComment(
+                                          prev[s.task_submission_id],
+                                          c
+                                        ),
+                                      }))
+                                    }
+                                    disabled={isSaving}
+                                  >
+                                    {c}
+                                  </button>
+                                ))}
+                              </div>
+                              <textarea
+                                className="managerFeedbackTextarea"
+                                placeholder="학습자에게 전달할 피드백을 입력하세요"
+                                value={feedbackDraft[s.task_submission_id] ?? ''}
+                                onChange={(e) =>
+                                  setFeedbackDraft((prev) => ({
+                                    ...prev,
+                                    [s.task_submission_id]: e.target.value,
+                                  }))
+                                }
+                              />
+                              <div className="managerFeedbackBtns">
+                                <button
+                                  type="button"
+                                  className="managerFeedbackBtn secondary"
+                                  onClick={() => handleFeedbackSave(s.task_submission_id, 'resubmit_requested')}
+                                  disabled={isSaving}
+                                >
+                                  재제출 요청
+                                </button>
+                                <button
+                                  type="button"
+                                  className="managerFeedbackBtn primary"
+                                  onClick={() => handleFeedbackSave(s.task_submission_id, 'feedback_given')}
+                                  disabled={isSaving}
+                                >
+                                  {isSaving ? '저장 중...' : '피드백 저장'}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </li>
+                    );
+                  };
+
+                  if (submissionsLoading) {
+                    return (
+                      <div className="learnerMgmtSection learnerMgmtSubmissionsSection">
+                        <h4 className="learnerMgmtSectionTitle">처리 대기</h4>
+                        <p className="learnerMgmtMuted">불러오는 중...</p>
+                      </div>
+                    );
+                  }
+                  if (submissionsError) {
+                    return (
+                      <div className="learnerMgmtSection learnerMgmtSubmissionsSection">
+                        <h4 className="learnerMgmtSectionTitle">처리 대기</h4>
+                        <p className="learnerMgmtSectionError">{submissionsError}</p>
+                      </div>
+                    );
+                  }
+                  return (
+                    <>
+                      <div className="learnerMgmtSection learnerMgmtSubmissionsSection">
+                        <h4 className="learnerMgmtSectionTitle">
+                          처리 대기 <span className="learnerMgmtSectionCount">({pendingSubs.length}건)</span>
+                        </h4>
+                        {pendingSubs.length === 0 ? (
+                          <p className="learnerMgmtMuted">처리할 제출이 없습니다.</p>
+                        ) : (
+                          <ul className="learnerMgmtSubmissionsList">
+                            {pendingSubs.map(renderSubmissionCard)}
+                          </ul>
+                        )}
+                      </div>
+
+                      {completedSubs.length > 0 && (
+                        <div className="learnerMgmtSection learnerMgmtSubmissionsSection">
+                          <div className="learnerMgmtSectionTopRow">
+                            <h4 className="learnerMgmtSectionTitle">
+                              최근 활동 <span className="learnerMgmtSectionCount">({completedSubs.length}건)</span>
+                            </h4>
+                            <button
+                              type="button"
+                              className="learnerMgmtAssignToggleBtn"
+                              onClick={() => setRecentExpanded((v) => !v)}
+                            >
+                              {recentExpanded ? '접기' : '펼치기'}
+                            </button>
+                          </div>
+                          {recentExpanded && (
+                            <ul className="learnerMgmtSubmissionsList">
+                              {completedSubs.map(renderSubmissionCard)}
+                            </ul>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             </>
           )}

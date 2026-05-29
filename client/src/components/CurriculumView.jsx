@@ -173,6 +173,7 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
   // 생성/미리보기/저장 모달 상태와 선택된 커리큘럼을 한 화면에서 함께 관리한다.
   const [manageModalOpen, setManageModalOpen] = useState(false);
   const [manageStep, setManageStep] = useState('select');
+  const [completionReportComment, setCompletionReportComment] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [curriculums, setCurriculums] = useState([]);
@@ -392,6 +393,29 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
       const link = document.createElement('a'); link.href = url; link.setAttribute('download', `${selectedCurriculum.cur_title}.docx`);
       document.body.appendChild(link); link.click(); link.remove();
     } catch (error) { toast.error('DOCX 다운로드 중 오류가 발생했습니다.'); }
+  };
+
+  const handleDownloadCompletionReport = async (comment = '') => {
+    if (!selectedCurriculum) return;
+    try {
+      const trimmedComment = comment.trim();
+      const res = await api.get(`/curricula/${selectedCurriculum.cur_id}/completion-report`, {
+        params: trimmedComment ? { comment: trimmedComment } : undefined,
+        responseType: 'blob',
+      });
+      const blob = new Blob([res.data], { type: res.headers?.['content-type'] || 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${selectedCurriculum.cur_title}_completion_report.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      setCompletionReportComment('');
+    } catch (error) {
+      toast.error(error.response?.data?.detail || '완료보고서 다운로드 중 오류가 발생했습니다.');
+    }
   };
 
   const handleDeleteCurriculum = async () => {
@@ -1310,8 +1334,38 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
                     onClick={() => { handleDownloadTxt(); setManageModalOpen(false); }}>
                     TXT 다운로드
                   </button>
+                  <button type="button" className="downloadModalBtn"
+                    onClick={() => { setCompletionReportComment(''); setManageStep('completionReport'); }}>
+                    완료보고서 PDF
+                  </button>
                   <button type="button" className="downloadModalBtn back"
                     onClick={() => setManageStep('select')}>
+                    ← 뒤로
+                  </button>
+                </>
+              )}
+
+              {manageStep === 'completionReport' && (
+                <>
+                  <p className="downloadModalTitle">완료보고서 코멘트</p>
+                  <textarea
+                    className="managerFeedbackTextarea"
+                    rows={5}
+                    maxLength={1000}
+                    placeholder="보고서에 덧붙일 매니저 종합 코멘트를 입력하세요."
+                    value={completionReportComment}
+                    onChange={(e) => setCompletionReportComment(e.target.value)}
+                  />
+                  <button type="button" className="downloadModalBtn"
+                    onClick={() => { handleDownloadCompletionReport(completionReportComment); setManageModalOpen(false); }}>
+                    코멘트 포함 생성
+                  </button>
+                  <button type="button" className="downloadModalBtn"
+                    onClick={() => { handleDownloadCompletionReport(''); setManageModalOpen(false); }}>
+                    코멘트 없이 생성
+                  </button>
+                  <button type="button" className="downloadModalBtn back"
+                    onClick={() => setManageStep('download')}>
                     ← 뒤로
                   </button>
                 </>

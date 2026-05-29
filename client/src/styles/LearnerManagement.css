@@ -524,26 +524,42 @@
   font-weight: 600;
 }
 
+.learnerMgmtSectionCount {
+  font-size: 12px;
+  color: var(--ink-muted);
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+.learnerMgmtAssignToggleRow {
+  list-style: none;
+  display: flex;
+  justify-content: center;
+  padding: 2px 0;
+}
+
+.learnerMgmtAssignToggleBtn {
+  background: transparent;
+  border: none;
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.learnerMgmtAssignToggleBtn:hover {
+  background: var(--bg-alt);
+  color: var(--primary);
+}
+
 .learnerMgmtAssignProgressRow {
   display: flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
-}
-
-.learnerMgmtAssignProgressRow .learner-progress-bg {
-  flex: 1;
-  min-width: 60px;
-  height: 5px;
-  background: var(--line);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.learnerMgmtAssignProgressRow .learner-progress-bar {
-  height: 100%;
-  background: var(--primary);
-  transition: width 0.3s ease;
 }
 
 .learnerMgmtAssignProgressText {
