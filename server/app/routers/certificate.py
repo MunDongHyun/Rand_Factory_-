@@ -36,7 +36,9 @@ current_file = os.path.abspath(__file__)
 router_dir = os.path.dirname(current_file)
 app_dir = os.path.dirname(router_dir)
 server_dir = os.path.dirname(app_dir)
-FONT_PATH = os.path.join(server_dir, "resources", "fonts", "NanumGothic.ttf")
+FONT_PATH = os.path.join(server_dir, "resources", "fonts", "NanumMyeongjo-subset.ttf")
+FONT_PATH_BOLD = os.path.join(server_dir, "resources", "fonts", "NanumMyeongjoBold-subset.ttf")
+BG_IMAGE = os.path.join(server_dir, "resources", "fonts", "certificate_template.png")
 
 
 def _assigned_learner_ids(curriculum: Curriculum) -> set[int]:
@@ -47,7 +49,6 @@ def _assigned_learner_ids(curriculum: Curriculum) -> set[int]:
 
 
 def _expected_weeks(curriculum: Curriculum) -> list[int]:
-    # 수료 판정은 현재 제출 모델이 주차 단위라서, 커리큘럼의 주차 목록을 기준으로 계산한다.
     week_plan = curriculum.cur_week_plan
     if isinstance(week_plan, list) and week_plan:
         weeks = sorted(
@@ -100,9 +101,6 @@ def _latest_submissions_by_week(
     curriculum_id: int,
     learner_id: int,
 ) -> dict[int, TaskSubmission]:
-    # task_submissions에는 task_submitted_content JSON 같은 큰 컬럼이 있어
-    # 전체 row를 ORDER BY 하면 MySQL sort buffer를 초과해 1038 에러가 난다.
-    # PK만 정렬·필터해서 가져온 뒤 본 row를 IN 조회로 재구성하는 패턴.
     id_query = (
         db.query(TaskSubmission.task_submission_id)
         .filter(
@@ -118,6 +116,7 @@ def _latest_submissions_by_week(
     submissions = fetch_in_order(
         db, id_query, TaskSubmission, TaskSubmission.task_submission_id
     )
+
     latest: dict[int, TaskSubmission] = {}
     for submission in submissions:
         latest[submission.task_week_number] = submission
@@ -132,7 +131,6 @@ def _build_eligibility(
     expected = _expected_weeks(curriculum)
     latest = _latest_submissions_by_week(db, curriculum.cur_id, learner.user_id)
 
-    # 모든 주차가 제출되고, 재제출 요청 없이 피드백 완료된 경우에만 발급 가능하다.
     completed: list[int] = []
     missing: list[int] = []
     pending_feedback: list[int] = []
@@ -176,7 +174,6 @@ def _build_eligibility(
 
 
 def _certificate_response(certificate: Certificate) -> CertificateResponse:
-    # 수료증은 발급 당시의 이름/커리큘럼명을 스냅샷 컬럼에 저장해 이후 원본 변경 영향을 받지 않는다.
     return CertificateResponse(
         cert_id=certificate.cert_id,
         cert_no=certificate.cert_no,
@@ -199,7 +196,6 @@ def _certificate_response(certificate: Certificate) -> CertificateResponse:
 
 
 def _generate_cert_no(db: Session, issued_at: datetime) -> str:
-    # 사람이 확인하기 쉬운 번호 + 짧은 랜덤 suffix로 중복 가능성을 낮춘다.
     prefix = issued_at.strftime("AC-%Y%m%d")
     for _ in range(10):
         cert_no = f"{prefix}-{secrets.token_hex(3).upper()}"
@@ -215,7 +211,6 @@ def _completed_at_from_submissions(
     learner_id: int,
     completed_weeks: list[int],
 ) -> datetime | None:
-    # 모든 완료 주차 중 마지막 피드백/제출 시각을 교육 완료일로 사용한다.
     latest = _latest_submissions_by_week(db, curriculum_id, learner_id)
     completed_dates = [
         submission.task_feedback_at or submission.task_submitted_at
@@ -236,67 +231,88 @@ def _pdf_bytes(
     issued_at: datetime,
     completed_at: datetime | None,
 ) -> bytes:
-    # 실제 수료증 PDF 레이아웃을 만드는 함수. 템플릿 문구/배치는 여기서 수정한다.
-    pdf = FPDF(orientation="L", unit="mm", format="A4")
+    pdf = FPDF(orientation="P", unit="mm", format="A4")
     pdf.set_auto_page_break(auto=False)
     pdf.add_page()
 
-    has_font = os.path.exists(FONT_PATH)
-    if has_font:
-        pdf.add_font("NanumGothic", "", FONT_PATH, uni=True)
-        font = "NanumGothic"
-    else:
-        font = "Arial"
+    if os.path.exists(FONT_PATH):
+        pdf.add_font("kr", "", FONT_PATH, uni=True)
+        font = "kr"
+        bold_style = ""
 
-    pdf.set_draw_color(57, 74, 171)
-    pdf.set_line_width(1.2)
-    pdf.rect(12, 12, 273, 186)
-    pdf.set_draw_color(118, 149, 255)
-    pdf.set_line_width(0.4)
-    pdf.rect(18, 18, 261, 174)
+        if os.path.exists(FONT_PATH_BOLD):
+            pdf.add_font("kr", "B", FONT_PATH_BOLD, uni=True)
+            bold_style = "B"
+    else:
+        font = "Helvetica"
+        bold_style = "B"
+
+    if os.path.exists(BG_IMAGE):
+        pdf.image(BG_IMAGE, x=0, y=0, w=210, h=297)
+    else:
+        pdf.set_draw_color(57, 74, 171)
+        pdf.set_line_width(1.1)
+        pdf.rect(12, 12, 186, 273)
+
+        pdf.set_draw_color(118, 149, 255)
+        pdf.set_line_width(0.4)
+        pdf.rect(18, 18, 174, 261)
 
     pdf.set_text_color(31, 41, 55)
-    pdf.set_font(font, "", 28)
-    pdf.ln(34)
-    pdf.cell(0, 16, title, ln=True, align="C")
 
-    pdf.set_font(font, "", 13)
+    pdf.set_font(font, "", 8)
+    pdf.set_xy(20, 20)
+    pdf.cell(80, 5, cert_no)
+
+    pdf.set_font(font, bold_style, 28)
+    pdf.set_xy(0, 48)
+    pdf.cell(210, 14, title, align="C")
+
+    pdf.set_font(font, "", 11)
     pdf.set_text_color(75, 85, 99)
-    pdf.cell(0, 10, "ArtiCulum Learning Certificate", ln=True, align="C")
-    pdf.ln(16)
+    pdf.set_xy(0, 66)
+    pdf.cell(210, 8, "ArtiCulum Learning Certificate", align="C")
 
     pdf.set_text_color(17, 24, 39)
-    pdf.set_font(font, "", 20)
-    pdf.cell(0, 14, learner_name, ln=True, align="C")
+    pdf.set_font(font, bold_style, 22)
+    pdf.set_xy(0, 96)
+    pdf.cell(210, 12, learner_name, align="C")
 
     pdf.set_font(font, "", 12)
     pdf.set_text_color(55, 65, 81)
+    pdf.set_xy(24, 116)
     pdf.multi_cell(
-        0,
+        162,
         8,
         f"{curriculum_title} 과정을 성실히 이수하였음을 증명합니다.",
         align="C",
     )
-    pdf.ln(8)
+
+    completed_str = completed_at.strftime("%Y-%m-%d") if completed_at else "-"
+    issued_str = issued_at.strftime("%Y-%m-%d")
 
     info_lines = [
-        f"수료증 번호: {cert_no}",
-        f"과정명: {curriculum_title}",
-        f"학습 기간: {duration_weeks}주",
-        f"완료일: {completed_at.strftime('%Y-%m-%d') if completed_at else '-'}",
-        f"발급일: {issued_at.strftime('%Y-%m-%d')}",
-        f"발급자: {issuer_name}",
+        ("과정명", curriculum_title),
+        ("학습 기간", f"{duration_weeks}주"),
+        ("완료일", completed_str),
+        ("발급일", issued_str),
+        ("발급자", issuer_name),
     ]
 
-    pdf.set_font(font, "", 10)
-    pdf.set_text_color(75, 85, 99)
-    for line in info_lines:
-        pdf.cell(0, 7, line, ln=True, align="C")
+    y = 150
+    pdf.set_font(font, "", 11)
+    for label, value in info_lines:
+        pdf.set_xy(52, y)
+        pdf.set_text_color(75, 85, 99)
+        pdf.cell(30, 8, label)
+        pdf.set_text_color(17, 24, 39)
+        pdf.cell(90, 8, str(value))
+        y += 10
 
-    pdf.set_y(174)
-    pdf.set_font(font, "", 12)
+    pdf.set_font(font, bold_style, 18)
     pdf.set_text_color(31, 41, 55)
-    pdf.cell(0, 8, "ArtiCulum", ln=True, align="C")
+    pdf.set_xy(0, 245)
+    pdf.cell(210, 10, "ArtiCulum", align="C")
 
     out = pdf.output(dest="S")
     return out.encode("latin-1") if isinstance(out, str) else bytes(out)
@@ -311,7 +327,6 @@ def _download_headers(filename: str) -> dict[str, str]:
 
 
 def _can_access_certificate(certificate: Certificate, user: User) -> bool:
-    # 관리자 전체, 학습자 본인, 커리큘럼 담당 매니저만 수료증에 접근할 수 있다.
     if user.user_role == "a":
         return True
     if user.user_role == "j":
@@ -345,11 +360,6 @@ def get_learner_curricula_progress(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """매니저/관리자가 학습자 관리 페이지에서 학습자별 커리큘럼 진척을 한눈에 보기 위함.
-
-    각 배정 커리큘럼별 진행률·발급 자격·기 발급 수료증 상태를 반환한다.
-    매니저는 본인이 만든 커리큘럼 중 그 학습자가 배정된 항목만 본다.
-    """
     if current_user.user_role not in {"m", "a"}:
         raise HTTPException(status_code=404, detail="찾을 수 없습니다")
 
@@ -393,20 +403,24 @@ def get_learner_curricula_progress(
         done = len(eligibility.completed_weeks)
         progress = int(round(100 * done / total)) if total > 0 else 0
         cert = cert_map.get(cur.cur_id)
-        items.append(LearnerCurriculumProgressItem(
-            curriculum_id=cur.cur_id,
-            curriculum_title=cur.cur_title or "",
-            expected_weeks=eligibility.expected_weeks,
-            completed_weeks=eligibility.completed_weeks,
-            missing_weeks=eligibility.missing_weeks,
-            pending_feedback_weeks=eligibility.pending_feedback_weeks,
-            resubmit_requested_weeks=eligibility.resubmit_requested_weeks,
-            progress_pct=progress,
-            eligible=eligibility.eligible,
-            has_certificate=cert is not None,
-            cert_id=cert.cert_id if cert else None,
-            reason=eligibility.reason,
-        ))
+
+        items.append(
+            LearnerCurriculumProgressItem(
+                curriculum_id=cur.cur_id,
+                curriculum_title=cur.cur_title or "",
+                expected_weeks=eligibility.expected_weeks,
+                completed_weeks=eligibility.completed_weeks,
+                missing_weeks=eligibility.missing_weeks,
+                pending_feedback_weeks=eligibility.pending_feedback_weeks,
+                resubmit_requested_weeks=eligibility.resubmit_requested_weeks,
+                progress_pct=progress,
+                eligible=eligibility.eligible,
+                has_certificate=cert is not None,
+                cert_id=cert.cert_id if cert else None,
+                reason=eligibility.reason,
+            )
+        )
+
     return items
 
 
@@ -418,6 +432,7 @@ def list_certificates(
     current_user: User = Depends(get_current_user),
 ):
     query = db.query(Certificate).join(Curriculum).filter(Certificate.cert_deleted_at.is_(None))
+
     if current_user.user_role == "j":
         query = query.filter(Certificate.cert_learner_id == current_user.user_id)
     elif current_user.user_role == "m":
@@ -438,7 +453,6 @@ def list_certificates(
 def download_sample_certificate(
     current_user: User = Depends(get_current_user),
 ):
-    # TODO: 수료증 템플릿 확정 후 제거. DB/R2 저장 없이 디자인 확인용 PDF만 내려준다.
     if current_user.user_role not in {"m", "a"}:
         raise HTTPException(status_code=404, detail="Not found")
 
@@ -453,6 +467,7 @@ def download_sample_certificate(
         issued_at=issued_at,
         completed_at=issued_at,
     )
+
     return StreamingResponse(
         iter([pdf_bytes]),
         media_type="application/pdf",
@@ -469,6 +484,7 @@ def issue_certificate(
     curriculum = _load_curriculum_for_issue(db, current_user, body.cert_curriculum_id)
     learner = _load_assigned_learner(db, curriculum, body.cert_learner_id)
     eligibility = _build_eligibility(db, curriculum, learner)
+
     if not eligibility.eligible:
         raise HTTPException(
             status_code=400,
@@ -486,7 +502,7 @@ def issue_certificate(
         )
         .first()
     )
-    # curriculum+learner unique 제약 때문에 기존 soft-deleted row는 새로 만들지 않고 복구/갱신한다.
+
     if existing and existing.cert_deleted_at is None and not body.overwrite:
         return _certificate_response(existing)
 
@@ -498,21 +514,25 @@ def issue_certificate(
         learner.user_id,
         eligibility.completed_weeks,
     )
+
     cert_no = existing.cert_no if existing else _generate_cert_no(db, issued_at)
-    curriculum_title = curriculum.cur_title
-    learner_name = learner.user_name
-    issuer_name = current_user.user_name
+    curriculum_title = curriculum.cur_title or ""
+    learner_name = learner.user_name or ""
+    issuer_name = current_user.user_name or ""
+
     pdf_bytes = _pdf_bytes(
         title=title,
         cert_no=cert_no,
         curriculum_title=curriculum_title,
-        duration_weeks=curriculum.cur_duration_weeks,
+        duration_weeks=int(curriculum.cur_duration_weeks or 0),
         learner_name=learner_name,
         issuer_name=issuer_name,
         issued_at=issued_at,
         completed_at=completed_at,
     )
+
     key = f"certificates/{curriculum.cur_id}/{learner.user_id}/{issued_at.strftime('%Y%m%dT%H%M%S')}.pdf"
+
     try:
         save_object(key, pdf_bytes, "application/pdf")
     except AttachmentStorageError as exc:
@@ -561,8 +581,10 @@ def get_certificate(
         .filter(Certificate.cert_id == cert_id, Certificate.cert_deleted_at.is_(None))
         .first()
     )
+
     if not certificate or not _can_access_certificate(certificate, current_user):
         raise HTTPException(status_code=404, detail="Certificate not found")
+
     return _certificate_response(certificate)
 
 
@@ -577,6 +599,7 @@ def download_certificate(
         .filter(Certificate.cert_id == cert_id, Certificate.cert_deleted_at.is_(None))
         .first()
     )
+
     if not certificate or not _can_access_certificate(certificate, current_user):
         raise HTTPException(status_code=404, detail="Certificate not found")
 
@@ -590,6 +613,7 @@ def download_certificate(
     curriculum_title = certificate.cert_curriculum_title or "certificate"
     learner_name = certificate.cert_learner_name or "learner"
     filename = f"{curriculum_title}_{learner_name}_certificate.pdf"
+
     return StreamingResponse(
         stored.body,
         media_type=stored.content_type,
