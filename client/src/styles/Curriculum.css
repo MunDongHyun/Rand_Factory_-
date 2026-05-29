@@ -2066,7 +2066,8 @@
 .learner-editor-guide { font-size: 13px; color: #718096; margin-bottom: 12px; }
 
 /* 모달 & 오버레이 */
-.chatModalOverlay, .confirmOverlay, .downloadOverlay, .loadingModalOverlay { z-index: 99998; }
+.chatModalOverlay, .confirmOverlay, .downloadOverlay { z-index: 99998; }
+.loadingModalOverlay { z-index: 100000; }
 .chatModalContainer, .confirmModal, .downloadModal, .loadingModalContainer { z-index: 99999; }
 .templateModal.fullscreen { height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
 .modalTopBar { flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; }
