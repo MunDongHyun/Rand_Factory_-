@@ -2059,7 +2059,7 @@
 .extracted-accordion-body.no-border { border: none; background: transparent; }
 
 /* 우측 헤더 및 제목 */
-.learner-right-header { margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: flex-start; position: sticky; top: 0; background: var(--card); z-index: 1; }
+.learner-right-header { margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: flex-start;  background: var(--card); z-index: 1; }
 .learner-right-week { font-size: 13px; color: #718096; font-weight: 600; }
 .curriculumDetailTitle.large { margin-top: 4px; font-size: 22px; }
 .learner-right-dday { display: inline-block; margin-top: 8px; font-size: 12px; background: #fff5f5; color: #e53e3e; padding: 4px 8px; border-radius: 4px; font-weight: 600; }
