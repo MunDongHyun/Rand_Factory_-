@@ -2,6 +2,36 @@
 
 ---
 
+## 2026-05-28 - Claude (재제출 첨부 자동 승계 + 매니저 학습자관리에 커리큘럼별 진행률/발급 자격)
+
+### 변경 1 — 학습자 재제출 시 기존 첨부 자동 승계
+- 증상: 학습자가 재제출하면 기존 첨부가 다운로드 시 404. 클라이언트가 보낸 legacy `attachments` 메타는 살아남지만 새 task_submission에 `task_submission_attachments` row가 없어 stored_name 기반 다운로드 실패
+- 픽스 위치: `server/app/routers/task_submission.py::create_submission`
+- 처리: 신규 submission 생성 직후 `body.task_submitted_content.attachments[].stored_name` 중 본인 소유 확인. 매칭되는 `task_submission_attachments` row를 새 submission_id로 복사. R2 객체는 같은 `file_storage_key` 공유 → 추가 저장 비용 0
+- 학습자가 명시적으로 X 누른 첨부는 클라이언트 `existingAttachments`에서 빠지므로 자동 제외
+
+### 변경 2 — 매니저 학습자관리 페이지: 커리큘럼별 진행률 + 발급 자격
+- 증상: 매니저가 학습자 선택 시 학습자별 평균 진행률만 보임. 어느 커리큘럼이 발급 가능 상태인지 한눈에 못 봐 수료증 발급 타이밍 잡기 어려움
+- 백엔드:
+  - 스키마 `schemas/certificate.py`에 `LearnerCurriculumProgressItem` 추가 (curriculum_id/title, expected/completed/missing/pending_feedback/resubmit_requested weeks, progress_pct, eligible, has_certificate, cert_id, reason)
+  - 신규 엔드포인트 `GET /api/certificates/learner-progress?learner_id=X`: 학습자에게 배정된 모든 커리큘럼에 대해 `_build_eligibility` 호출 + 기 발급 수료증 매핑. 매니저는 본인 만든 커리큘럼만, 관리자는 전체
+- 프론트 `LearnerManagementView`:
+  - `progressData` state + 학습자 선택 시 fetch
+  - 커리큘럼 배정 리스트 각 항목에 진행률 바 (`x/N · NN%`) + 배지 (`발급됨` / `발급 가능` / `진행 중`)
+  - 발급 버튼 자동 disable — `!eligible && !issued` 이면 비활성화 + tooltip 사유
+
+### 변경 3 — sort buffer 우회 (1038 에러)
+- 증상: 특정 학습자(많은 제출/큰 JSON) 선택 시 `pymysql 1038 Out of sort memory`
+- 위치: `_latest_submissions_by_week`가 `task_submitted_content` JSON 포함 전체 row를 `ORDER BY` → sort buffer 초과
+- 픽스: 기존 `db_helpers.fetch_in_order` 패턴 적용 (PK만 정렬·필터 → `WHERE id IN (...)` 본 row). 다른 라우터 3곳에서 이미 검증된 해법
+- 영향: `eligibility` / `learner-progress` 양쪽 모두 안정
+
+### 검증
+- `python -m compileall -q app` 통과, routes 70 → 71 (`/api/certificates/learner-progress` 추가)
+- `npm run build` 통과
+
+---
+
 ## 2026-05-28 - Claude (통합 테스트 발견 픽스 + 체크리스트)
 
 ### 변경

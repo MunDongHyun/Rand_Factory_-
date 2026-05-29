@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import json
 import os
 import secrets
 from urllib.parse import quote
@@ -6,9 +7,11 @@ from urllib.parse import quote
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from fpdf import FPDF
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.db_helpers import fetch_in_order
 from app.core.security import get_current_user
 from app.models.certificate import Certificate
 from app.models.curriculum import Curriculum
@@ -18,6 +21,7 @@ from app.schemas.certificate import (
     CertificateEligibilityResponse,
     CertificateIssueRequest,
     CertificateResponse,
+    LearnerCurriculumProgressItem,
 )
 from app.services.attachment_storage import (
     AttachmentNotFoundError,
@@ -96,8 +100,11 @@ def _latest_submissions_by_week(
     curriculum_id: int,
     learner_id: int,
 ) -> dict[int, TaskSubmission]:
-    submissions = (
-        db.query(TaskSubmission)
+    # task_submissions에는 task_submitted_content JSON 같은 큰 컬럼이 있어
+    # 전체 row를 ORDER BY 하면 MySQL sort buffer를 초과해 1038 에러가 난다.
+    # PK만 정렬·필터해서 가져온 뒤 본 row를 IN 조회로 재구성하는 패턴.
+    id_query = (
+        db.query(TaskSubmission.task_submission_id)
         .filter(
             TaskSubmission.task_curriculum_id == curriculum_id,
             TaskSubmission.task_learner_id == learner_id,
@@ -107,7 +114,9 @@ def _latest_submissions_by_week(
             TaskSubmission.task_submitted_at.asc(),
             TaskSubmission.task_submission_id.asc(),
         )
-        .all()
+    )
+    submissions = fetch_in_order(
+        db, id_query, TaskSubmission, TaskSubmission.task_submission_id
     )
     latest: dict[int, TaskSubmission] = {}
     for submission in submissions:
@@ -328,6 +337,77 @@ def get_certificate_eligibility(
     curriculum = _load_curriculum_for_issue(db, current_user, curriculum_id)
     learner = _load_assigned_learner(db, curriculum, learner_id)
     return _build_eligibility(db, curriculum, learner)
+
+
+@router.get("/learner-progress", response_model=list[LearnerCurriculumProgressItem])
+def get_learner_curricula_progress(
+    learner_id: int = Query(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """매니저/관리자가 학습자 관리 페이지에서 학습자별 커리큘럼 진척을 한눈에 보기 위함.
+
+    각 배정 커리큘럼별 진행률·발급 자격·기 발급 수료증 상태를 반환한다.
+    매니저는 본인이 만든 커리큘럼 중 그 학습자가 배정된 항목만 본다.
+    """
+    if current_user.user_role not in {"m", "a"}:
+        raise HTTPException(status_code=404, detail="찾을 수 없습니다")
+
+    learner = (
+        db.query(User)
+        .filter(User.user_id == learner_id, User.user_deleted_at.is_(None))
+        .first()
+    )
+    if not learner or learner.user_role != "j":
+        raise HTTPException(status_code=404, detail="학습자를 찾을 수 없습니다")
+
+    if current_user.user_role == "m" and learner.user_company != current_user.user_company:
+        raise HTTPException(status_code=404, detail="학습자를 찾을 수 없습니다")
+
+    query = db.query(Curriculum).filter(
+        Curriculum.cur_deleted_at.is_(None),
+        func.json_contains(Curriculum.cur_assigned_learner_ids, json.dumps(learner_id)),
+    )
+    if current_user.user_role == "m":
+        query = query.filter(Curriculum.cur_creator_id == current_user.user_id)
+    curricula = query.order_by(Curriculum.cur_updated_at.desc()).all()
+
+    cert_map: dict[int, Certificate] = {}
+    if curricula:
+        cur_ids = [c.cur_id for c in curricula]
+        existing_certs = (
+            db.query(Certificate)
+            .filter(
+                Certificate.cert_learner_id == learner_id,
+                Certificate.cert_deleted_at.is_(None),
+                Certificate.cert_curriculum_id.in_(cur_ids),
+            )
+            .all()
+        )
+        cert_map = {c.cert_curriculum_id: c for c in existing_certs}
+
+    items: list[LearnerCurriculumProgressItem] = []
+    for cur in curricula:
+        eligibility = _build_eligibility(db, cur, learner)
+        total = len(eligibility.expected_weeks)
+        done = len(eligibility.completed_weeks)
+        progress = int(round(100 * done / total)) if total > 0 else 0
+        cert = cert_map.get(cur.cur_id)
+        items.append(LearnerCurriculumProgressItem(
+            curriculum_id=cur.cur_id,
+            curriculum_title=cur.cur_title or "",
+            expected_weeks=eligibility.expected_weeks,
+            completed_weeks=eligibility.completed_weeks,
+            missing_weeks=eligibility.missing_weeks,
+            pending_feedback_weeks=eligibility.pending_feedback_weeks,
+            resubmit_requested_weeks=eligibility.resubmit_requested_weeks,
+            progress_pct=progress,
+            eligible=eligibility.eligible,
+            has_certificate=cert is not None,
+            cert_id=cert.cert_id if cert else None,
+            reason=eligibility.reason,
+        ))
+    return items
 
 
 @router.get("", response_model=list[CertificateResponse])

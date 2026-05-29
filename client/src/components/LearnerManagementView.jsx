@@ -78,6 +78,9 @@ function LearnerManagementView({ user }) {
   const [certificatesLoading, setCertificatesLoading] = useState(false);
   const [certificateActionId, setCertificateActionId] = useState(null);
 
+  // 커리큘럼별 진행률 + 발급 자격 (매니저가 수료증 발급 타이밍 잡기 위함)
+  const [progressData, setProgressData] = useState([]);
+
   // 우측 상세 - 최근 제출 이력
   const [submissions, setSubmissions] = useState([]);
   const [submissionsLoading, setSubmissionsLoading] = useState(false);
@@ -115,6 +118,7 @@ function LearnerManagementView({ user }) {
       setSubmissions([]);
       setSubmissionsError(null);
       setCertificates([]);
+      setProgressData([]);
       setExpandedSubmissionId(null);
       setFeedbackDraft({});
       return;
@@ -142,6 +146,11 @@ function LearnerManagementView({ user }) {
       .then((res) => setCertificates(Array.isArray(res.data) ? res.data : []))
       .catch(() => setCertificates([]))
       .finally(() => setCertificatesLoading(false));
+
+    // 커리큘럼별 진행률 + 발급 자격
+    api.get('/certificates/learner-progress', { params: { learner_id: selectedLearnerId } })
+      .then((res) => setProgressData(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setProgressData([]));
   }, [selectedLearnerId]);
 
   const handleToggleExpand = (sid) => {
@@ -559,23 +568,56 @@ function LearnerManagementView({ user }) {
                         <p className="learnerMgmtMuted">아직 배정된 커리큘럼이 없습니다.</p>
                       ) : (
                         <ul className="learnerMgmtAssignList">
-                          {assignedCurricula.map((c) => (
-                            <li key={c.cur_id} className="learnerMgmtAssignItem" title={c.cur_title}>
-                              <span className="learnerMgmtAssignTitle">{c.cur_title}</span>
-                              <button
-                                type="button"
-                                className={`learnerMgmtCertBtn ${certificates.some((cert) => cert.cert_curriculum_id === c.cur_id) ? 'issued' : ''}`}
-                                onClick={() => handleCertificateAction(c)}
-                                disabled={certificatesLoading || certificateActionId === c.cur_id}
-                              >
-                                {certificateActionId === c.cur_id
-                                  ? '처리 중'
-                                  : certificates.some((cert) => cert.cert_curriculum_id === c.cur_id)
-                                    ? '다운로드'
-                                    : '수료증 발급'}
-                              </button>
-                            </li>
-                          ))}
+                          {assignedCurricula.map((c) => {
+                            const progress = progressData.find((p) => p.curriculum_id === c.cur_id);
+                            const issued = certificates.some((cert) => cert.cert_curriculum_id === c.cur_id);
+                            const eligible = progress?.eligible ?? false;
+                            const pct = progress?.progress_pct ?? 0;
+                            return (
+                              <li key={c.cur_id} className="learnerMgmtAssignItem" title={c.cur_title}>
+                                <div className="learnerMgmtAssignInfo">
+                                  <span className="learnerMgmtAssignTitle">{c.cur_title}</span>
+                                  {progress && progress.expected_weeks.length > 0 && (
+                                    <div className="learnerMgmtAssignProgressRow">
+                                      <div className="learner-progress-bg">
+                                        <div
+                                          className="learner-progress-bar"
+                                          style={{ width: `${pct}%` }}
+                                        />
+                                      </div>
+                                      <span className="learnerMgmtAssignProgressText">
+                                        {progress.completed_weeks.length}/{progress.expected_weeks.length} · {pct}%
+                                      </span>
+                                      {issued ? (
+                                        <span className="learnerMgmtAssignBadge issued">발급됨</span>
+                                      ) : eligible ? (
+                                        <span className="learnerMgmtAssignBadge eligible">발급 가능</span>
+                                      ) : (
+                                        <span className="learnerMgmtAssignBadge pending">진행 중</span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                                <button
+                                  type="button"
+                                  className={`learnerMgmtCertBtn ${issued ? 'issued' : ''}`}
+                                  onClick={() => handleCertificateAction(c)}
+                                  disabled={
+                                    certificatesLoading ||
+                                    certificateActionId === c.cur_id ||
+                                    (!issued && !eligible)
+                                  }
+                                  title={!issued && !eligible ? (progress?.reason || '아직 발급 조건이 충족되지 않았습니다') : undefined}
+                                >
+                                  {certificateActionId === c.cur_id
+                                    ? '처리 중'
+                                    : issued
+                                      ? '다운로드'
+                                      : '수료증 발급'}
+                                </button>
+                              </li>
+                            );
+                          })}
                         </ul>
                       )
                     ) : (

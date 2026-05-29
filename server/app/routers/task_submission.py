@@ -273,6 +273,49 @@ def create_submission(
     db.commit()
     db.refresh(submission)
 
+    # 재제출 자동 첨부 승계:
+    # 클라이언트가 body.task_submitted_content.attachments 에 직전 제출 첨부의
+    # stored_name(file_storage_key) 메타데이터를 그대로 넣어 보낸 경우, 본인 소유 확인 후
+    # R2 객체는 공유(file_storage_key 재사용)하고 task_submission_attachments row 만 복사한다.
+    legacy_attachments = (body.task_submitted_content or {}).get("attachments") or []
+    if isinstance(legacy_attachments, list) and legacy_attachments:
+        stored_names = [
+            a.get("stored_name") for a in legacy_attachments
+            if isinstance(a, dict) and a.get("stored_name")
+        ]
+        if stored_names:
+            inherited_rows = (
+                db.query(TaskSubmissionAttachment)
+                .join(
+                    TaskSubmission,
+                    TaskSubmissionAttachment.task_submission_id == TaskSubmission.task_submission_id,
+                )
+                .filter(
+                    TaskSubmissionAttachment.file_storage_key.in_(stored_names),
+                    TaskSubmissionAttachment.file_deleted_at.is_(None),
+                    TaskSubmission.task_learner_id == current_user.user_id,
+                )
+                .all()
+            )
+            copied = 0
+            seen_keys: set[str] = set()
+            for existing in inherited_rows:
+                if existing.file_storage_key in seen_keys:
+                    continue
+                seen_keys.add(existing.file_storage_key)
+                db.add(TaskSubmissionAttachment(
+                    task_submission_id=submission.task_submission_id,
+                    file_original_name=existing.file_original_name,
+                    file_storage_key=existing.file_storage_key,
+                    file_mime_type=existing.file_mime_type,
+                    file_size_bytes=existing.file_size_bytes,
+                    file_sha256=existing.file_sha256,
+                ))
+                copied += 1
+            if copied:
+                db.commit()
+                db.refresh(submission)
+
     # 매니저에게 새 제출 알림 (실패해도 제출 자체는 영향 없음)
     try:
         notification_service.create_for_user(
