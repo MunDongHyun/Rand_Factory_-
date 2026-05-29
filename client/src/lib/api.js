@@ -1,8 +1,12 @@
 import axios from 'axios';
 import { getToken, clearToken } from './auth';
 
+// 개발 환경: Vite proxy(`/api` -> http://localhost:8000) 통과
+// 배포 환경: VITE_API_BASE_URL에 백엔드 origin (e.g. https://articulum-api.onrender.com/api) 지정
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: API_BASE_URL,
 });
 
 api.interceptors.request.use((config) => {

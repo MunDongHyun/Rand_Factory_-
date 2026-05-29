@@ -2,6 +2,33 @@
 
 ---
 
+## 2026-05-29 - Claude (Render 배포 코드 준비 + Codex 인수인계 프롬프트)
+
+### 변경
+- 클라이언트 `api.js`: `baseURL`을 `VITE_API_BASE_URL` 환경변수 기반으로 전환 (미설정 시 `/api` — 로컬 동작 변함 없음)
+- `docker/Dockerfile.server`: `--reload` 제거 + `$PORT` 환경변수 우선 사용 (Render PORT 자동 주입 대응)
+- `server/.env.example`: Render 배포용 환경변수 가이드 섹션 추가 (CORS_ORIGINS / SECRET_KEY 재발급 / R2 동일 등)
+- `client/.env.example` 신규: `VITE_API_BASE_URL` 가이드
+- `docs/handoff_codex_render_deploy.md` 신규: Codex 인수인계 프롬프트 — 마이그레이션 확인 / Render Web Service 설정 / 환경변수 / 트러블슈팅 / Vercel 프론트 / 시연 검증 / 폴백
+
+### 배포 전략 (확정)
+- 백엔드: Render Web Service (무료 티어, Docker, Build Context `./server`)
+- 프론트: Vercel Static (Vite, Root Directory `client`)
+- DB: 학원 MySQL 그대로 (외부 접속 TCP 확인 완료. 사용자 host 권한은 첫 배포 후 검증)
+- 객체저장소: Cloudflare R2 (이미 운영 중)
+- 벡터 DB: ChromaDB 이미지 포함 (read-only)
+
+### 검증
+- `python -m compileall -q app` 통과
+- `npm run build` 통과 (5.71s)
+- 로컬 동작 영향 없음 (api.js 디폴트 `/api` 유지)
+
+### 다음 단계 (Codex 인수)
+- `docs/handoff_codex_render_deploy.md` 참고
+- 토큰 부담으로 본 사이클은 코드 준비까지만. 실제 Render/Vercel 대시보드 작업 + 트러블슈팅은 Codex가 인수
+
+---
+
 ## 2026-05-29 - Claude (운영/완료 보고서 고도화)
 
 ### 변경 1 — 관리자 운영 리포트
