@@ -260,39 +260,39 @@ def _pdf_bytes(
 
     pdf.set_text_color(31, 41, 55)
 
-    # 수료증 번호 
+    # 수료증 번호
     pdf.set_font(font, "", 10)
     pdf.set_xy(45, 25)
     pdf.cell(80, 5, cert_no)
     completed_str = completed_at.strftime("%Y-%m-%d") if completed_at else "-"
-    
-    # 3. 템플릿 좌측 리스트 
-    pdf.set_text_color(0,0,0)
+
+    # 템플릿 좌측 리스트
+    pdf.set_text_color(0, 0, 0)
     pdf.set_font(font, bold_style, 14)
 
     # 과정명
-    pdf.set_xy(50, 94) 
+    pdf.set_xy(50, 94)
     pdf.cell(100, 8, curriculum_title)
 
     # 학습 기간
-    pdf.set_xy(57, 102) 
+    pdf.set_xy(57, 102)
     pdf.cell(100, 8, f"{duration_weeks}주")
 
-    # 성명 
-    pdf.set_xy(45, 110.5) 
+    # 성명
+    pdf.set_xy(45, 110.5)
     pdf.cell(100, 8, learner_name)
 
     # 완료일
-    pdf.set_xy(50, 118.5) 
+    pdf.set_xy(50, 118.5)
     pdf.cell(100, 8, completed_str)
 
     # 발급자 ('발급자 :' 글자 우측에 출력)
     pdf.set_font(font, bold_style, 20)
-    pdf.set_xy(105, 237) 
+    pdf.set_xy(105, 237)
     pdf.cell(90, 8, issuer_name)
 
     pdf.set_font(font, "", 18)
-    pdf.set_text_color(0,0,0)
+    pdf.set_text_color(0, 0, 0)
     pdf.set_xy(24, 160)
     pdf.multi_cell(
         162,
@@ -300,8 +300,6 @@ def _pdf_bytes(
         f"{curriculum_title} 과정을 성실히 이수하였음을 증명합니다.",
         align="C",
     )
-
-    issued_str = issued_at.strftime("%Y-%m-%d")
 
     out = pdf.output(dest="S")
     return out.encode("latin-1") if isinstance(out, str) else bytes(out)
@@ -439,16 +437,17 @@ def list_certificates(
 
 
 @router.get("/sample/download")
-def download_sample_certificate(
+def download_certificate_preview(
     current_user: User = Depends(get_current_user),
 ):
     if current_user.user_role not in {"m", "a"}:
         raise HTTPException(status_code=404, detail="Not found")
 
+    # 정식 발급과 동일한 템플릿/생성기를 사용하되, DB/R2 저장 없이 양식 확인용 PDF만 내려준다.
     issued_at = datetime.now(timezone.utc)
     pdf_bytes = _pdf_bytes(
         title="ArtiCulum 수료증",
-        cert_no=issued_at.strftime("AC-%Y%m%d-SAMPLE"),
+        cert_no=issued_at.strftime("AC-%Y%m%d-PREVIEW"),
         curriculum_title="AI 기반 비즈니스 문제해결 실무 과정",
         duration_weeks=4,
         learner_name="김아티",
@@ -460,7 +459,7 @@ def download_sample_certificate(
     return StreamingResponse(
         iter([pdf_bytes]),
         media_type="application/pdf",
-        headers=_download_headers("articulum_certificate_sample.pdf"),
+        headers=_download_headers("articulum_certificate_preview.pdf"),
     )
 
 

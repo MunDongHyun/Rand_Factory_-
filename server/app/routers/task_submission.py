@@ -36,6 +36,7 @@ from app.services.attachment_storage import (
 )
 
 router = APIRouter(prefix="/api/task-submissions", tags=["task-submissions"])
+KST = timezone(timedelta(hours=9))
 
 # 첨부파일 저장 루트 (server/uploads/task_attachments/{submission_id}/{stored_name})
 ATTACHMENT_MAX_BYTES = 20 * 1024 * 1024  # 한 파일당 20MB
@@ -163,6 +164,36 @@ def _submission_response(submission: TaskSubmission) -> TaskSubmissionResponse:
     )
 
 
+def _normalize_deadline(raw: object) -> datetime | None:
+    """DatePicker 기반 마감일은 해당 날짜의 끝까지 제출 가능하게 보정한다."""
+    if not raw:
+        return None
+
+    raw_str = str(raw).strip()
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", raw_str):
+        y, m, d = map(int, raw_str.split("-"))
+        return datetime(y, m, d, 23, 59, 59, tzinfo=KST).astimezone(timezone.utc)
+
+    try:
+        dt = datetime.fromisoformat(raw_str.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=KST)
+
+    local_dt = dt.astimezone(KST)
+    if (
+        local_dt.hour == 0
+        and local_dt.minute == 0
+        and local_dt.second <= 59
+        and local_dt.microsecond == 0
+    ):
+        local_dt = local_dt.replace(hour=23, minute=59, second=59)
+
+    return local_dt.astimezone(timezone.utc)
+
+
 def _week_max_deadline(curriculum: Curriculum, week_number: int) -> datetime | None:
     """해당 주차 assignment들 중 가장 늦은 deadline. 없으면 None.
 
@@ -182,12 +213,9 @@ def _week_max_deadline(curriculum: Curriculum, week_number: int) -> datetime | N
             raw = a.get("deadline")
             if not raw:
                 continue
-            try:
-                dt = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
-            except ValueError:
+            dt = _normalize_deadline(raw)
+            if dt is None:
                 continue
-            if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=timezone.utc)
             deadlines.append(dt)
         return max(deadlines) if deadlines else None
     return None

@@ -272,21 +272,21 @@ function LearnerManagementView({ user }) {
     }
   };
 
-  const handleSampleCertificateDownload = async () => {
-    // TODO: 수료증 템플릿 확정 후 제거. 실제 발급 기록 없이 샘플 PDF만 확인한다.
+  const handleCertificatePreviewDownload = async () => {
+    // 정식 발급과 동일한 양식을 DB/R2 저장 없이 확인한다.
     try {
       const res = await api.get('/certificates/sample/download', { responseType: 'blob' });
       const blob = new Blob([res.data], { type: res.headers?.['content-type'] || 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'articulum_certificate_sample.pdf';
+      link.download = 'articulum_certificate_preview.pdf';
       document.body.appendChild(link);
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
     } catch (err) {
-      toast.error(err.response?.data?.detail || '샘플 수료증 다운로드에 실패했습니다.');
+      toast.error(err.response?.data?.detail || '수료증 양식 다운로드에 실패했습니다.');
     }
   };
 
@@ -585,8 +585,8 @@ function LearnerManagementView({ user }) {
                       <h4 className="learnerMgmtSectionTitle">커리큘럼 배정</h4>
                       {!editAssign && !curriculaLoading && curricula.length > 0 && (
                         <div className="learnerMgmtSectionActions">
-                          <button type="button" className="learnerMgmtEditBtn" onClick={handleSampleCertificateDownload}>
-                            샘플 수료증
+                          <button type="button" className="learnerMgmtEditBtn" onClick={handleCertificatePreviewDownload}>
+                            수료증 양식
                           </button>
                           <button type="button" className="learnerMgmtEditBtn" onClick={startEditAssign}>
                             관리

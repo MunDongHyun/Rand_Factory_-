@@ -517,7 +517,9 @@ function LearnerCurriculumView({ curriculumDetailRef, notificationTarget }) {
       else toast.success("성공적으로 제출되었습니다.");
 
     } catch (err) {
-      setSubmitError(err.response?.data?.detail || '제출에 실패했습니다.');
+      const message = err.response?.data?.detail || '제출에 실패했습니다.';
+      setSubmitError(message);
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }

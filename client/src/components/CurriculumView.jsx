@@ -24,6 +24,11 @@ const formatOnlyDate = (value) => {
   if (Number.isNaN(d.getTime())) return '';
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
 };
+
+const toLocalEndOfDayIso = (dateString) => {
+  if (!dateString) return null;
+  return new Date(`${dateString}T23:59:59`).toISOString();
+};
 import curri_nulll from '../public/curri_null.png';
 import download_img from '../public/download_img.png';
 import delete_img from '../public/delete_img.png';
@@ -44,8 +49,8 @@ import { Color } from '@tiptap/extension-color';
 import { Highlight } from '@tiptap/extension-highlight';
 import { Link } from '@tiptap/extension-link';
 
-const TiptapMenuBar = ({ editor }) => {
-  if (!editor) return null;
+const TiptapMenuBar = ({ editor, readOnly = false }) => {
+  if (!editor || readOnly) return null;
 
   const addImage = () => {
     const input = document.createElement('input');
@@ -103,13 +108,14 @@ const TiptapMenuBar = ({ editor }) => {
   );
 };
 
-const TiptapEditor = ({ value, onChange, heightMode }) => {
+const TiptapEditor = ({ value, onChange, heightMode, readOnly = false }) => {
   const editor = useEditor({
     extensions: [
       StarterKit, Underline, TextStyle, Color, Highlight, Image.configure({ inline: true, allowBase64: true }), Link.configure({ openOnClick: false }), TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Table.configure({ resizable: true }), TableRow, TableHeader, TableCell,
     ],
     content: value,
+    editable: !readOnly,
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
   });
 
@@ -117,9 +123,13 @@ const TiptapEditor = ({ value, onChange, heightMode }) => {
     if (editor && value !== editor.getHTML()) { editor.commands.setContent(value, false); }
   }, [value, editor]);
 
+  useEffect(() => {
+    if (editor) editor.setEditable(!readOnly);
+  }, [editor, readOnly]);
+
   return (
     <div className="tiptap-editor-container">
-      <TiptapMenuBar editor={editor} />
+      <TiptapMenuBar editor={editor} readOnly={readOnly} />
       <div className={`tiptap-content-area template-render ${heightMode}`}>
         <EditorContent editor={editor} />
       </div>
@@ -218,7 +228,7 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
   const [highlightedSubmissionId, setHighlightedSubmissionId] = useState(null);
 
   const [reportModal, setReportModal] = useState({ open: false, file: null, loading: false });
-  const [templateModal, setTemplateModal] = useState({ open: false, week: null, assignmentIdx: null, title: '', content: '', deadline: '', fullscreen: false, generating: false });
+  const [templateModal, setTemplateModal] = useState({ open: false, week: null, assignmentIdx: null, title: '', content: '', deadline: '', fullscreen: false, generating: false, deadlineOnly: false });
 
   const [templateMessageIndex, setTemplateMessageIndex] = useState(0);
   const TEMPLATE_MESSAGES = [
@@ -353,6 +363,54 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
     try { await downloadAttachment(submissionId, attachment); } catch (err) { toast.error(err.response?.data?.detail || '첨부파일 다운로드에 실패했습니다.'); }
   };
 
+  const buildLearnerTasks = (submissionList = submissions) => {
+    const weekPlans = normalizeWeekPlan(selectedCurriculum?.cur_week_plan || []);
+    const allTasks = [];
+    weekPlans.forEach((weekData) => {
+      (weekData.assignments || []).forEach((assignment, idx) => {
+        const matches = submissionList.filter((s) => {
+          if (String(s.task_learner_id) !== String(selectedLearnerId)) return false;
+          if (String(s.task_week_number) !== String(weekData.week)) return false;
+
+          if (s.task_submitted_content && typeof s.task_submitted_content === 'object') {
+            return String(s.task_submitted_content.assignmentIdx) === String(idx);
+          }
+          return false;
+        });
+
+        const submission = matches.length > 0
+          ? matches.reduce((latest, current) =>
+            new Date(current.task_submitted_at || 0) > new Date(latest.task_submitted_at || 0) ? current : latest
+          )
+          : null;
+
+        allTasks.push({
+          week: weekData.week,
+          assignmentIdx: idx,
+          title: assignment.title,
+          hasTemplate: !!assignment.template_content,
+          deadline: assignment.deadline,
+          assignmentData: assignment,
+          submission,
+        });
+      });
+    });
+    return allTasks;
+  };
+
+  const moveToNextFeedbackTask = (submissionId, submissionList) => {
+    if (!selectedLearnerId || !selectedCurriculum) return;
+    const tasks = buildLearnerTasks(submissionList);
+    const currentIndex = tasks.findIndex((task) => task.submission?.task_submission_id === submissionId);
+    const isWaitingFeedback = (task) => task.submission?.task_status === 'submitted';
+    const afterCurrent = currentIndex >= 0 ? tasks.slice(currentIndex + 1).find(isWaitingFeedback) : null;
+    const nextTask = afterCurrent || tasks.find(isWaitingFeedback);
+
+    if (!nextTask) return;
+    setSelectedLearnerTask(nextTask);
+    setSelectedSubmissionId(nextTask.submission.task_submission_id);
+  };
+
   const handleFeedbackSave = async (submissionId, status = 'feedback_given') => {
     // 같은 피드백 API로 피드백 완료와 재제출 요청을 모두 처리한다.
     const text = (feedbackDraft[submissionId] || '').trim();
@@ -363,8 +421,13 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
     setFeedbackSavingId(submissionId);
     try {
       const res = await api.patch(`/task-submissions/${submissionId}/feedback`, { task_manager_feedback: text, task_status: status });
-      setSubmissions((prev) => prev.map((s) => s.task_submission_id === submissionId ? { ...s, ...res.data } : s));
+      const nextSubmissions = submissions.map((s) => s.task_submission_id === submissionId ? { ...s, ...res.data } : s);
+      setSubmissions(nextSubmissions);
       setFeedbackDraft((prev) => ({ ...prev, [submissionId]: '' }));
+      toast.success(status === 'resubmit_requested' ? '재제출을 요청했습니다.' : '피드백을 저장했습니다.');
+      if (status === 'feedback_given') {
+        moveToNextFeedbackTask(submissionId, nextSubmissions);
+      }
     } catch (err) { toast.error(err.response?.data?.detail || '피드백 저장에 실패했습니다.'); } finally { setFeedbackSavingId(null); }
   };
 
@@ -520,8 +583,10 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
   const saveTemplate = async () => {
     // 배포된 템플릿은 학습자가 제출 기준으로 보게 되므로, 수정 전 확인을 한 번 더 받는다.
     if (!selectedCurriculum) return;
-    const isConfirmed = window.confirm("과제를 배포하시면 이후 템플릿 수정이나 재배포가 불가능합니다.\n정말 배포하시겠습니까?");
-    if (!isConfirmed) return;
+    if (!templateModal.deadlineOnly) {
+      const isConfirmed = window.confirm("과제를 배포하시면 이후 템플릿 수정이나 재배포가 불가능합니다.\n정말 배포하시겠습니까?");
+      if (!isConfirmed) return;
+    }
 
     const weekPlan = normalizeWeekPlan(selectedCurriculum.cur_week_plan).map((step) => ({ ...step }));
     const targetWeek = weekPlan.find((s) => s.week === templateModal.week);
@@ -529,7 +594,7 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
 
     let isoDeadline = null;
     if (templateModal.deadline) {
-      isoDeadline = new Date(`${templateModal.deadline}T00:00:01`).toISOString();
+      isoDeadline = toLocalEndOfDayIso(templateModal.deadline);
     }
 
     // ✅ JSON 내부에 과제별로 마감일을 저장
@@ -546,10 +611,10 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
       try {
         localStorage.removeItem(templateDraftKey(selectedCurriculum.cur_id, templateModal.week, templateModal.assignmentIdx));
       } catch { }
-      toast.success('학습자들에게 과제 템플릿이 배포되었습니다.');
-      setTemplateModal({ open: false, week: null, assignmentIdx: null, title: '', content: '', deadline: '', generating: false, fullscreen: false });
+      toast.success(templateModal.deadlineOnly ? '마감일이 변경되었습니다.' : '학습자들에게 과제 템플릿이 배포되었습니다.');
+      setTemplateModal({ open: false, week: null, assignmentIdx: null, title: '', content: '', deadline: '', generating: false, fullscreen: false, deadlineOnly: false });
     } catch (err) {
-      toast.error(err.response?.data?.detail || '템플릿 배포에 실패했습니다.');
+      toast.error(err.response?.data?.detail || (templateModal.deadlineOnly ? '마감일 변경에 실패했습니다.' : '템플릿 배포에 실패했습니다.'));
       setTemplateModal((prev) => ({ ...prev, saving: false }));
     }
   };
@@ -557,6 +622,7 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
   const handleRegenerateTemplate = async () => {
     // 기존 과제 맥락을 유지한 채 해당 과제의 제출 양식만 다시 생성한다.
     if (!selectedCurriculum) return;
+    if (templateModal.deadlineOnly) return;
     const weekPlan = normalizeWeekPlan(selectedCurriculum.cur_week_plan);
     const targetWeek = weekPlan.find((s) => s.week === templateModal.week);
     if (!targetWeek || !Array.isArray(targetWeek.assignments)) return;
@@ -621,7 +687,7 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
       open: true, week, assignmentIdx: idx, title: assignment.title,
       content,
       deadline: currentDeadline,
-      generating: false, fullscreen: false
+      generating: false, fullscreen: false, deadlineOnly: !!assignment.template_content
     });
   };
 
@@ -667,7 +733,7 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
                 <div className="extracted-assignment-grid">
                   {step.assignments.map((a, idx) => {
                     const isDistributed = !!a.template_content;
-                    const actionClass = isDistributed ? "template-action-btn admin disabled" : "template-action-btn admin";
+                    const actionClass = "template-action-btn admin";
 
                     return (
                       <div key={idx} className="extracted-assignment-card">
@@ -686,9 +752,8 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
                               <button
                                 className={actionClass}
                                 onClick={(e) => { e.stopPropagation(); openTemplateModal(step.week, idx, a); }}
-                                disabled={isDistributed}
                               >
-                                {isDistributed ? '배포 완료' : '양식 배포(관리자)'}
+                                {isDistributed ? '마감일 변경' : '양식 배포(관리자)'}
                               </button>
                             </div>
                           )}
@@ -992,7 +1057,7 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
                           <div className="extracted-assignment-grid">
                             {weekData.assignments.map((a, idx) => {
                               const isDistributed = !!a.template_content;
-                              const actionClass = isDistributed ? "template-action-btn admin disabled" : "template-action-btn admin";
+                              const actionClass = "template-action-btn admin";
 
                               return (
                                 <div key={idx} className="extracted-assignment-card">
@@ -1009,9 +1074,8 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
                                       <button
                                         className={actionClass}
                                         onClick={(e) => { e.stopPropagation(); openTemplateModal(weekData.week, idx, a); }}
-                                        disabled={isDistributed}
                                       >
-                                        {isDistributed ? '배포 완료' : '양식 배포(관리자)'}
+                                        {isDistributed ? '마감일 변경' : '양식 배포(관리자)'}
                                       </button>
                                     </div>
                                   </div>
@@ -1277,11 +1341,13 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
             <div className="confirmOverlay" onClick={() => setTemplateModal({ ...templateModal, open: false })} />
             <div className={`confirmModal templateModal ${templateModal.fullscreen ? 'fullscreen' : ''}`}>
               <div className="modalTopBar">
-                <h3 className="templateSectionTitle">과제 양식(템플릿) 배포</h3>
+                <h3 className="templateSectionTitle">{templateModal.deadlineOnly ? '과제 마감일 변경' : '과제 양식(템플릿) 배포'}</h3>
                 <div className="modalHeaderActions">
-                  <button type="button" className="template-action-btn admin ai-regenerate-btn" onClick={handleRegenerateTemplate} disabled={templateModal.generating}>
-                    {templateModal.generating ? 'AI 작성 중...' : 'AI 템플릿 재작성'}
-                  </button>
+                  {!templateModal.deadlineOnly && (
+                    <button type="button" className="template-action-btn admin ai-regenerate-btn" onClick={handleRegenerateTemplate} disabled={templateModal.generating}>
+                      {templateModal.generating ? 'AI 작성 중...' : 'AI 템플릿 재작성'}
+                    </button>
+                  )}
                   <button type="button" className="fullscreenBtn" onClick={() => setTemplateModal(prev => ({ ...prev, fullscreen: !prev.fullscreen }))}>
                     {templateModal.fullscreen ? '축소' : '전체보기'}
                   </button>
@@ -1289,7 +1355,9 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
               </div>
 
               <p className="assignSectionHint">
-                {`학습자에게 전달될 '${templateModal.title}'의 작성 양식 가이드를 작성해주세요.\n표나 양식을 지정해주면 학습자가 쉽게 채워넣을 수 있습니다.`}
+                {templateModal.deadlineOnly
+                  ? `이미 배포된 '${templateModal.title}' 과제의 작성 양식은 유지하고 마감일만 변경합니다.`
+                  : `학습자에게 전달될 '${templateModal.title}'의 작성 양식 가이드를 작성해주세요.\n표나 양식을 지정해주면 학습자가 쉽게 채워넣을 수 있습니다.`}
               </p>
 
               <div className="templateDeadlineRow">
@@ -1344,12 +1412,19 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
                 <TiptapEditor
                   value={templateModal.content}
                   onChange={(newContent) => setTemplateModal({ ...templateModal, content: newContent })}
+                  readOnly={templateModal.deadlineOnly}
                 />
               </div>
               <div className="confirmBtns" style={{ flexShrink: 0, paddingTop: '16px' }}>
                 <button type="button" className="confirmBtnBack" onClick={() => setTemplateModal({ ...templateModal, open: false })} disabled={templateModal.saving}>취소</button>
-                <button type="button" className="confirmBtnBack" onClick={saveTemplateDraft} disabled={templateModal.saving}>임시저장</button>
-                <button type="button" className="confirmBtnCreate" onClick={saveTemplate} disabled={templateModal.saving}>{templateModal.saving ? '배포 중...' : '템플릿 배포'}</button>
+                {!templateModal.deadlineOnly && (
+                  <button type="button" className="confirmBtnBack" onClick={saveTemplateDraft} disabled={templateModal.saving}>임시저장</button>
+                )}
+                <button type="button" className="confirmBtnCreate" onClick={saveTemplate} disabled={templateModal.saving}>
+                  {templateModal.saving
+                    ? (templateModal.deadlineOnly ? '저장 중...' : '배포 중...')
+                    : (templateModal.deadlineOnly ? '마감일 저장' : '템플릿 배포')}
+                </button>
               </div>
             </div>
           </>,
