@@ -2,6 +2,35 @@
 
 ---
 
+## 2026-05-29 - Codex (수료증 템플릿 최적화 + 커리큘럼/보고서 UX 마무리)
+
+### 변경
+- 수료증 샘플/발급 PDF 생성 속도 개선
+  - `certificate_template.png`(RGBA PNG) 삽입 시 `fpdf.image()`에서 약 35~36초 소요되는 병목 확인
+  - 동일 템플릿을 흰 배경 JPG(`server/resources/fonts/certificate_template.jpg`)로 변환하고 `certificate.py`의 `BG_IMAGE`를 JPG로 변경
+  - 로컬 `_pdf_bytes()` 측정 기준 약 36.7초 → 약 0.07초로 단축
+- 커리큘럼 관리 화면의 학습자별 과제 현황 UX 보정
+  - 기존에는 제출이 있는 과제만 클릭 가능해, 중간에 추가 배정된 학습자의 미제출 과제가 무반응처럼 보임
+  - 미제출 과제도 클릭 가능하게 하고 오른쪽 상세에 `미제출` 상태와 배포된 과제 양식을 표시
+  - 학습자 커리큘럼 화면에서 목록 로드 후 첫 커리큘럼 자동 선택 보정
+- 완료보고서 문구 정리
+  - `대상 직무` → `교육 대상`, `대상 산업` → `적용 범위`
+  - `마감일 미지정` → `마감 없음`
+
+### 결정/보류
+- 중간 배정 학습자별 별도 마감일은 발표 후 고도화로 보류
+  - 현재 마감일은 `cur_week_plan[].assignments[].deadline`에 저장되는 과제 양식 단위 값
+  - 학습자별 deadline override를 제대로 지원하려면 별도 테이블/검증/학습자 화면/보고서 반영이 필요
+- `fpdf==1.7.2`의 `cmap value too big/small` 경고는 한글 TTF 처리 경고이며 PDF 생성 실패는 아님
+  - 발표 전에는 라이브러리 교체보다 필요 시 경고 숨김으로 대응하는 편이 안전
+
+### 검증
+- `server\venv\Scripts\python.exe -m py_compile app\routers\certificate.py app\routers\curriculum.py` 통과
+- 수료증 `_pdf_bytes()` 직접 호출해 `%PDF` 생성 및 생성 시간 확인
+- `client`에서 `npm run build` 통과
+
+---
+
 ## 2026-05-28 - Claude (재제출 첨부 자동 승계 + 매니저 학습자관리에 커리큘럼별 진행률/발급 자격)
 
 ### 변경 1 — 학습자 재제출 시 기존 첨부 자동 승계

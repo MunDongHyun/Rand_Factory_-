@@ -746,8 +746,8 @@ def _generate_completion_report_pdf(
 
     section("1. 커리큘럼 개요")
     text_line("과정명", curriculum.cur_title)
-    text_line("대상 직무", curriculum.cur_target_job or "-")
-    text_line("대상 산업", curriculum.cur_target_industry or "-")
+    text_line("교육 대상", curriculum.cur_target_job or "-")
+    text_line("적용 범위", curriculum.cur_target_industry or "-")
     text_line("기간", f"{curriculum.cur_duration_weeks or len(expected_weeks)}주")
     text_line("학습 목표", curriculum.cur_learning_goal or "-")
     text_line("담당 매니저", creator.user_name if creator else "-")

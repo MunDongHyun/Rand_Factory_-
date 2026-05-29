@@ -38,7 +38,7 @@ app_dir = os.path.dirname(router_dir)
 server_dir = os.path.dirname(app_dir)
 FONT_PATH = os.path.join(server_dir, "resources", "fonts", "NanumMyeongjo-subset.ttf")
 FONT_PATH_BOLD = os.path.join(server_dir, "resources", "fonts", "NanumMyeongjoBold-subset.ttf")
-BG_IMAGE = os.path.join(server_dir, "resources", "fonts", "certificate_template.png")
+BG_IMAGE = os.path.join(server_dir, "resources", "fonts", "certificate_template.jpg")
 
 
 def _assigned_learner_ids(curriculum: Curriculum) -> set[int]:

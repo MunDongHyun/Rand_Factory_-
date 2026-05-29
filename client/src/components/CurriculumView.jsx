@@ -17,6 +17,13 @@ const formatDateLocal = (d) => {
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 };
+
+const formatOnlyDate = (value) => {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+};
 import curri_nulll from '../public/curri_null.png';
 import download_img from '../public/download_img.png';
 import delete_img from '../public/delete_img.png';
@@ -207,6 +214,7 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
   const [selectedLearnerId, setSelectedLearnerId] = useState(null);
   const [selectedWeek, setSelectedWeek] = useState(null);
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
+  const [selectedLearnerTask, setSelectedLearnerTask] = useState(null);
   const [highlightedSubmissionId, setHighlightedSubmissionId] = useState(null);
 
   const [reportModal, setReportModal] = useState({ open: false, file: null, loading: false });
@@ -235,6 +243,7 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
     setViewMode('learner');
     setSelectedLearnerId(id);
     setSelectedSubmissionId(null);
+    setSelectedLearnerTask(null);
   };
 
   const scrollAssignedLearners = (direction) => {
@@ -326,6 +335,7 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
     setViewMode('learner');
     setSelectedLearnerId(targetSubmission.task_learner_id);
     setSelectedSubmissionId(targetSubmission.task_submission_id);
+    setSelectedLearnerTask(null);
     setHighlightedSubmissionId(targetSubmission.task_submission_id);
     setSelectedWeek(targetSubmission.task_week_number);
     window.requestAnimationFrame(() => {
@@ -879,9 +889,11 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
 
                     allTasks.push({
                       week: weekData.week,
+                      assignmentIdx: idx,
                       title: assignment.title,
                       hasTemplate: !!assignment.template_content,
                       deadline: assignment.deadline,
+                      assignmentData: assignment,
                       submission: submission
                     });
                   });
@@ -899,6 +911,9 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
                       )}
                       {allTasks.map((task, idx) => {
                         const s = task.submission;
+                        const isSelectedTask = selectedLearnerTask
+                          && selectedLearnerTask.week === task.week
+                          && selectedLearnerTask.assignmentIdx === task.assignmentIdx;
 
                         const statusLabel = s ? {
                           submitted: '피드백 대기',
@@ -906,15 +921,18 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
                           resubmit_requested: '재제출 요청',
                         }[s.task_status] || '제출됨' : '미제출';
 
-                        const dDayStr = task.deadline ? getDDayString(task.deadline) : '마감일 미지정';
+                        const dDayStr = task.deadline ? getDDayString(task.deadline) : '마감 없음';
 
                         return (
                           <div
                             key={`${task.week}-${task.title}-${idx}`}
-                            className={`extracted-accordion-item ${selectedSubmissionId === s?.task_submission_id ? 'active' : ''} ${highlightedSubmissionId === s?.task_submission_id ? 'notification-highlight' : ''} ${s ? 'clickable' : 'default-cursor'}`}
-                            onClick={() => s ? setSelectedSubmissionId(s.task_submission_id) : null}
+                            className={`extracted-accordion-item ${(selectedSubmissionId === s?.task_submission_id || isSelectedTask) ? 'active' : ''} ${highlightedSubmissionId === s?.task_submission_id ? 'notification-highlight' : ''} clickable`}
+                            onClick={() => {
+                              setSelectedLearnerTask(task);
+                              setSelectedSubmissionId(s ? s.task_submission_id : null);
+                            }}
                           >
-                            <div className={`extracted-accordion-header ${selectedSubmissionId === s?.task_submission_id ? 'expanded' : ''}`}>
+                            <div className={`extracted-accordion-header ${(selectedSubmissionId === s?.task_submission_id || isSelectedTask) ? 'expanded' : ''}`}>
                               <span className="extracted-week-label">{task.week}주차</span>
                               <span className="extracted-theme-label">{task.title}</span>
                               
@@ -1054,9 +1072,52 @@ function CurriculumView({ onOpenArticle, onModalToggle, curriculumDetailRef, not
 
               {viewMode === 'learner' && (() => {
                 const s = submissions.find(sub => sub.task_submission_id === selectedSubmissionId);
-                if (!s) return (
+                let taskForDetail = selectedLearnerTask;
+                if (!taskForDetail && s) {
+                  const weekPlans = normalizeWeekPlan(selectedCurriculum?.cur_week_plan || []);
+                  const weekData = weekPlans.find((w) => w.week === s.task_week_number);
+                  const assignmentIdx = s.task_submitted_content?.assignmentIdx;
+                  const assignmentData = weekData?.assignments?.[assignmentIdx];
+                  if (assignmentData) {
+                    taskForDetail = {
+                      week: s.task_week_number,
+                      assignmentIdx,
+                      title: assignmentData.title,
+                      deadline: assignmentData.deadline,
+                      assignmentData,
+                    };
+                  }
+                }
+                if (!s && !taskForDetail) return (
                   <div className="curriculumRightEmpty">
                     <p>왼쪽에서 과제를 선택하면 상세 내용이 표시됩니다.</p>
+                  </div>
+                );
+                if (!s && taskForDetail) return (
+                  <div className="curriculumRightContent">
+                    <div className="learner-right-header">
+                      <div>
+                        <span className="learner-right-week">{taskForDetail.week}주차 과제</span>
+                        <h3 className="curriculumDetailTitle large">{taskForDetail.title}</h3>
+                        {taskForDetail.deadline && (
+                          <span className="learner-right-dday">
+                            마감: {formatOnlyDate(taskForDetail.deadline)} ({getDDayString(taskForDetail.deadline)})
+                          </span>
+                        )}
+                      </div>
+                      <span className="badge-waiting">미제출</span>
+                    </div>
+                    <div className="managerSubmissionItemBody unrestricted">
+                      <div className="managerSubmissionContent">
+                        <p className="learner-submission-label">배포된 과제 양식</p>
+                        <div
+                          className="learner-submission-content template-render"
+                          dangerouslySetInnerHTML={{
+                            __html: sanitizeHtml(taskForDetail.assignmentData?.template_content) || '(배포된 양식 없음)',
+                          }}
+                        />
+                      </div>
+                    </div>
                   </div>
                 );
                 return (

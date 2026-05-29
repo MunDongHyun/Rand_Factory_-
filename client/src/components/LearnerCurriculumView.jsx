@@ -90,7 +90,14 @@ function LearnerCurriculumView({ curriculumDetailRef, notificationTarget }) {
     setLoading(true);
     Promise.all([
       api.get('/curricula')
-        .then((res) => setCurriculums(Array.isArray(res.data) ? res.data : []))
+        .then((res) => {
+          const list = Array.isArray(res.data) ? res.data : [];
+          setCurriculums(list);
+          setSelectedId((prev) => {
+            if (prev && list.some((c) => c.cur_id === prev)) return prev;
+            return list[0]?.cur_id ?? null;
+          });
+        })
         .catch((err) => setError(err.response?.data?.detail || '커리큘럼을 불러오지 못했어요.')),
       loadSubmissions(),
     ]).finally(() => setLoading(false));
@@ -620,7 +627,7 @@ function LearnerCurriculumView({ curriculumDetailRef, notificationTarget }) {
                                     const hasTemplate = !!a.template_content && a.template_content.trim() !== '';
                                     const isClickable = hasTemplate || !!sub;
 
-                                    const dDayStr = a.deadline ? getDDayString(a.deadline) : '마감일 미지정';
+                                    const dDayStr = a.deadline ? getDDayString(a.deadline) : '마감 없음';
 
                                     return (
                                       <div
