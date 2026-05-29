@@ -612,19 +612,38 @@ def _generate_completion_report_pdf(
     manager_comment: str | None,
     generated_at: datetime,
 ) -> bytes:
-    pdf = FPDF(orientation="P", unit="mm", format="A4")
-    pdf.set_auto_page_break(auto=False)
-    pdf.add_page()
+    # 보고서 정체성: 매니저가 윗선(임원/HR)에 제출하는 교육 결과 보고서.
+    # - 총평(매니저 코멘트)이 데이터보다 앞쪽
+    # - 수료자 명단을 별도 박스로 강조
+    # - 학습자 표는 성과 좋은 순서로 정렬 (발급 완료 → 발급 가능 → 진행 중)
+    # - 개인정보 노출 최소화 (이메일 제거)
+    # - 페이지 푸터에 페이지 번호 + 담당 매니저
 
     has_font = os.path.exists(FONT_PATH)
+    issuer_name = creator.user_name if creator else "-"
+
+    class _ReportPDF(FPDF):
+        def footer(self):
+            # 매 페이지 푸터: 담당 매니저 + 페이지 번호. 페이지 번호 표현은 alias_nb_pages()로 총 페이지 치환.
+            self.set_y(-12)
+            self.set_font("NanumGothic" if has_font else "Arial", "", 8)
+            self.set_text_color(150, 156, 165)
+            self.cell(95, 5, _safe_pdf_text(f"담당 매니저: {issuer_name}"), align="L")
+            self.cell(95, 5, f"{self.page_no()} / {{nb}}", align="R")
+
+    pdf = _ReportPDF(orientation="P", unit="mm", format="A4")
+    pdf.alias_nb_pages()
+    pdf.set_auto_page_break(auto=False)
     if has_font:
         pdf.add_font("NanumGothic", "", FONT_PATH, uni=True)
+    pdf.add_page()
 
     def set_font(size: int = 10):
         pdf.set_font("NanumGothic" if has_font else "Arial", "", size)
 
     def ensure_space(height: float):
-        if pdf.get_y() + height > 282:
+        # 푸터 영역(약 15mm) 침범 방지
+        if pdf.get_y() + height > 275:
             pdf.add_page()
 
     def percent(part: int, whole: int) -> int:
@@ -672,6 +691,14 @@ def _generate_completion_report_pdf(
     learner_rows: list[dict[str, object]] = []
     week_rows: list[dict[str, object]] = []
 
+    def _aware(dt):
+        # task_submitted_at / task_deadline 비교용. naive datetime은 UTC로 가정.
+        if dt is None:
+            return None
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=timezone.utc)
+        return dt
+
     for learner in learners:
         submitted_weeks = []
         feedback_weeks = []
@@ -698,22 +725,46 @@ def _generate_completion_report_pdf(
         completed_slots += len(feedback_weeks)
         if learner_complete:
             completed_learners += 1
+        # 수료 상태 3단계: 발급 완료 / 발급 가능 / 진행 중
+        is_certified = learner.user_id in certified_ids
+        if learner_complete and is_certified:
+            cert_status = "발급 완료"
+            sort_rank = 0
+        elif learner_complete:
+            cert_status = "발급 가능"
+            sort_rank = 1
+        else:
+            cert_status = "진행 중"
+            sort_rank = 2
+        progress_for_learner = percent(len(feedback_weeks), len(expected_weeks))
         learner_rows.append({
             "name": learner.user_name,
-            "email": learner.user_email,
             "submitted": len(set(submitted_weeks)),
             "feedback": len(set(feedback_weeks)),
             "resubmit": len(set(resubmit_weeks)),
-            "certified": learner.user_id in certified_ids,
+            "certified": is_certified,
             "complete": learner_complete,
+            "cert_status": cert_status,
+            "sort_rank": sort_rank,
+            "progress_pct": progress_for_learner,
             "missing_weeks": sorted(set(missing_weeks)),
             "pending_weeks": sorted(set(pending_weeks)),
             "resubmit_weeks": sorted(set(resubmit_weeks)),
         })
 
+    # 학습자 표 정렬: 발급 완료 → 발급 가능 → 진행 중. 동순위는 진행률 desc, 이름 asc.
+    learner_rows.sort(key=lambda r: (r["sort_rank"], -int(r["progress_pct"]), r["name"] or ""))
+
+    # 마감일 준수 현황 — 주차별 정시·지연 통계
+    total_with_deadline = 0
+    total_on_time = 0
+    total_late = 0
     for week in expected_weeks:
         submitted = 0
         feedback = 0
+        on_time = 0
+        late = 0
+        with_deadline = 0
         missing_names = []
         for learner in learners:
             submission = latest_by_learner_week.get((learner.user_id, week))
@@ -724,17 +775,33 @@ def _generate_completion_report_pdf(
                     and submission.task_resubmit_requested != "Y"
                 ):
                     feedback += 1
+                deadline = _aware(submission.task_deadline)
+                submitted_at = _aware(submission.task_submitted_at)
+                if deadline and submitted_at:
+                    with_deadline += 1
+                    if submitted_at <= deadline:
+                        on_time += 1
+                    else:
+                        late += 1
             else:
                 missing_names.append(learner.user_name)
+        total_with_deadline += with_deadline
+        total_on_time += on_time
+        total_late += late
         week_rows.append({
             "week": week,
             "submitted": submitted,
             "feedback": feedback,
             "missing": missing_names,
+            "on_time": on_time,
+            "late": late,
+            "with_deadline": with_deadline,
         })
 
     progress_pct = percent(completed_slots, total_slots)
     completion_pct = percent(completed_learners, len(learner_ids))
+    certified_total = len(certified_ids)
+    overall_on_time_pct = percent(total_on_time, total_with_deadline) if total_with_deadline else None
 
     set_font(18)
     pdf.set_text_color(22, 28, 38)
@@ -750,93 +817,190 @@ def _generate_completion_report_pdf(
     text_line("적용 범위", curriculum.cur_target_industry or "-")
     text_line("기간", f"{curriculum.cur_duration_weeks or len(expected_weeks)}주")
     text_line("학습 목표", curriculum.cur_learning_goal or "-")
-    text_line("담당 매니저", creator.user_name if creator else "-")
+    text_line("담당 매니저", issuer_name)
 
     section("2. 운영 요약")
+    # 성과 인사이트 한 줄 — 카드 위 자연어 요약. 결과 보고서 첫인상 강화.
+    insight_parts = [
+        f"배정 학습자 {len(learner_ids)}명 중 {completed_learners}명 수료 (수료율 {completion_pct}%)",
+        f"전체 진행률 {progress_pct}%",
+    ]
+    if overall_on_time_pct is not None:
+        insight_parts.append(f"마감 준수율 {overall_on_time_pct}%")
+    set_font(9)
+    pdf.set_text_color(31, 41, 55)
+    pdf.multi_cell(0, 6, ". ".join(insight_parts) + ".")
+    pdf.ln(1)
+
     card_y = pdf.get_y() + 1
     card_w = 43.5
     card_gap = 4
     start_x = 10
     summary_card(start_x, card_y, card_w, "배정 학습자", f"{len(learner_ids)}명", "보고서 대상")
     summary_card(start_x + (card_w + card_gap), card_y, card_w, "전체 진행률", f"{progress_pct}%", f"{completed_slots}/{total_slots} 피드백 완료")
-    summary_card(start_x + (card_w + card_gap) * 2, card_y, card_w, "완료율", f"{completion_pct}%", f"{completed_learners}/{len(learner_ids)}명 완료")
-    summary_card(start_x + (card_w + card_gap) * 3, card_y, card_w, "수료증 발급", f"{len(certified_ids)}명", "발급 완료")
+    summary_card(start_x + (card_w + card_gap) * 2, card_y, card_w, "수료율", f"{completion_pct}%", f"{completed_learners}/{len(learner_ids)}명 수료")
+    summary_card(start_x + (card_w + card_gap) * 3, card_y, card_w, "수료증 발급", f"{certified_total}명", "발급 완료")
     pdf.set_y(card_y + 28)
     set_font(8)
     pdf.set_text_color(90, 96, 108)
     pdf.multi_cell(0, 6, "완료 기준: 모든 예정 주차에 제출이 있고, 재제출 요청 없이 매니저 피드백이 완료된 상태입니다.")
+    pdf.set_text_color(28, 35, 45)
 
-    bar_x = pdf.get_x()
-    bar_y = pdf.get_y()
-    pdf.set_fill_color(230, 234, 240)
-    pdf.rect(bar_x, bar_y, 140, 5, "F")
-    pdf.set_fill_color(57, 74, 171)
-    pdf.rect(bar_x, bar_y, 140 * progress_pct / 100, 5, "F")
-    pdf.ln(9)
+    # 매니저 종합 의견 — 결과 보고서 흐름상 데이터보다 앞쪽에 배치
+    next_section_no = 3
+    if manager_comment:
+        section(f"{next_section_no}. 매니저 종합 의견")
+        set_font(9)
+        pdf.set_text_color(31, 41, 55)
+        pdf.multi_cell(0, 7, _safe_pdf_text(manager_comment))
+        next_section_no += 1
 
-    section("3. 학습자별 성과")
+    # 수료자 명단 박스 — 윗선 보고에서 가장 중요한 정보
+    section(f"{next_section_no}. 수료자 명단")
+    next_section_no += 1
+    if certified_total == 0:
+        set_font(9)
+        pdf.set_text_color(110, 118, 130)
+        pdf.multi_cell(0, 7, "이번 보고 시점 기준 수료증 발급 완료자가 없습니다.")
+        pdf.set_text_color(28, 35, 45)
+    else:
+        certified_names = [row["name"] for row in learner_rows if row["certified"]]
+        ensure_space(20)
+        box_x = 10
+        box_y = pdf.get_y()
+        # 이름이 많아질 경우 박스 높이 동적 계산
+        approx_line_count = max(1, ((sum(len(n) for n in certified_names) + len(certified_names) * 2) // 70) + 1)
+        box_h = 8 + approx_line_count * 6
+        pdf.set_draw_color(199, 213, 175)
+        pdf.set_fill_color(244, 249, 235)
+        pdf.rect(box_x, box_y, 190, box_h, "DF")
+        pdf.set_xy(box_x + 4, box_y + 3)
+        set_font(8)
+        pdf.set_text_color(90, 110, 60)
+        pdf.cell(0, 5, f"수료증 발급 완료 {certified_total}명", ln=True)
+        pdf.set_xy(box_x + 4, box_y + 9)
+        set_font(10)
+        pdf.set_text_color(31, 41, 55)
+        pdf.multi_cell(190 - 8, 6, _safe_pdf_text(", ".join(certified_names)))
+        pdf.set_y(box_y + box_h + 2)
+        pdf.set_text_color(28, 35, 45)
+
+    # 의미 단위 분할: 1페이지는 요약/총평/수료자(윗선 1분 요약), 2페이지는 상세 데이터.
+    # 학습자가 많아 자연히 페이지가 늘어나는 케이스에서도 이 구분은 그대로 유지된다.
+    pdf.add_page()
+
+    section(f"{next_section_no}. 학습자별 성과")
+    next_section_no += 1
     set_font(8)
     pdf.set_fill_color(244, 246, 249)
-    headers = [("학습자", 35), ("제출률", 22), ("피드백", 22), ("재제출", 22), ("상태", 20), ("수료증", 20)]
+    pdf.set_text_color(31, 41, 55)
+    headers = [
+        ("학습자", 42),
+        ("제출률", 28),
+        ("진행률", 22),
+        ("피드백", 22),
+        ("재제출", 22),
+    ]
     for text, width in headers:
         pdf.cell(width, 7, text, border=1, fill=True, align="C")
-    pdf.cell(0, 7, "이메일", border=1, fill=True, align="C", ln=True)
+    pdf.cell(0, 7, "수료 상태", border=1, fill=True, align="C", ln=True)
     for row in learner_rows:
         ensure_space(8)
-        pdf.cell(35, 7, _safe_pdf_text(row["name"]), border=1)
-        pdf.cell(22, 7, f"{row['submitted']}/{len(expected_weeks)}", border=1, align="C")
+        pdf.cell(42, 7, _safe_pdf_text(row["name"]), border=1)
+        pdf.cell(28, 7, f"{row['submitted']}/{len(expected_weeks)}", border=1, align="C")
+        pdf.cell(22, 7, f"{row['progress_pct']}%", border=1, align="C")
         pdf.cell(22, 7, str(row["feedback"]), border=1, align="C")
         pdf.cell(22, 7, str(row["resubmit"]), border=1, align="C")
-        pdf.cell(20, 7, "완료" if row["complete"] else "진행", border=1, align="C")
-        pdf.cell(20, 7, "발급" if row["certified"] else "-", border=1, align="C")
-        pdf.cell(0, 7, _safe_pdf_text(row["email"]), border=1, ln=True)
+        pdf.cell(0, 7, _safe_pdf_text(row["cert_status"]), border=1, align="C", ln=True)
 
-    section("4. 주차별 제출 현황")
+    section(f"{next_section_no}. 주차별 제출 현황")
+    next_section_no += 1
     set_font(8)
+    pdf.set_fill_color(244, 246, 249)
+    pdf.set_text_color(31, 41, 55)
+    week_headers = [
+        ("주차", 18),
+        ("제출률", 32),
+        ("피드백 완료율", 32),
+        ("정시 / 지연", 32),
+    ]
+    for text, width in week_headers:
+        pdf.cell(width, 7, text, border=1, fill=True, align="C")
+    pdf.cell(0, 7, "미제출자", border=1, fill=True, align="C", ln=True)
     for row in week_rows:
-        ensure_space(10)
+        ensure_space(8)
         rate = percent(int(row["submitted"]), len(learner_ids))
         feedback_rate = percent(int(row["feedback"]), len(learner_ids))
-        pdf.cell(22, 7, f"{row['week']}주차")
-        pdf.cell(42, 7, f"제출률 {rate}% ({row['submitted']}/{len(learner_ids)})")
-        pdf.cell(46, 7, f"피드백 완료율 {feedback_rate}%")
-        x = pdf.get_x()
-        y = pdf.get_y() + 2
-        pdf.set_fill_color(230, 234, 240)
-        pdf.rect(x, y, 50, 3.5, "F")
-        pdf.set_fill_color(57, 74, 171)
-        pdf.rect(x, y, 50 * rate / 100, 3.5, "F")
-        pdf.cell(54, 7, "")
+        if int(row["with_deadline"]) > 0:
+            on_time_text = f"{row['on_time']} / {row['late']}"
+        else:
+            on_time_text = "-"
         missing = ", ".join(row["missing"][:4])
         if len(row["missing"]) > 4:
             missing += f" 외 {len(row['missing']) - 4}명"
-        pdf.cell(0, 7, f"미제출: {missing or '-'}", ln=True)
+        pdf.cell(18, 7, f"{row['week']}주차", border=1, align="C")
+        pdf.cell(32, 7, f"{rate}% ({row['submitted']}/{len(learner_ids)})", border=1, align="C")
+        pdf.cell(32, 7, f"{feedback_rate}%", border=1, align="C")
+        pdf.cell(32, 7, on_time_text, border=1, align="C")
+        pdf.cell(0, 7, _safe_pdf_text(missing or "-"), border=1, ln=True)
 
-    incomplete_rows = [
-        row
-        for row in learner_rows
-        if not row["complete"]
-    ]
-    section("5. 미완료자 및 사유")
-    set_font(9)
+    if total_with_deadline > 0:
+        ensure_space(8)
+        pdf.ln(1)
+        set_font(8)
+        pdf.set_text_color(90, 96, 108)
+        pdf.multi_cell(
+            0,
+            6,
+            f"전체 마감 준수율 {overall_on_time_pct}% — 정시 {total_on_time}건 / 지연 {total_late}건 (마감 설정 {total_with_deadline}건 기준).",
+        )
+        pdf.set_text_color(28, 35, 45)
+
+    # 미진행 현황 — 윗선 보고 톤: 개인 명단보다 집계 위주
+    section(f"{next_section_no}. 미진행 현황")
+    next_section_no += 1
+    incomplete_rows = [row for row in learner_rows if not row["complete"]]
     if not incomplete_rows:
-        pdf.multi_cell(0, 7, "미완료자가 없습니다.")
-    else:
-        for row in incomplete_rows:
-            ensure_space(9)
-            reasons = []
-            if row["missing_weeks"]:
-                reasons.append("미제출 " + ", ".join(f"{week}주차" for week in row["missing_weeks"]))
-            if row["pending_weeks"]:
-                reasons.append("피드백 대기 " + ", ".join(f"{week}주차" for week in row["pending_weeks"]))
-            if row["resubmit_weeks"]:
-                reasons.append("재제출 요청 " + ", ".join(f"{week}주차" for week in row["resubmit_weeks"]))
-            pdf.multi_cell(0, 7, f"- {row['name']}: {' / '.join(reasons) if reasons else '완료 기준 미충족'}")
-
-    if manager_comment:
-        section("6. 매니저 종합 코멘트")
         set_font(9)
-        pdf.multi_cell(0, 7, _safe_pdf_text(manager_comment))
+        pdf.set_text_color(31, 41, 55)
+        pdf.multi_cell(0, 7, "모든 학습자가 학습 완료 기준을 충족했습니다.")
+    else:
+        avg_progress = (
+            int(round(sum(int(r["progress_pct"]) for r in incomplete_rows) / len(incomplete_rows)))
+            if incomplete_rows
+            else 0
+        )
+        # 주차별 미진행자 수 집계 (어느 주차에서 막혔는지)
+        missing_by_week: dict[int, int] = {}
+        pending_by_week: dict[int, int] = {}
+        resubmit_by_week: dict[int, int] = {}
+        for row in incomplete_rows:
+            for week in row["missing_weeks"]:
+                missing_by_week[week] = missing_by_week.get(week, 0) + 1
+            for week in row["pending_weeks"]:
+                pending_by_week[week] = pending_by_week.get(week, 0) + 1
+            for week in row["resubmit_weeks"]:
+                resubmit_by_week[week] = resubmit_by_week.get(week, 0) + 1
+
+        def _fmt_weeks(by_week: dict[int, int]) -> str:
+            if not by_week:
+                return "-"
+            return ", ".join(f"{w}주차({n}명)" for w, n in sorted(by_week.items()))
+
+        set_font(9)
+        pdf.set_text_color(31, 41, 55)
+        pdf.multi_cell(
+            0,
+            7,
+            f"진행 중 {len(incomplete_rows)}명 / 평균 진행률 {avg_progress}%.",
+        )
+        pdf.ln(1)
+        set_font(9)
+        pdf.set_text_color(90, 96, 108)
+        text_line("미제출 주차", _fmt_weeks(missing_by_week))
+        text_line("피드백 대기 주차", _fmt_weeks(pending_by_week))
+        text_line("재제출 요청 주차", _fmt_weeks(resubmit_by_week))
+        pdf.set_text_color(28, 35, 45)
 
     ensure_space(12)
     pdf.ln(3)

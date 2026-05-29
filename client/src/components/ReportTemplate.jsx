@@ -40,6 +40,7 @@ const ReportTemplate = forwardRef(function ReportTemplate(
     period,           // { kind: '주간' | '월간' | '커스텀', start, end }
     stats,            // /users/stats
     curriculumStats,  // /curricula/stats
+    certificateStats, // /certificates/stats — { period_days, period_issued, previous_period_issued, total_issued }
     signupsTimeline,  // [{ date, count }]
     viewsTimeline,    // [{ date, count }]
     submissionsTimeline, // [{ date, count }]
@@ -70,9 +71,11 @@ const ReportTemplate = forwardRef(function ReportTemplate(
   );
 
   const categoryTotal = (categoryStats || []).reduce((s, c) => s + (c.total_views || 0), 0);
-  const top5Categories = (categoryStats || []).slice(0, 5);
-  const topCategory = top5Categories[0];
-  const topArticle = (popularArticles || [])[0];
+  // 2페이지 안에 자연스럽게 들어오도록 카테고리는 TOP4, 인기 아티클은 TOP3로 슬림화.
+  const topCategoriesForReport = (categoryStats || []).slice(0, 4);
+  const topArticlesForReport = (popularArticles || []).slice(0, 3);
+  const topCategory = topCategoriesForReport[0];
+  const topArticle = topArticlesForReport[0];
   const learnerCount = roleCounts.j || 0;
   const activeLearners = curriculumStats?.active_learners ?? 0;
   const activeLearnerRate = learnerCount > 0 ? Math.round((activeLearners / learnerCount) * 100) : 0;
@@ -82,6 +85,58 @@ const ReportTemplate = forwardRef(function ReportTemplate(
     `아티클 조회는 ${viewsTotal.toLocaleString()}회로 ${topCategory ? `${topCategory.category} 카테고리의 관심이 가장 높습니다.` : '상위 카테고리 데이터가 아직 없습니다.'}`,
     `진행 중 학습자는 ${activeLearners.toLocaleString()}명이며, 학습 제출은 운영 참고 지표로만 확인합니다.`,
   ];
+
+  // 운영 참고 ul은 단순 가이드 문구가 아니라 현재 데이터에서 도출한 인사이트로 구성한다.
+  const operationalNotes = [];
+  if (topCategory && categoryTotal > 0) {
+    const pct = Math.round((topCategory.total_views / categoryTotal) * 100);
+    operationalNotes.push(
+      `최다 관심 카테고리는 "${topCategory.category}"로 전체 조회의 ${pct}%를 차지합니다. 후속 추천 콘텐츠를 이 카테고리 중심으로 보강합니다.`,
+    );
+  } else {
+    operationalNotes.push('상위 관심 카테고리 기반으로 다음 추천 콘텐츠를 보강합니다.');
+  }
+  if (comparisons?.signups && comparisons.signups.pct !== null) {
+    const pct = comparisons.signups.pct;
+    if (pct !== 0) {
+      const trendWord = pct > 0 ? '증가' : '감소';
+      operationalNotes.push(
+        `회원 유입은 직전 ${period?.kind || '기간'} 대비 ${Math.abs(pct)}% ${trendWord} 추세입니다.`,
+      );
+    }
+  }
+  const periodIssued = certificateStats?.period_issued ?? 0;
+  const totalIssued = certificateStats?.total_issued ?? 0;
+  if (certificateStats) {
+    if (periodIssued > 0) {
+      operationalNotes.push(
+        `이번 ${period?.kind || '기간'} 수료증 ${periodIssued}건이 발급되어 누적 ${totalIssued}건에 도달했습니다.`,
+      );
+    } else if (totalIssued > 0) {
+      operationalNotes.push(`수료증 누적 발급 ${totalIssued}건. 이번 기간 신규 발급은 없습니다.`);
+    }
+  }
+  if (topArticle) {
+    operationalNotes.push(`"${topArticle.article_title}" 반응을 후속 커리큘럼 소재로 검토합니다.`);
+  } else {
+    operationalNotes.push('인기 아티클 데이터가 쌓이면 후속 커리큘럼 소재를 선정합니다.');
+  }
+  // 2페이지 안에 자연스럽게 들어오도록 운영 참고는 최대 3개로 슬림화.
+  const operationalNoteItems = operationalNotes.slice(0, 3);
+
+  const certComparison = certificateStats
+    ? {
+        delta: periodIssued - (certificateStats.previous_period_issued || 0),
+        pct:
+          (certificateStats.previous_period_issued || 0) > 0
+            ? Math.round(
+                ((periodIssued - certificateStats.previous_period_issued) /
+                  certificateStats.previous_period_issued) *
+                  100,
+              )
+            : null,
+      }
+    : null;
 
   const buildLineData = (items, color) => ({
     labels: (items || []).map((p) => formatDateShort(p.date)),
@@ -229,7 +284,7 @@ const ReportTemplate = forwardRef(function ReportTemplate(
           </div>
 
           <div className="reportSubBlock">
-            <p className="reportChartLabel">카테고리별 조회 TOP 5</p>
+            <p className="reportChartLabel">카테고리별 조회 TOP 4</p>
             <table className="reportTable">
               <thead>
                 <tr>
@@ -240,10 +295,10 @@ const ReportTemplate = forwardRef(function ReportTemplate(
                 </tr>
               </thead>
               <tbody>
-                {top5Categories.length === 0 && (
+                {topCategoriesForReport.length === 0 && (
                   <tr><td colSpan="4" className="reportTableEmpty">데이터 없음</td></tr>
                 )}
-                {top5Categories.map((c, i) => {
+                {topCategoriesForReport.map((c, i) => {
                   const pct = categoryTotal > 0 ? Math.round((c.total_views / categoryTotal) * 100) : 0;
                   return (
                     <tr key={c.category}>
@@ -259,7 +314,7 @@ const ReportTemplate = forwardRef(function ReportTemplate(
           </div>
 
           <div className="reportSubBlock">
-            <p className="reportChartLabel">인기 아티클 TOP 5</p>
+            <p className="reportChartLabel">인기 아티클 TOP 3</p>
             <table className="reportTable">
               <thead>
                 <tr>
@@ -270,10 +325,10 @@ const ReportTemplate = forwardRef(function ReportTemplate(
                 </tr>
               </thead>
               <tbody>
-                {(popularArticles || []).length === 0 && (
+                {topArticlesForReport.length === 0 && (
                   <tr><td colSpan="4" className="reportTableEmpty">데이터 없음</td></tr>
                 )}
-                {(popularArticles || []).slice(0, 5).map((a, i) => (
+                {topArticlesForReport.map((a, i) => (
                   <tr key={a.article_id}>
                     <td>{i + 1}</td>
                     <td className="reportTableTitle">{a.article_title}</td>
@@ -289,7 +344,7 @@ const ReportTemplate = forwardRef(function ReportTemplate(
         {/* 학습 활동 */}
         <section className="reportSection">
           <h2 className="reportSectionTitle">학습 활동</h2>
-          <div className="reportKpiGrid reportKpiGridSm">
+          <div className="reportKpiGrid">
             <div className="reportKpi">
               <p className="reportKpiLabel">총 커리큘럼</p>
               <p className="reportKpiValue">{(curriculumStats?.total_curricula ?? 0).toLocaleString()}</p>
@@ -305,13 +360,24 @@ const ReportTemplate = forwardRef(function ReportTemplate(
               <p className="reportKpiValue">{(curriculumStats?.total_submissions ?? 0).toLocaleString()}</p>
               <p className="reportKpiUnit">건</p>
             </div>
+            <div className="reportKpi">
+              <p className="reportKpiLabel">기간 내 수료증 발급</p>
+              <p className="reportKpiValue">{periodIssued.toLocaleString()}</p>
+              <p className="reportKpiUnit">건</p>
+              {certComparison && (
+                <p className={`reportKpiTrend ${trendClass(certComparison)}`}>
+                  {formatDelta(certComparison, '건')}
+                </p>
+              )}
+              <p className="reportKpiSubtle">누적 {totalIssued.toLocaleString()}건</p>
+            </div>
           </div>
           <div className="reportSubBlock">
             <p className="reportChartLabel">운영 참고</p>
             <ul className="reportActionList">
-              <li>상위 관심 카테고리 기반으로 다음 추천 콘텐츠를 보강합니다.</li>
-              <li>학습 제출은 마스터 화면의 핵심 관리 지표가 아닌 서비스 활성 보조 지표로 해석합니다.</li>
-              <li>{topArticle ? `"${topArticle.article_title}" 반응을 후속 커리큘럼 소재로 검토합니다.` : '인기 아티클 데이터가 쌓이면 후속 커리큘럼 소재를 선정합니다.'}</li>
+              {operationalNoteItems.map((note) => (
+                <li key={note}>{note}</li>
+              ))}
             </ul>
           </div>
         </section>

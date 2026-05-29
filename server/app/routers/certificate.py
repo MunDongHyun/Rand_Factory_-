@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import json
 import os
 import secrets
@@ -21,6 +21,7 @@ from app.schemas.certificate import (
     CertificateEligibilityResponse,
     CertificateIssueRequest,
     CertificateResponse,
+    CertificateStatsResponse,
     LearnerCurriculumProgressItem,
 )
 from app.services.attachment_storage import (
@@ -411,6 +412,43 @@ def get_learner_curricula_progress(
     return items
 
 
+@router.get("/stats", response_model=CertificateStatsResponse)
+def get_certificate_stats(
+    days: int = Query(7, ge=1, le=365),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """관리자 운영 리포트용 수료증 발급 통계.
+
+    - period_issued: 최근 N일 발급 수
+    - previous_period_issued: 직전 동일 기간 발급 수 (증감 비교용)
+    - total_issued: 전체 누적 (soft delete 제외)
+    """
+    if current_user.user_role != "a":
+        raise HTTPException(status_code=404, detail="찾을 수 없습니다")
+
+    now = datetime.now(timezone.utc)
+    period_start = now - timedelta(days=days)
+    prev_start = now - timedelta(days=days * 2)
+
+    base = db.query(Certificate).filter(Certificate.cert_deleted_at.is_(None))
+    total_issued = base.count()
+    period_issued = base.filter(Certificate.cert_issued_at >= period_start).count()
+    previous_period_issued = (
+        base.filter(
+            Certificate.cert_issued_at >= prev_start,
+            Certificate.cert_issued_at < period_start,
+        ).count()
+    )
+
+    return CertificateStatsResponse(
+        period_days=days,
+        period_issued=period_issued,
+        previous_period_issued=previous_period_issued,
+        total_issued=total_issued,
+    )
+
+
 @router.get("", response_model=list[CertificateResponse])
 def list_certificates(
     learner_id: int | None = Query(None),
@@ -434,33 +472,6 @@ def list_certificates(
 
     certificates = query.order_by(Certificate.cert_issued_at.desc()).all()
     return [_certificate_response(certificate) for certificate in certificates]
-
-
-@router.get("/sample/download")
-def download_certificate_preview(
-    current_user: User = Depends(get_current_user),
-):
-    if current_user.user_role not in {"m", "a"}:
-        raise HTTPException(status_code=404, detail="Not found")
-
-    # 정식 발급과 동일한 템플릿/생성기를 사용하되, DB/R2 저장 없이 양식 확인용 PDF만 내려준다.
-    issued_at = datetime.now(timezone.utc)
-    pdf_bytes = _pdf_bytes(
-        title="ArtiCulum 수료증",
-        cert_no=issued_at.strftime("AC-%Y%m%d-PREVIEW"),
-        curriculum_title="AI 기반 비즈니스 문제해결 실무 과정",
-        duration_weeks=4,
-        learner_name="김아티",
-        issuer_name=current_user.user_name or "발급자",
-        issued_at=issued_at,
-        completed_at=issued_at,
-    )
-
-    return StreamingResponse(
-        iter([pdf_bytes]),
-        media_type="application/pdf",
-        headers=_download_headers("articulum_certificate_preview.pdf"),
-    )
 
 
 @router.post("", response_model=CertificateResponse, status_code=status.HTTP_201_CREATED)

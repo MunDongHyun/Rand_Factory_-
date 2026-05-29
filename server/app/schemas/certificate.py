@@ -39,6 +39,15 @@ class LearnerCurriculumProgressItem(BaseModel):
     reason: str | None = None
 
 
+class CertificateStatsResponse(BaseModel):
+    """관리자 운영 리포트용 수료증 발급 통계."""
+
+    period_days: int
+    period_issued: int
+    previous_period_issued: int
+    total_issued: int
+
+
 class CertificateResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

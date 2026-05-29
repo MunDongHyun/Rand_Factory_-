@@ -2,6 +2,53 @@
 
 ---
 
+## 2026-05-29 - Claude (운영/완료 보고서 고도화)
+
+### 변경 1 — 관리자 운영 리포트
+- **A1. 수료증 발급 통계** — 신규 엔드포인트 `GET /api/certificates/stats?days=N` (관리자 전용, `CertificateStatsResponse`: period_days / period_issued / previous_period_issued / total_issued). `MasterDashboard.handleDownloadReport`에서 호출 → `ReportTemplate`의 학습 활동 KPI 3→4 (수료증 발급 카드 + trend + 누적)
+- **A2. 운영 참고 ul 동적 인사이트** — 정적 3줄 → 데이터 기반 최대 3개 (TOP 카테고리 비중 / 회원 유입 추세 / 수료증 기간·누적 / 인기 아티클 후속 활용)
+- **2페이지 슬림화** — 카테고리 TOP 5→TOP 4, 인기 아티클 TOP 5→TOP 3, 운영 참고 최대 4→3 (페이지 압축이 아니라 콘텐츠 다이어트로 가독성 유지)
+
+### 변경 2 — 매니저 커리큘럼 완료보고서 (윗선 보고 톤 재구성)
+- §2 운영 요약: 카드 위 성과 인사이트 한 줄 (수료율 / 진행률 / 마감 준수율)
+- **§3 매니저 종합 의견 → 데이터 앞쪽 이동** (윗선 보고는 총평이 앞)
+- **§4 수료자 명단** 신규 박스 (이름 나열 강조)
+- §5 학습자별 성과 — 이메일 제거 / 진행률 % 컬럼 추가 / 정렬(발급 완료→발급 가능→진행 중)
+- **§6 주차별 — 막대 바 제거**, 깔끔한 표 + 정시/지연 컬럼 (B1: `task_deadline` vs `task_submitted_at` 비교)
+- §7 미진행 현황 — 개인 명단 → 집계 톤 ("진행 중 N명 / 평균 진행률 X% / 주차별 N명")
+- **B2. 수료 상태 3단계** — 발급 완료 / 발급 가능 / 진행 중
+- **페이지 분할 정합화** — §5 직전 `add_page()` 강제로 1페이지(요약/총평) / 2페이지(상세 데이터) 의미 단위 분할. 학습자 늘어도 이 분할 유지
+- 푸터 — `_ReportPDF` 클래스로 매 페이지 footer (담당 매니저 + 페이지 N/M, `alias_nb_pages`)
+
+### 변경 파일
+- 백엔드: `services` 변경 없음 / `routers/certificate.py`, `routers/curriculum.py`, `schemas/certificate.py`
+- 프론트: `components/MasterDashboard.jsx`, `components/ReportTemplate.jsx`, `styles/ReportTemplate.css`
+
+### 검증
+- `python -m compileall -q app` 통과
+- `npm run build` 통과 (912 modules)
+- mock 데이터로 완료보고서 PDF 재생성 → 페이지 분할 의도대로 (1페이지 457자 / 2페이지 493자, 이전 651/299 비대칭 해소)
+- 실제 관리자 계정 운영 리포트 2페이지 안에 들어옴 (사용자 확인)
+
+### 검수 권장
+- 운영 리포트는 차트 렌더링 시간 영향 있어 실 데이터 분포에서만 정확히 측정. 추가 데이터 누적 후 한 번 더 확인 권장
+
+---
+
+## 2026-05-29 - Codex (임시 수료증 양식 미리보기 제거)
+
+### 변경
+- 발표 범위에서 제외하기로 한 수료증 양식 미리보기 기능 제거
+  - `GET /api/certificates/sample/download` API 삭제
+  - 학습자 관리 화면의 `수료증 양식` 버튼과 다운로드 핸들러 삭제
+  - 실제 수료증 발급/다운로드 기능은 유지
+
+### 검증
+- `server\venv\Scripts\python.exe -m py_compile server\app\routers\certificate.py` 통과
+- `client`에서 `npm run build` 통과
+
+---
+
 ## 2026-05-29 - Claude (로딩 모달 z-index 분리 + 통합 테스트 진행 갱신)
 
 ### 변경

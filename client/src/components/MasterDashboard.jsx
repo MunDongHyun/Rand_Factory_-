@@ -359,6 +359,7 @@ function MasterDashboard({ user, onLogout }) {
         api.get('/users/stats/signups-timeline', { params: { days: reportDays } }).then((r) => r.data.items || []),
         api.get('/articles/stats/views-timeline', { params: { days: reportDays } }).then((r) => r.data.items || []),
         api.get('/task-submissions/stats/timeline', { params: { days: reportDays } }).then((r) => r.data.items || []),
+        api.get('/certificates/stats', { params: { days } }).then((r) => r.data).catch(() => null),
       ];
 
       if (members.length === 0) {
@@ -371,7 +372,8 @@ function MasterDashboard({ user, onLogout }) {
       const signupsSplit = splitCurrentPrevious(results[0]);
       const viewsSplit = splitCurrentPrevious(results[1]);
       const submissionsSplit = splitCurrentPrevious(results[2]);
-      const reportMembers = results[3] || members;
+      const certificateStats = results[3];
+      const reportMembers = results[4] || members;
 
       setReportData({
         period: {
@@ -381,6 +383,7 @@ function MasterDashboard({ user, onLogout }) {
         },
         stats,
         curriculumStats,
+        certificateStats,
         signupsTimeline: signupsSplit.current,
         viewsTimeline: viewsSplit.current,
         submissionsTimeline: submissionsSplit.current,
