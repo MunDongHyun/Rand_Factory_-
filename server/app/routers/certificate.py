@@ -297,7 +297,7 @@ def _pdf_bytes(
     pdf.multi_cell(
         162,
         8,
-        f"{curriculum_title} 과정을 성실히 이수하였음을 증명합니다.",
+        f"위 사람은 본사가 제공한 커리큘럼 '{curriculum_title} 과정'을 성실히 이수하였음을 증명합니다.",
         align="C",
     )
 
