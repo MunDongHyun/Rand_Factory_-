@@ -260,27 +260,40 @@ def _pdf_bytes(
 
     pdf.set_text_color(31, 41, 55)
 
-    pdf.set_font(font, "", 8)
-    pdf.set_xy(20, 20)
+    # 수료증 번호 
+    pdf.set_font(font, "", 10)
+    pdf.set_xy(45, 25)
     pdf.cell(80, 5, cert_no)
+    completed_str = completed_at.strftime("%Y-%m-%d") if completed_at else "-"
+    
+    # 3. 템플릿 좌측 리스트 
+    pdf.set_text_color(0,0,0)
+    pdf.set_font(font, bold_style, 14)
 
-    pdf.set_font(font, bold_style, 28)
-    pdf.set_xy(0, 48)
-    pdf.cell(210, 14, title, align="C")
+    # 과정명
+    pdf.set_xy(50, 94) 
+    pdf.cell(100, 8, curriculum_title)
 
-    pdf.set_font(font, "", 11)
-    pdf.set_text_color(75, 85, 99)
-    pdf.set_xy(0, 66)
-    pdf.cell(210, 8, "ArtiCulum Learning Certificate", align="C")
+    # 학습 기간
+    pdf.set_xy(57, 102) 
+    pdf.cell(100, 8, f"{duration_weeks}주")
 
-    pdf.set_text_color(17, 24, 39)
-    pdf.set_font(font, bold_style, 22)
-    pdf.set_xy(0, 96)
-    pdf.cell(210, 12, learner_name, align="C")
+    # 성명 
+    pdf.set_xy(45, 110.5) 
+    pdf.cell(100, 8, learner_name)
 
-    pdf.set_font(font, "", 12)
-    pdf.set_text_color(55, 65, 81)
-    pdf.set_xy(24, 116)
+    # 완료일
+    pdf.set_xy(50, 118.5) 
+    pdf.cell(100, 8, completed_str)
+
+    # 발급자 ('발급자 :' 글자 우측에 출력)
+    pdf.set_font(font, bold_style, 20)
+    pdf.set_xy(105, 237) 
+    pdf.cell(90, 8, issuer_name)
+
+    pdf.set_font(font, "", 18)
+    pdf.set_text_color(0,0,0)
+    pdf.set_xy(24, 160)
     pdf.multi_cell(
         162,
         8,
@@ -288,31 +301,7 @@ def _pdf_bytes(
         align="C",
     )
 
-    completed_str = completed_at.strftime("%Y-%m-%d") if completed_at else "-"
     issued_str = issued_at.strftime("%Y-%m-%d")
-
-    info_lines = [
-        ("과정명", curriculum_title),
-        ("학습 기간", f"{duration_weeks}주"),
-        ("완료일", completed_str),
-        ("발급일", issued_str),
-        ("발급자", issuer_name),
-    ]
-
-    y = 150
-    pdf.set_font(font, "", 11)
-    for label, value in info_lines:
-        pdf.set_xy(52, y)
-        pdf.set_text_color(75, 85, 99)
-        pdf.cell(30, 8, label)
-        pdf.set_text_color(17, 24, 39)
-        pdf.cell(90, 8, str(value))
-        y += 10
-
-    pdf.set_font(font, bold_style, 18)
-    pdf.set_text_color(31, 41, 55)
-    pdf.set_xy(0, 245)
-    pdf.cell(210, 10, "ArtiCulum", align="C")
 
     out = pdf.output(dest="S")
     return out.encode("latin-1") if isinstance(out, str) else bytes(out)
