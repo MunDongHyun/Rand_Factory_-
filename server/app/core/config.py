@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     r2_endpoint_url: str | None = None
     r2_region: str = "auto"
 
+    # 배포 시 백엔드 절대경로 (썸네일 URL 생성용). 로컬은 빈 문자열 → 상대경로 사용
+    backend_url: str = ""
+
     # CORS allow_origins (쉼표 구분). 비면 dev 기본값
     cors_origins: str = "http://localhost:5173,http://localhost:3000"
 
