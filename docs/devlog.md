@@ -3838,6 +3838,42 @@ WHERE c.cur_deleted_at IS NULL AND c.cur_status = 'active'
 
 ---
 
+## 2026-05-30 - Render + Vercel 배포 완료
+
+### 배포 구성
+- **백엔드**: https://rand-factory-server.onrender.com
+  - Render Web Service, Docker 런타임
+  - 연결 repo: `MunDongHyun/Rand_Factory_-` (팀 원본) → `dev` 브랜치 자동 배포
+  - Dockerfile: `docker/Dockerfile.server`, Build Context: `./server`
+- **프론트**: https://rand-factory-vercel.vercel.app
+  - Vercel Static, Vite 빌드
+  - 연결 repo: `wjdcksgml79-alt/rand-factory-vercel` (jeongchanhui 포크) → `main` 브랜치 자동 배포
+  - ⚠️ 팀 원본 repo(`MunDongHyun/Rand_Factory_-`)와 별도 저장소. 동현씨 Vercel GitHub App 권한 부여 시 원본으로 교체 가능
+- **DB**: 학원 MySQL 그대로 (외부 접속 OK)
+- **객체 스토리지**: Cloudflare R2 (로컬과 동일 자격증명)
+
+### 변경 사항
+- `fix: 배포 환경 썸네일 URL 절대경로 반환` (커밋 99cfdaa)
+  - `thumbnail_service.py`: `BACKEND_URL` 환경변수 기반 절대경로 반환
+  - `config.py`: `backend_url` 설정 추가 (로컬 기본값 빈 문자열 → 상대경로 유지)
+
+### 트러블슈팅
+- `OPENAI_API_KEY`, `DB_PASSWORD` 누락으로 첫 배포 실패 → Render Secrets 추가로 해결
+- CORS 차단 → `CORS_ORIGINS` 값을 JSON 배열이 아닌 쉼표 구분 문자열로 수정
+- 썸네일 Vercel로 요청됨 → `BACKEND_URL` 환경변수 + 코드 수정으로 해결
+
+### 미완료 사항
+- `chroma_db` 미포함 (학원 컴퓨터에만 존재, `.gitignore` 제외 상태)
+  - 키워드 검색 벡터 결과 빈 채로 동작, 아티클 인사이트 기능 불가
+  - 학원 컴퓨터에서 `.gitignore` 제거 후 커밋 push 시 Render 자동 반영
+- Vercel 연결 repo 교체: 동현씨 GitHub App 권한 부여 후 원본으로 재연결 예정
+
+### 발표 전 체크리스트
+- 발표 30분 전 워밍업: `curl https://rand-factory-server.onrender.com/health`
+- 폴백: 로컬 uvicorn + npm run dev 동시 운영
+
+---
+
 ## 2026-05-27 - 알림 딥링크 / 운영 설정 정리 / AI 산출물 추적 해제
 
 ### 변경
