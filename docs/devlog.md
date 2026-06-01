@@ -2,6 +2,27 @@
 
 ---
 
+## 2026-06-01 - chanhui (chroma_db 커밋으로 배포 RAG 복구)
+
+### 배경
+- 2026-05-30 배포 완료 시 `chroma_db` 미포함으로 RAG/아티클 인사이트 비활성 (벡터 DB가 학원 컴퓨터에만 존재)
+
+### 변경
+- 학원 컴퓨터에서 `server/chroma_db/` (5.4MB, `chroma.sqlite3` + HNSW 인덱스)를 `git add -f`로 커밋
+  - `.gitignore`의 `chroma_db/` 규칙(58행)은 그대로 유지 — 1회성 강제 추가(B 방식)
+- Render `dev` 자동배포로 컨테이너 `/app/chroma_db` 반영 → 키워드 벡터 검색 / 아티클 인사이트 복구 기대
+
+### 경로 정합성 확인
+- `docker/Dockerfile.server`: `WORKDIR /app` + build context `./server` + `COPY . .` → `server/chroma_db` → `/app/chroma_db`
+- `settings.chroma_persist_dir` 기본값 `./chroma_db` (uvicorn cwd `/app` 기준) = `/app/chroma_db` 일치
+- `.dockerignore` 없음 → 이미지 포함 OK
+- ⚠️ Render env에 `CHROMA_PERSIST_DIR` 커스텀값이 없어야 함 (대시보드 확인 권장)
+
+### 주의
+- 이후 재인덱싱 시 chroma 변경분은 다시 `git add -f` 필요 (gitignore 유지 방식의 트레이드오프)
+
+---
+
 ## 2026-05-29 - Claude (Render 배포 코드 준비 + Codex 인수인계 프롬프트)
 
 ### 변경
