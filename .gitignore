@@ -52,6 +52,9 @@ Thumbs.db
 *.log
 logs/
 
+# 개인 로컬 개발 로그 (git 미추적 — 팀 공유는 단톡/PR로)
+docs/devlog.md
+
 # FAISS / ChromaDB 벡터 저장소
 *.faiss
 *.index

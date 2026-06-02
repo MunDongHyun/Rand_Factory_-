@@ -108,7 +108,7 @@ landfactory/                # 디렉터리 이름은 그대로, 서비스 라벨
 │  └─ chroma_db/             # ChromaDB 로컬 저장소 (커밋 제외)
 ├─ ai/                      # 실험용 AI 모델링 코드 및 산출물
 ├─ data/                    # 로컬 데이터
-├─ docs/                    # 작업 로그(devlog.md) 및 문서
+├─ docs/                    # 마이그레이션 SQL 등 (devlog.md는 로컬 개인 로그·git 미추적)
 ├─ docker/                  # Docker 설정
 ├─ CLAUDE.md                # 협업 규칙 및 개발 체크리스트 (로컬 전용, skip-worktree)
 └─ README.md
@@ -201,6 +201,22 @@ npm run build
 - Swagger UI: `http://localhost:8000/docs`
 - ReDoc: `http://localhost:8000/redoc`
 
+## 배포
+
+발표용 배포 구성입니다.
+
+| 영역 | 플랫폼 | 비고 |
+|------|--------|------|
+| 백엔드 | Render Web Service (Docker) | `dev` 브랜치 자동 배포, `$PORT` 주입 대응 |
+| 프론트 | Vercel (Vite Static) | `VITE_API_BASE_URL`로 백엔드 API 연결 |
+| DB | MySQL | 외부 접속 |
+| 객체저장소 | Cloudflare R2 | 로컬과 동일 자격증명 |
+| 벡터 DB | ChromaDB | `server/chroma_db`를 이미지에 포함 |
+
+- 백엔드 헬스체크: `GET /health`
+- 무료 티어 특성상 유휴 시 슬립 → 첫 요청에 cold start 지연 발생 (발표 전 헬스체크로 워밍업 권장)
+- 백엔드 Dockerfile: `docker/Dockerfile.server` (Build Context `./server`)
+
 ## 환경변수
 
 `server/.env.example`을 복사해 `server/.env`를 만들고 실제 값을 채웁니다.
@@ -213,8 +229,13 @@ npm run build
 - `CHROMA_PERSIST_DIR` — ChromaDB 저장 경로
 - `AI_MODEL` — 서버·실험 스크립트 공통 모델명 (`settings.ai_model`로 단일 통제)
 - `CORS_ORIGINS` — 쉼표 구분 origin 화이트리스트 (비면 dev 기본값)
+- `BACKEND_URL` — 배포 환경에서 썸네일 등 절대경로 생성 기준 (로컬은 비워두면 상대경로 유지)
 - `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_ENDPOINT_URL`, `R2_REGION` — Cloudflare R2 객체저장소 (모두 비우면 로컬 fallback)
 - `SMTP_*` — 저자 이메일링용 SMTP 정보
+
+프론트(`client/.env`)는 `client/.env.example` 참고:
+
+- `VITE_API_BASE_URL` — 백엔드 API 기준 URL (미설정 시 `/api`, 로컬 dev proxy 사용)
 
 주의:
 
@@ -241,5 +262,5 @@ npm run build
 
 ## 작업 로그
 
-- 작업 기록과 결정 사항은 `docs/devlog.md`
+- 작업 기록과 결정 사항은 `docs/devlog.md` (로컬 개인 로그, git 미추적 — 클론 시 포함되지 않음)
 - 팀 협업 규칙, 브랜치 전략, 커밋 전 체크리스트는 `CLAUDE.md`
