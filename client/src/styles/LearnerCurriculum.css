@@ -1,0 +1,270 @@
+/* =============================================
+   LearnerCurriculum - 페이지 컨테이너
+   ============================================= */
+.learnerCurriculum-pageContainer {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 24px);
+  font-family: 'Pretendard', sans-serif;
+  background: var(--bg);
+  box-sizing: border-box;
+}
+
+/* =============================================
+   2단 레이아웃
+   ============================================= */
+.learnerCurriculum-layout {
+  display: flex;
+  flex: 1;
+  border: 1px solid var(--ink);
+  background: var(--card);
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* =============================================
+   좌측: 주차 트리
+   ============================================= */
+.learnerCurriculum-left {
+  flex: 3;
+  min-width: 0;
+  min-height: 0;
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  border-right: 1px solid #CDCDCD;
+  background: var(--card);
+}
+
+/* =============================================
+   커리큘럼 제목
+   ============================================= */
+.learnerCurriculum-detailTitle {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 1.4;
+  color: var(--ink);
+  margin: 0;
+}
+
+/* =============================================
+   주차 목록
+   ============================================= */
+.learnerCurriculum-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.learnerCurriculum-assignEmpty {
+  font-size: 13px;
+  color: var(--ink-muted);
+  margin: 0;
+}
+
+/* =============================================
+   아코디언
+   ============================================= */
+.learnerCurriculum-accordion-item {
+  border: 1px solid #3A4A5C;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.learnerCurriculum-accordion-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 10px 10px 15px;
+  min-height: 39px;
+  background: var(--card);
+  cursor: pointer;
+  user-select: none;
+  box-sizing: border-box;
+  transition: background 0.12s;
+}
+
+.learnerCurriculum-accordion-header:hover {
+  background: #f6f7f8;
+}
+
+.learnerCurriculum-accordion-header.expanded {
+  background: #f6f7f8;
+}
+
+.learnerCurriculum-week-label {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 17px;
+  color: var(--primary);
+  min-width: 52px;
+  flex-shrink: 0;
+}
+
+.learnerCurriculum-theme-label {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 17px;
+  color: var(--ink);
+  flex: 1;
+}
+
+.learnerCurriculum-toggle-label {
+  font-size: 14px;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+/* =============================================
+   아코디언 바디
+   ============================================= */
+.learnerCurriculum-accordion-body {
+  background: #FAFAFA;
+  border-top: 1px solid rgba(58, 74, 92, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.learnerCurriculum-section-margin {
+  margin-bottom: 4px;
+}
+
+.learnerCurriculum-objective-text {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--ink);
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* =============================================
+   그리드 뷰 카드 hover (인라인 스타일 보완)
+   ============================================= */
+.learnerCurriculum-card:hover {
+  box-shadow: 0 6px 20px rgba(58, 74, 92, 0.12);
+  transform: translateY(-2px);
+}
+
+/* =============================================
+   뒤로가기 버튼
+   ============================================= */
+.learnerCurriculum-backBtn {
+  background: none;
+  border: none;
+  color: var(--ink-muted);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  font-family: 'Pretendard', sans-serif;
+  transition: color 0.2s;
+}
+
+.learnerCurriculum-backBtn:hover {
+  color: var(--ink);
+}
+
+.learnerProgressBar {
+  flex: 1;
+  height: 6px;
+  background: var(--line);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.learnerProgressFill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.learnerProgressText {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.editorFullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  border-radius: 0 ;
+  padding: 40px ;
+  min-height: 100vh ;
+  overflow-y: auto ;
+}
+
+
+.editorFullscreenWrap {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: var(--card);
+  padding: 40px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-sizing: border-box;
+}
+
+.editorFullscreenWrap div[contenteditable],
+.editorFullscreenWrap div[class*="Editor"],
+.editorFullscreenWrap div[class*="editor"] {
+  flex: none !important;      
+  height: auto !important;     
+  min-height: 500px !important; 
+  
+  padding: 32px !important;
+  border: 1px solid #cbd5e0 !important;
+  border-radius: 8px !important;
+  background: #ffffff !important;
+  
+  overflow-y: visible !important; 
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.editorFullscreenWrap > div[contenteditable="false"] {
+  flex: 1 ;          
+  height: auto ;      
+  min-height: unset ;  
+  
+  padding: 32px ;
+  border: 1px solid #cbd5e0 ;
+  border-radius: 8px ;
+  background: #ffffff ;
+  overflow-y: auto ;   
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.editorFullscreenWrap > p {
+  margin: 0;
+  font-size: 14px;
+  color: #718096;
+}
+
+.editorFullscreenWrap div[style*="background: #f8fafc"], 
+.editorFullscreenWrap div[style*="background: rgb(248, 250, 252)"] {
+  margin-top: 8px;
+  height: auto;
+  display: block;
+}
+
+.editorFullscreenWrap div[style*="display: flex"][style*="justify-content: flex-end"] {
+  margin-top: 16px;
+  margin-bottom: 40px;
+}
+
