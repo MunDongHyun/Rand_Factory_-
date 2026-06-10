@@ -1,0 +1,499 @@
+/* ===========================
+   저자 이메일링 공통
+   =========================== */
+.emailingContainer {
+  padding: 40px 0;
+}
+
+.emailingHint {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  color: #666;
+  padding: 12px 0;
+}
+
+.emailingError {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  color: #c0392b;
+  padding: 12px 0;
+}
+
+.emailingTitle {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 40px;
+}
+
+/* ===========================
+   저자 목록 그리드
+   =========================== */
+.authorGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.authorCard {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  border: 1px solid var(--ink);
+  border-radius: 10px;
+  padding: 24px 20px;
+  cursor: pointer;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  background: var(--card);
+}
+
+.authorCard:hover {
+  background: var(--bg);
+  box-shadow: 0 4px 16px rgba(58, 74, 92, 0.12);
+}
+
+.authorCardAvatar {
+  width: 90px;
+  height: 90px;
+  background: var(--ink);
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.authorCardInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.authorCardName {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+
+.authorCardCareer {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--ink);
+  margin: 0;
+}
+
+.authorCardIntro {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  color: var(--ink-muted);
+  margin: 4px 0 0;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.authorCardTags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.authorCardTag {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--ink);
+}
+
+.authorCardArrow {
+  font-size: 13px;
+  color: var(--ink);
+  flex-shrink: 0;
+}
+
+/* ===========================
+   저자 상세
+   =========================== */
+.authorBackBtn {
+  background: none;
+  border: none;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  cursor: pointer;
+  margin-bottom: 24px;
+  padding: 0;
+  transition: color 0.2s ease;
+}
+
+.authorBackBtn:hover {
+  color: var(--ink);
+}
+
+.authorDetailBox {
+  background: var(--card);
+  border: 1px solid var(--ink);
+  border-radius: 4px;
+  padding: 48px;
+}
+
+.authorProfile {
+  display: flex;
+  align-items: flex-start;
+  gap: 40px;
+  margin-bottom: 32px;
+}
+
+.authorProfileAvatar {
+  width: 180px;
+  height: 180px;
+  background: var(--ink);
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.authorProfileInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.authorProfileName {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 40px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+
+.authorProfileCareer {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--ink);
+  margin: 0;
+}
+
+.authorProfileIntro {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 16px;
+  color: var(--ink-muted);
+  margin: 0;
+  line-height: 1.6;
+}
+
+.authorProfileEmail {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 16px;
+  color: var(--ink-muted);
+  margin: 0;
+}
+
+.authorProfileDivider {
+  width: 100%;
+  height: 1px;
+  background: var(--ink);
+  margin-bottom: 32px;
+}
+
+/* 작성한 기사 */
+.authorWorksSection {
+  background: var(--card);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  /* border: 1px solid var(--ink); */
+  border-radius: 10px;
+  padding: 32px;
+  margin-bottom: 40px;
+}
+
+.authorWorksTitle {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--ink);
+  margin: 0 0 12px;
+}
+
+.authorWorksDivider {
+  width: 100%;
+  height: 1px;
+  background: var(--card);
+  margin-bottom: 24px;
+}
+
+.authorWorksFilters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.authorWorksFilter {
+  padding: 6px 16px;
+  background: var(--card);
+  border: 1px solid var(--primary);
+  border-radius: 64px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.authorWorksFilter:hover {
+  background: var(--bg-alt);
+}
+
+.authorWorksGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+}
+
+.authorWorkCard {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-alt);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.authorWorkCard:hover {
+  transform: translateY(-4px);
+}
+
+.authorWorkCardImg {
+  width: 100%;
+  aspect-ratio: 3/4;
+  background: var(--line);
+}
+
+.authorWorkCardBottom {
+  background: var(--card);
+  padding: 10px 12px;
+}
+
+.authorWorkCardTag {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 4px;
+}
+
+.authorWorkCardTitle {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.authorEmailBtnWrap {
+  display: flex;
+  justify-content: center;
+}
+
+.authorEmailBtn {
+  width: 285px;
+  height: 64px;
+  background: var(--ink);
+  border: none;
+  border-radius: 8px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--card);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.authorEmailBtn:hover {
+  background: var(--ink-muted);
+  transform: translateY(-2px);
+}
+
+/* ===========================
+   이메일 작성 모달
+   =========================== */
+.emailModalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.95);
+  z-index: 1300;
+  animation: fadeIn 0.2s ease;
+}
+
+.emailModal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1400;
+  width: 710px;
+  background: var(--card);
+  border: 1px solid var(--ink);
+  border-radius: 33px;
+  padding: 40px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
+  animation: slideUp 0.25s ease;
+}
+
+.emailModalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px; 
+  gap: 12px;
+}
+
+.emailModalSubjectInput {
+  flex: 1;
+  height: 44px;
+  border: none; 
+  outline: none; 
+  background: transparent;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 18px; 
+  font-weight: 600;
+  color: var(--ink);
+  padding: 0; 
+}
+
+.emailModalSubjectInput::placeholder {
+  color: var(--ink-muted);
+  font-weight: 400;
+}
+
+.emailModalTitle {
+  flex: 1;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.emailModalClose {
+  background: none;
+  border: none;
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--ink-muted);
+  transition: color 0.2s ease;
+}
+
+.emailModalClose:hover {
+  color: var(--ink);
+}
+
+.emailModalDivider {
+  width: 100%;
+  height: 1px;
+  background: var(--line);
+  margin-bottom: 16px;
+}
+
+.emailModalField {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.emailModalLabel {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--ink);
+  width: 80px;
+  flex-shrink: 0;
+}
+
+.emailModalInput {
+  flex: 1;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.emailModalInput input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.emailModalBody {
+  margin-top: 8px;
+  margin-bottom: 20px;
+  border: 1px solid var(--line);
+}
+
+.emailModalTextarea {
+  width: 100%;
+  height: 300px;
+  border: none;
+  outline: none;
+  resize: none;
+  padding: 16px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+  line-height: 1.6;
+}
+
+.emailModalTextarea::placeholder {
+  color: var(--ink-muted);
+}
+
+.emailModalFooter {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.emailSendBtn {
+  width: 90px;
+  height: 43px;
+  background: var(--ink);
+  border: none;
+  border-radius: 3px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--card);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.emailSendBtn:hover {
+  background: var(--ink-muted);
+}

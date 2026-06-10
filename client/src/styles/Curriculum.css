@@ -1,0 +1,2189 @@
+/* =============================================
+   페이지 컨테이너
+   ============================================= */
+.curriculumPageContainer {
+  height: calc(100vh - 24px);
+  margin-bottom: 24px;
+  background: var(--bg);
+  padding: 40px 0 0 0;
+  font-family: 'Pretendard', sans-serif;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.curriculumStatusMsg {
+  font-size: 14px;
+  color: var(--ink-muted);
+  margin: 0;
+  padding: 0 24px;
+}
+
+.curriculumStatusMsg.error {
+  color: #e05252;
+}
+
+/* =============================================
+   빈 상태
+   ============================================= */
+.curriculumEmptyBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 0;
+  gap: 20px;
+}
+
+.curriculumEmptyImage {
+  width: 120px;
+  opacity: 0.5;
+}
+
+.curriculumEmptyText {
+  font-size: 16px;
+  color: var(--ink-muted);
+  margin: 0;
+}
+
+.curriculumCreateBtn {
+  padding: 12px 28px;
+  background: var(--ink);
+  color: var(--card);
+  border: none;
+  border-radius: 8px;
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.curriculumCreateBtn:hover {
+  background: var(--primary);
+}
+
+/* =============================================
+   전체 래퍼: 사이드바 분리 구조
+   ============================================= */
+.curriculumWrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* =============================================
+   사이드바 
+   ============================================= */
+.curriculumSidebar {
+  width: 310px;
+  flex-shrink: 0;
+  background: #3A4A5C;
+  padding: 42px 25px 20px 25px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.curriculumSidebarTitle {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 24px;
+  line-height: 29px;
+  color: var(--card);
+  margin: 0;
+}
+
+.curriculumSidebarDivider {
+  width: 248px;
+  height: 1px;
+  background: var(--line);
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+.curriculumSidebarList {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 50px 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.curriculumSidebarItem {
+  width: 240px;
+  padding: 14px 16px;
+  border-radius: 6px;
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 19px;
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.curriculumSidebarItemTitle {
+  flex: 1;
+  min-width: 0;
+}
+
+.curriculumSidebarItem:hover {
+  background: rgba(217, 217, 217, 0.18);
+  color: var(--card);
+}
+
+.curriculumSidebarItem:hover .sidebarMenuBtn {
+  opacity: 1;
+}
+
+.sidebarMenuBtn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.curriculumSidebarItem.active {
+  background: rgba(217, 217, 217, 0.28);
+  color: var(--card);
+}
+
+.curriculumSidebarAddBtn {
+  margin-top: auto;
+  width: 218px;
+  padding: 12px 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 19px;
+  color: #fff;
+  cursor: pointer;
+  align-self: center;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.curriculumSidebarAddBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.curriculumSidebarTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.sidebarMenuBtn {
+  background: transparent;
+  border: none;
+  color: var(--ink-muted);
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 4px;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: opacity 0.15s, background 0.15s;
+  visibility: visible;
+}
+
+.sidebarMenuBtn:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+
+.curriculumSidebarItem.active .sidebarMenuBtn {
+  color: var(--card);
+}
+
+/* =============================================
+   메인 영역: 사이드바 오른쪽 전체
+   ============================================= */
+.curriculumMain {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* =============================================
+   배정 학습자 바
+   ============================================= */
+.learnerViewHeader {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.learnerViewName {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--ink);
+  margin: 0 0 4px 0;
+}
+
+.learnerViewHint {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  color: var(--ink-muted);
+  margin: 0;
+}
+
+.assignedLearnersBar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 24px;
+  background: var(--bg-alt);
+  border-bottom: 1px solid var(--line);
+  min-height: 64px;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.assignedLearnersBarScroll {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  flex: 1;
+  scrollbar-width: none;
+}
+
+.assignedLearnersBarScroll::-webkit-scrollbar {
+  display: none;
+}
+
+.assignedLearnerChip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0 14px;
+  height: 33px;
+  border: 1px solid var(--line);
+  border-radius: 25px;
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 16px;
+  color: var(--ink);
+  background: var(--card);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s, color 0.15s;
+}
+
+.assignedLearnerChip:hover:not(.active) {
+  border-color: var(--primary);
+  background: var(--bg-alt);
+  color: var(--primary);
+  box-shadow: 0 2px 6px rgba(74, 124, 89, 0.12);
+}
+
+.assignedLearnerChip:hover:not(.active) .assignedLearnerChipBadge {
+  background: rgba(74, 124, 89, 0.12);
+  color: var(--primary);
+}
+
+.assignedLearnersBarArrow {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--ink-muted);
+  transition: background 0.12s, color 0.12s;
+  user-select: none;
+}
+
+.assignedLearnersBarArrow:hover {
+  background: var(--line);
+  color: var(--ink);
+}
+
+.assignedLearnersEditBtn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  height: 33px;
+  background: var(--ink);
+  border: none;
+  border-radius: 25px;
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 13px;
+  color: #CAEDFD;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.assignedLearnersEditBtn:hover {
+  background: #2e3c4c;
+}
+
+.assignEmptyInline {
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+/* =============================================
+   메인 컨텐츠 레이아웃
+   ============================================= */
+.curriculumLayout {
+  display: flex;
+  flex: 1;
+  border: 1px solid var(--ink);
+  background: var(--card);
+  overflow: hidden;
+  min-height: 0;
+}
+
+.curriculumLeft {
+  flex: 3;
+  min-width: 0;
+  min-height: 0;
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  border-right: 1px solid #CDCDCD;
+}
+
+.curriculumRight {
+  flex: 7;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.curriculumRightEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--ink-muted);
+  font-size: 14px;
+  font-family: 'Pretendard', sans-serif;
+}
+
+.curriculumRightContent {
+  padding: 32px 36px;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* =============================================
+   상세 헤더: 타이틀 + 관리 버튼
+   ============================================= */
+.extracted-detail-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.curriculumTitleGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.curriculumTitleRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+.curriculumDetailTitle {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 38px;
+  color: var(--ink);
+  margin: 0;
+}
+
+.curriculumDetailDesc {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 17px;
+  color: var(--ink-muted);
+  margin: 0;
+}
+
+
+
+/* =============================================
+   다운로드 아이콘 (모달 내부 버튼 안에서만 사용)
+   ============================================= */
+.downloadIcon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  pointer-events: none;
+  vertical-align: middle;
+  margin-right: -5px;
+  margin-left: 0px;
+}
+
+
+/* =============================================
+   삭제 아이콘 (모달 내부 버튼 안에서만 사용)
+   ============================================= */
+.deleteIcon {
+  width: 25px;
+  height: 25px;
+  flex-shrink: 0;
+  pointer-events: none;
+  vertical-align: middle;
+  margin-right: -5px;
+  margin-left: -10px;
+}
+
+/* =============================================
+   아코디언: 커리큘럼 주차
+   ============================================= */
+.curriculumSteps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.extracted-accordion-item {
+  border: 1px solid #3A4A5C;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.extracted-accordion-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 10px 10px 15px;
+  min-height: 39px;
+  background: var(--card);
+  cursor: pointer;
+  user-select: none;
+  box-sizing: border-box;
+  transition: background 0.12s;
+  flex-shrink: 0;
+}
+
+.extracted-accordion-header:hover {
+  background: #f6f7f8;
+}
+
+.extracted-accordion-header.expanded {
+  background: #f6f7f8;
+}
+
+.extracted-accordion-item.notification-highlight {
+  animation: notificationTargetPulse 2.4s ease-out;
+}
+
+@keyframes notificationTargetPulse {
+  0% {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(55, 115, 255, 0.22);
+    background: #eef5ff;
+  }
+  45% {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(55, 115, 255, 0.14);
+    background: #f7fbff;
+  }
+  100% {
+    border-color: #3A4A5C;
+    box-shadow: none;
+    background: transparent;
+  }
+}
+
+.extracted-week-label {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 17px;
+  color: var(--primary);
+  min-width: 52px;
+  flex-shrink: 0;
+}
+
+.extracted-theme-label {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 17px;
+  color: var(--ink);
+  flex: 1;
+}
+
+.extracted-toggle-label {
+  font-size: 14px;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.extracted-accordion-body {
+  padding: 16px 20px;
+  background: #FAFAFA;
+  border-top: 1px solid rgba(58, 74, 92, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.curriculumRightContent .right-pane-accordion-body {
+  border: none;
+  background: transparent;
+}
+
+.curriculumRightContent .right-pane-submission-body {
+  max-height: none;
+  overflow: visible;
+}
+
+.curriculumRightContent .right-pane-feedback-form {
+  position: static;
+  margin: 0;
+  padding: 0;
+  box-shadow: none;
+  border-top: none;
+}
+
+.extracted-section-margin {
+  margin-bottom: 4px;
+}
+
+.extracted-objective-title {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ink);
+  margin: 0 0 6px 0;
+}
+
+.extracted-objective-text {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  color: var(--ink);
+  margin: 0;
+}
+
+.extracted-task-title {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ink);
+  margin: 0 0 6px 0;
+}
+
+.extracted-task-list {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.extracted-list-item {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+  margin-bottom: 3px;
+}
+
+.extracted-assignment-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.extracted-assignment-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.extracted-assignment-card {
+  padding: 12px 14px;
+  border: 1px solid rgba(58, 74, 92, 0.18);
+  border-radius: 4px;
+  background: var(--card);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.extracted-assignment-name {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.extracted-guide-list {
+  margin: 4px 0 0 0;
+  padding-left: 18px;
+}
+
+.extracted-guide-item {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+
+.extracted-submission-format {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  color: var(--ink-muted);
+  margin-top: 4px;
+}
+
+.extracted-submission-format.has-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.templateActionBtnGroup {
+  display: flex;
+  gap: 6px;
+}
+
+.template-action-btn {
+  padding: 5px 12px;
+  border-radius: 4px;
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  border: none;
+  transition: background 0.12s;
+}
+
+.template-action-btn.admin {
+  background: var(--bg-alt);
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+
+.template-action-btn.admin:hover {
+  background: var(--line);
+}
+
+.template-action-btn.user {
+  background: var(--ink);
+  color: var(--card);
+}
+
+.template-action-btn.user:hover {
+  background: #2e3c4c;
+}
+
+.extracted-instructor-box {
+  background: var(--bg-alt);
+  border-radius: 4px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.extracted-instructor-title {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ink);
+  margin: 0 0 6px 0;
+}
+
+.extracted-guide-label {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.extracted-guide-list-no-margin {
+  margin: 4px 0 0 0;
+  padding-left: 18px;
+}
+
+.extracted-guide-item-small {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+
+.extracted-coaching-list {
+  margin: 4px 0 0 0;
+  padding-left: 18px;
+}
+
+.extracted-coaching-item {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+  margin-bottom: 3px;
+}
+
+.extracted-footer-wrapper {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.extracted-ref-title {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ink);
+  margin: 0 0 6px 0;
+}
+
+.extracted-ref-item {
+  margin-bottom: 6px;
+}
+
+.extracted-ref-link {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.extracted-ref-link:hover {
+  color: var(--primary);
+}
+
+.extracted-ref-doc {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.extracted-ref-small {
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.extracted-ref-reason {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 11px;
+  color: var(--ink-muted);
+  margin: 2px 0 0 0;
+}
+
+.extracted-time-badge {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  background: var(--bg);
+  border-radius: 4px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+/* =============================================
+   관리 모달 (다운로드 / 삭제)
+   ============================================= */
+.downloadOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 99998;
+}
+
+.downloadModal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 99999;
+  background: var(--card);
+  border-radius: 8px;
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 6px 24px rgba(58, 74, 92, 0.18);
+  min-width: 200px;
+}
+
+.downloadModalTitle {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--ink);
+  margin: 0 0 4px 0;
+}
+
+.downloadModalBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 0;
+  background: var(--card);
+  border: 1px solid var(--ink);
+  border-radius: 6px;
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.downloadModalBtn:hover {
+  background: var(--bg);
+}
+
+/* 뒤로 버튼 */
+.downloadModalBtn.back {
+  border-color: #ccc;
+  color: #888;
+  font-size: 13px;
+}
+
+.downloadModalBtn.back:hover {
+  background: var(--bg);
+  color: #555;
+}
+
+/* 삭제 확인 버튼 */
+.downloadModalBtn.delete {
+  border-color: #e57373;
+  color: #d32f2f;
+  font-weight: 600;
+}
+
+.downloadModalBtn.delete:hover {
+  background: #fff0f0;
+}
+
+/* =============================================
+   제출된 과제 섹션 
+   ============================================= */
+.managerSubmissionHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.managerSubmissionTitle {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--ink);
+  margin: 0;
+}
+
+.managerSubmissionCount {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  color: var(--primary);
+  font-weight: 500;
+}
+
+.managerSubmissionLoading,
+.managerSubmissionEmpty {
+  font-size: 13px;
+  color: var(--ink-muted);
+  margin: 0;
+}
+
+.managerSubmissionList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.managerSubmissionItem {
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.managerSubmissionItemHeader {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  cursor: pointer;
+}
+
+.managerSubmissionItemMain {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  background: var(--ink);
+  padding: 7px 14px;
+  min-height: 28px;
+  box-sizing: border-box;
+}
+
+.managerSubmissionWeek {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 13px;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.managerSubmissionLearner {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 13px;
+  color: var(--card);
+}
+
+.managerSubmissionTime {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 300;
+  font-size: 11px;
+  line-height: 13px;
+  color: var(--card);
+  margin-left: auto;
+}
+
+.managerSubmissionItemRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-start;
+  flex-shrink: 0;
+}
+
+.submissionStatusBadge {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 500;
+  background: var(--bg);
+  color: var(--ink-muted);
+  border: 1px solid var(--line);
+}
+
+.submissionStatusBadge.submitted {
+  background: #FFF3CD;
+  color: #856404;
+  border-color: #FFEAA7;
+}
+
+.submissionStatusBadge.feedback_given {
+  background: #D4EDDA;
+  color: #155724;
+  border-color: #C3E6CB;
+}
+
+.submissionStatusBadge.resubmit_requested {
+  background: #F8D7DA;
+  color: #721C24;
+  border-color: #F5C6CB;
+}
+
+.extracted-accordion-item.active .extracted-accordion-header {
+  background: var(--bg-alt);
+}
+
+.assignedLearnerChip.active {
+  background: var(--ink);
+  color: var(--card);
+  border-color: var(--ink);
+}
+
+.assignedLearnerChipName {
+  white-space: nowrap;
+}
+
+.assignedLearnerChipBadge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  background: rgba(49, 130, 206, 0.15);
+  color: #2c5282;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.assignedLearnerChip.active .assignedLearnerChipBadge {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+.managerSubmissionStatus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 83px;
+  height: 21px;
+  background: var(--card);
+  border: 1px solid var(--ink);
+  border-bottom: none;
+  border-radius: 2px 2px 0 0;
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 8px;
+  line-height: 10px;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.managerSubmissionToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 83px;
+  flex: 1;
+  background: var(--card);
+  border-left: 1px solid rgba(58, 74, 92, 0.2);
+  font-size: 10px;
+  color: var(--ink);
+}
+
+.managerSubmissionItemBody {
+  padding: 14px 16px;
+  background: var(--card);
+  border-top: 1px solid rgba(58, 74, 92, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  max-height: none;
+}
+
+.managerSubmissionContent,
+.managerSubmissionExistingFeedback {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.managerSubmissionContentLabel {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--ink);
+  margin: 0;
+}
+
+.managerSubmissionContentBody {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--bg);
+  border-radius: 2px;
+  padding: 10px 12px;
+  max-height: 260px;
+  overflow-y: auto;
+  line-height: 1.55;
+}
+
+.managerSubmissionAttachments {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.managerSubmissionAttachmentList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.managerSubmissionAttachmentItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--bg);
+  border-radius: 4px;
+}
+
+.managerSubmissionAttachmentLink {
+  background: none;
+  border: none;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+  flex: 1;
+}
+
+.managerSubmissionAttachmentLink:hover {
+  color: var(--primary);
+}
+
+.managerSubmissionAttachmentSize {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 11px;
+  color: var(--ink-muted);
+  flex-shrink: 0;
+}
+
+.managerFeedbackForm {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: sticky;
+  bottom: -14px;
+  z-index: 2;
+  margin: 2px -16px -14px;
+  padding: 12px 16px 14px;
+  background: var(--card);
+  border-top: 1px solid rgba(58, 74, 92, 0.14);
+  box-shadow: 0 -8px 18px rgba(58, 74, 92, 0.08);
+}
+
+.managerFeedbackTextarea {
+  width: 100%;
+  min-height: 92px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--line);
+  border-radius: 4px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  color: var(--ink);
+  resize: vertical;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.managerFeedbackTextarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(148, 184, 200, 0.2);
+}
+
+.managerFeedbackBtns {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.managerFeedbackBtn {
+  padding: 7px 16px;
+  border-radius: 6px;
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.managerFeedbackBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.managerFeedbackBtn.secondary {
+  background: var(--card);
+  border: 1px solid var(--ink);
+  color: var(--ink);
+}
+
+.managerFeedbackBtn.secondary:hover:not(:disabled) {
+  background: var(--bg);
+}
+
+.managerFeedbackBtn.primary {
+  background: var(--ink);
+  color: var(--card);
+}
+
+.managerFeedbackBtn.primary:hover:not(:disabled) {
+  background: var(--primary);
+}
+
+/* =============================================
+   공통 오버레이
+   ============================================= */
+.chatModalOverlay,
+.confirmOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 99998;
+}
+
+/* =============================================
+   커리큘럼 생성 폼 모달
+   ============================================= */
+.chatModalContainer {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 99999;
+  display: flex;
+  width: 600px;
+  max-height: 90vh;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(58, 74, 92, 0.22);
+}
+
+
+
+.chatMain {
+  flex: 1;
+  background: var(--card);
+  padding: 50px 28px;
+  overflow-y: auto;
+  position: relative;
+}
+
+.chatModalClose {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  background: none;
+  border: none;
+  font-size: 22px;
+  color: var(--ink-muted);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.chatModalClose:hover {
+  color: var(--ink);
+}
+
+.chatMainTitle {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--ink);
+  margin: 0 0 24px 0;
+}
+
+.curriculumGenerateForm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.curriculumField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.curriculumField span {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.curriculumField input,
+.curriculumField textarea {
+  padding: 10px 14px;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--card);
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.curriculumField input:focus,
+.curriculumField textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(148, 184, 200, 0.2);
+}
+
+.curriculumFieldGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.curriculumFormError {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  color: #e05252;
+  margin: 0;
+}
+
+.curriculumGenerateBtn {
+  padding: 12px 0;
+  background: var(--ink);
+  color: var(--card);
+  border: none;
+  border-radius: 8px;
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.curriculumGenerateBtn:hover:not(:disabled) {
+  background: var(--primary);
+  transform: translateY(-1px);
+}
+
+.curriculumGenerateBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* =============================================
+   확인/저장/배정 변경 모달
+   ============================================= */
+
+.templateSectionTitle {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.templateSectionTitle::before {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 22px;
+  background-color: var(--primary);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+
+
+.confirmModal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 99999;
+  background: var(--card);
+  border-radius: 10px;
+  width: 860px;
+  max-height: 92vh;
+  overflow-y: auto;
+  padding: 32px 28px;
+  box-shadow: 0 8px 32px rgba(58, 74, 92, 0.22);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.confirmModal.assignModal {
+  width: 480px;
+}
+
+.confirmModal.templateModal {
+  width: 860px;
+  height: 90vh;
+  max-height: 92vh;
+  transition: width 0.25s ease, height 0.25s ease;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.confirmModal.templateModal.fullscreen {
+  inset: 0 !important;
+  transform: none !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  border-radius: 0;
+  overflow-y: scroll !important;
+  margin: 0 !important;
+  padding: 32px 40px;
+  z-index: 100000;
+  display: flex;
+  flex-direction: column;
+}
+
+.confirmModal.templateModal.fullscreen .templateEditorWrapper {
+  max-height: none;
+  flex: 1;
+}
+
+.modalTopBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  margin-bottom: 8px;
+}
+
+.modalHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-regenerate-btn {
+  padding: 6px 14px;
+  background: var(--bg-alt);
+  border: 1.5px solid var(--primary);
+  border-radius: 6px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.ai-regenerate-btn:hover:not(:disabled) {
+  background: var(--primary);
+  color: var(--card);
+}
+
+.ai-regenerate-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.fullscreenBtn {
+  padding: 6px 14px;
+  background: var(--bg);
+  border: 1.5px solid var(--line);
+  border-radius: 6px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.fullscreenBtn:hover {
+  background: var(--line);
+  color: var(--ink);
+}
+
+.templateEditorWrapper {
+  position: relative;
+  flex: 1;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  min-height: 0;
+  overflow-y: hidden;
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.tiptap-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+  flex-shrink: 0;
+}
+
+.tiptap-toolbar button {
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--card);
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.1s;
+  line-height: 1.4;
+}
+
+.tiptap-toolbar button:hover {
+  background: var(--bg-alt);
+}
+
+.tiptap-toolbar button.is-active {
+  background: var(--ink);
+  color: var(--card);
+  border-color: var(--ink);
+}
+
+.tiptap-vertical-divider {
+  margin: 0 4px;
+  height: 16px;
+  width: 1px;
+  display: inline-block;
+  vertical-align: middle;
+  background-color: var(--line);
+}
+
+.tiptap-color-picker {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+}
+
+.tiptap-table-tools {
+  display: flex;
+  gap: 2px;
+  background: #ffebee;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.tiptap-btn-danger {
+  color: red !important;
+}
+
+.tiptap-btn-danger-bold {
+  color: red !important;
+  font-weight: bold !important;
+}
+
+.tiptap-editor-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100%;
+}
+
+.tiptap-content-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  background: var(--card);
+}
+
+.tiptap-content-area .ProseMirror {
+  outline: none;
+  min-height: 200px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.template-render table,
+.tiptap-content-area .ProseMirror table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 8px 0;
+}
+
+.template-render td,
+.template-render th,
+.tiptap-content-area .ProseMirror td,
+.tiptap-content-area .ProseMirror th {
+  border: 1px solid var(--line);
+  padding: 6px 10px;
+  min-width: 60px;
+  vertical-align: top;
+}
+
+.template-render th,
+.tiptap-content-area .ProseMirror th {
+  background: var(--bg-alt);
+  font-weight: 600;
+}
+
+.template-render p {
+  margin: 0 0 10px;
+}
+
+.template-render ul,
+.template-render ol {
+  padding-left: 28px;
+  margin: 12px 0;
+}
+
+.tiptap-loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  z-index: 10;
+  border-radius: 4px;
+}
+
+.tiptap-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--line);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.tiptap-loading-text {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.confirmHeader {
+  display: flex;
+  flex-direction: column;
+}
+
+.confirmHeaderRight {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.confirmHeaderLabel {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--primary);
+  margin: 0;
+}
+
+.confirmTitle {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--ink);
+  margin: 0;
+}
+
+.confirmDivider {
+  height: 1px;
+  background: var(--line);
+  margin-top: 12px;
+}
+
+.confirmGoalBox {
+  background: var(--bg);
+  border-radius: 4px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.confirmGoalLabel {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--primary);
+  margin: 0;
+}
+
+.confirmGoalText {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+  margin: 0;
+}
+
+.confirmProgramName {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--ink);
+  margin: 0;
+}
+
+.confirmStepList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.confirmBtns {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.confirmBtns.template-btns {
+  padding-top: 16px;
+}
+
+.confirmBtnBack {
+  padding: 10px 22px;
+  background: var(--card);
+  border: 1px solid var(--ink);
+  border-radius: 8px;
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.confirmBtnBack:hover:not(:disabled) {
+  background: var(--bg);
+}
+
+.confirmBtnBack:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.confirmBtnCreate {
+  padding: 10px 22px;
+  background: var(--ink);
+  border: none;
+  border-radius: 8px;
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--card);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.confirmBtnCreate:hover:not(:disabled) {
+  background: var(--primary);
+  transform: translateY(-1px);
+}
+
+.confirmBtnCreate:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.confirmBtnCreate.btnSuccess {
+  background: #4A7C59;
+}
+
+.confirmBtnCreate.btnSuccess:hover:not(:disabled) {
+  background: #3a6347;
+}
+
+/* =============================================
+   학습자 배정 영역 (모달 내부)
+   ============================================= */
+.assignSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+
+.assignSectionHint {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  color: var(--ink-muted);
+  margin: 0 0 18px 0;
+  white-space: pre-wrap;
+  flex-shrink: 0;
+}
+
+.assignEmpty {
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.assignCheckList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.assignCheckItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.assignCheckItem input[type="checkbox"] {
+  accent-color: var(--ink);
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+.assignCheckItem.checked {
+  background: rgba(58, 74, 92, 0.06);
+  border-color: var(--ink);
+}
+
+.assignName {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.assignEmail {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  color: var(--ink-muted);
+  margin-left: auto;
+}
+
+.tiptap-content-area ul,
+.tiptap-content-area ol,
+.ProseMirror ul,
+.ProseMirror ol {
+  padding-left: 28px !important;
+  margin: 12px 0 !important;
+}
+
+.tiptap-content-area li,
+.ProseMirror li {
+  margin-bottom: 6px;
+  line-height: 1.6;
+}
+
+.tiptap-content-area li>p,
+.ProseMirror li>p {
+  margin: 0 !important;
+  display: inline-block;
+}
+
+/* =============================================
+   로딩 모달
+   ============================================= */
+.loadingModalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.loadingModalOverlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.loadingModalContainer {
+  background: white;
+  padding: 40px;
+  border-radius: 20px;
+  text-align: center;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: 400px;
+}
+
+.loadingModalImage {
+  max-width: 150px;
+  height: auto;
+  border-radius: 10px;
+}
+
+.loadingModalText {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+  margin: 0;
+}
+
+.loadingModalBar {
+  width: 100%;
+  height: 10px;
+  background: #eee;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.loadingModalBarFill {
+  height: 100%;
+  background: var(--primary);
+  transition: width 0.3s ease;
+}
+
+/* =============================================
+   템플릿 로딩 오버레이
+   ============================================= */
+.template-loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  backdrop-filter: blur(4px);
+  gap: 20px;
+}
+
+.template-loading-gif {
+  width: 140px;
+  height: auto;
+  border-radius: 16px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.template-loading-text {
+  font-size: 16px;
+  font-weight: 700;
+  color: #333;
+  margin: 0;
+}
+
+.template-loading-bar {
+  width: 240px;
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.template-loading-bar-fill {
+  height: 100%;
+  background: #4A7C59;
+  transition: width 0.4s ease;
+}
+
+/* D-Day & 뱃지 스타일 */
+.learner-dday-text { font-size: 13px; color: #e53e3e; font-weight: 600; margin-top: 8px; }
+.badge-waiting { font-size: 12px; color: #718096; font-weight: 600; background-color: #edf2f7; padding: 4px 8px; border-radius: 4px; }
+.badge-dday { font-size: 12px; color: #4a5568; font-weight: 600; background-color: #e2e8f0; padding: 4px 8px; border-radius: 4px; border: none; }
+
+/* 진행률 바 */
+.learner-progress-wrap { display: flex; align-items: center; gap: 12px; }
+.learner-progress-bg { flex: 1; height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.learner-progress-bar { height: 100%; background: var(--primary); transition: width 0.3s ease; }
+.learner-progress-text { font-size: 13px; color: var(--ink); font-weight: 600; white-space: nowrap; }
+
+/* 학습자 과제 카드 */
+.extracted-assignment-card { transition: all 0.2s ease; border: 1px solid rgba(58, 74, 92, 0.18); background: var(--card); }
+.extracted-assignment-card.active { border: 1px solid var(--primary); background: #EAF3F8; }
+.extracted-assignment-card.clickable { cursor: pointer; opacity: 1; }
+.extracted-assignment-card.disabled { cursor: not-allowed; opacity: 0.6; background: #f8fafc; }
+.extracted-assignment-card-header { display: flex; justify-content: space-between; align-items: center; }
+
+/* 아코디언 아이템 (Manager - Learner View) */
+.extracted-accordion-item.clickable { cursor: pointer; opacity: 1; }
+.extracted-accordion-item.default-cursor { cursor: default; opacity: 0.6; }
+.extracted-accordion-body.no-border { border: none; background: transparent; }
+
+/* 우측 헤더 및 제목 */
+.learner-right-header { margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: flex-start;  background: var(--card); z-index: 1; }
+.learner-right-week { font-size: 13px; color: #718096; font-weight: 600; }
+.curriculumDetailTitle.large { margin-top: 4px; font-size: 22px; }
+.learner-right-dday { display: inline-block; margin-top: 8px; font-size: 12px; background: #fff5f5; color: #e53e3e; padding: 4px 8px; border-radius: 4px; font-weight: 600; }
+.learner-editor-guide { font-size: 13px; color: #718096; margin-bottom: 12px; }
+
+/* 모달 & 오버레이 */
+.chatModalOverlay, .confirmOverlay, .downloadOverlay { z-index: 99998; }
+.loadingModalOverlay { z-index: 100000; }
+.chatModalContainer, .confirmModal, .downloadModal, .loadingModalContainer { z-index: 99999; }
+.templateModal.fullscreen { height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
+.modalTopBar { flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; }
+.modalTopBar h3 { margin: 0; }
+.modalHeaderActions { display: flex; align-items: center; gap: 12px; }
+.template-deadline-label { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #4a5568; }
+.template-deadline-input { border: 1px solid #cbd5e0; border-radius: 4px; padding: 6px 8px; font-size: 13px; outline: none; }
+.templateEditorWrapper { position: relative; flex: 1; display: flex; flex-direction: column; border: 1px solid #ccc; border-radius: 4px; overflow: hidden; min-height: 0; }
+
+/* Tiptap 에디터 */
+.tiptap-toolbar { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px; border-bottom: 1px solid #ddd; }
+.tiptap-divider { margin: 0 4px; height: 16px; display: inline-block; vertical-align: middle; border-left: 1px solid #ccc; }
+.tiptap-color-picker { width: 24px; height: 24px; padding: 0; cursor: pointer; border: none; }
+.tiptap-table-actions { display: flex; gap: 2px; background: #ffebee; padding: 2px 4px; border-radius: 4px; }
+.btn-danger { color: red; }
+.btn-danger-bold { color: red; font-weight: bold; }
+.tiptap-content-area { flex: 1; overflow-y: auto; padding: 16px; background-color: #fff; }
+
+/* 첨부파일 UI */
+.learner-attach-box { margin-top: 16px; padding: 16px; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e0; }
+.learner-attach-title { font-size: 12px; font-weight: 700; color: #4a5568; margin: 0 0 10px 0; }
+.learner-attach-label { display: inline-flex; cursor: pointer; }
+.learner-attach-btn { font-size: 13px; font-weight: 600; color: #3182ce; background: #fff; border: 1px solid #3182ce; padding: 6px 14px; border-radius: 6px; }
+.learner-attach-list { list-style: none; padding: 0; margin: 12px 0 0 0; }
+.learner-attach-item { display: flex; align-items: center; background: #fff; border: 1px solid #e2e8f0; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px; }
+.learner-attach-name { flex: 1; font-size: 13px; color: #2d3748; }
+.learner-attach-badge { font-size: 11px; margin-left: 4px; }
+.learner-attach-badge.old { color: #3182ce; }
+.learner-attach-badge.new { color: #38a169; }
+.learner-attach-size { font-size: 12px; color: #a0aec0; margin-right: 12px; }
+.learner-attach-del { border: none; background: #fff5f5; color: #e53e3e; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+
+/* 버튼 & 에러 */
+.learner-submit-error { color: #e53e3e; background: #fff5f5; padding: 12px; border-radius: 6px; font-size: 13px; margin-top: 12px; }
+.learner-submit-actions { display: flex; justify-content: flex-end; margin-top: 16px; gap: 8px; }
+.btn-cancel { background: #fff; border: 1px solid #cbd5e0; color: #718096; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; margin-right: auto; }
+.btn-draft { background: #fff; border: 1px solid var(--ink); color: var(--ink); padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; }
+.btn-submit { background: var(--ink); border: none; color: #fff; padding: 12px 32px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 15px; transition: background 0.2s; }
+
+/* 제출물 읽기 전용 (학습자/관리자) */
+.learner-submission-body { padding: 0; border: none; background: transparent; }
+.managerSubmissionItemBody.unrestricted { max-height: none; overflow: visible; }
+.learner-submission-label { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
+.learner-submission-content { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 24px; min-height: 200px; }
+.learner-submission-label-small { font-size: 13px; color: #718096; margin-bottom: 8px; }
+.learner-submission-attach-item {
+  display: flex;
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+}
+.learner-submission-attach-link {
+  flex: 1; /* 빈 공간을 모두 차지해 파일명을 왼쪽으로 밀어줍니다 */
+  text-align: left;
+  font-weight: 600;
+  font-size: 13px;
+  color: #3182ce;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  font-family: 'Pretendard', sans-serif;
+}
+.learner-submission-attach-link:hover {
+  text-decoration: underline;
+}
+.learner-submission-attach-item .managerSubmissionAttachmentSize {
+  font-size: 12px;
+  color: #a0aec0;
+  margin-left: 12px;
+}
+
+.learner-feedback-box { background: #ebf8ff; padding: 20px; border-radius: 8px; border-left: 4px solid #3182ce; margin-bottom: 24px; }
+.learner-feedback-label { color: #2b6cb0; font-weight: 700; margin-bottom: 8px; }
+.learner-feedback-date { font-size: 12px; color: #718096; font-weight: 400; margin-left: 8px; }
+.learner-feedback-text { font-size: 14px; color: #2d3748; line-height: 1.6; white-space: pre-wrap; }
+
+.learner-resubmit-wrap { display: flex; justify-content: flex-end; border-top: 1px dashed #e2e8f0; padding-top: 20px; }
+.btn-resubmit { background: #fff; border: 1px solid #cbd5e0; color: #4a5568; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; }
+.managerFeedbackForm.inline { position: static; margin: 0; padding: 0; box-shadow: none; border-top: none; }
+
+/* 매니저 피드백 - 빠른 코멘트 칩 */
+.quickCommentChips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.quickCommentChip { background: #f0f4f8; border: 1px solid #cbd5e0; color: #2d3748; font-size: 12px; padding: 4px 10px; border-radius: 14px; cursor: pointer; font-weight: 500; }
+.quickCommentChip:hover:not(:disabled) { background: #e2e8f0; }
+.quickCommentChip:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* 양식 배포 모달 - 마감일 영역 */
+.templateDeadlineRow { display: flex; align-items: center; gap: 16px; padding: 12px 0; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; margin-bottom: 16px; flex-wrap: wrap; }
+.templateDeadlineLabel { font-size: 14px; font-weight: 700; color: #2d3748; }
+.templateDeadlinePicker { display: flex; align-items: center; gap: 10px; }
+.templateDeadlineInput { border: 1px solid #cbd5e0; border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 600; color: #2d3748; min-width: 200px; outline: none; background: #fff; cursor: pointer; }
+.templateDeadlineInput:focus { border-color: #4A7C59; box-shadow: 0 0 0 3px rgba(74, 124, 89, 0.15); }
+.templateDeadlineBadge { font-size: 12px; font-weight: 700; color: #e53e3e; background: #fff5f5; padding: 4px 10px; border-radius: 12px; }
+.templateDeadlineQuick { display: flex; gap: 6px; margin-left: auto; }
+.quickDeadlineBtn { background: #f0f4f8; border: 1px solid #cbd5e0; color: #2d3748; font-size: 12px; padding: 6px 12px; border-radius: 14px; cursor: pointer; font-weight: 600; }
+.quickDeadlineBtn:hover { background: #e2e8f0; border-color: #4A7C59; color: #4A7C59; }
+
+/* react-datepicker 톤 맞춤 (popup 적용) */
+.templateDeadlineCalendar { font-family: inherit; border: 1px solid #cbd5e0; border-radius: 8px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); padding: 8px; }
+.templateDeadlineCalendar .react-datepicker__header { background: #fff; border-bottom: 1px solid #edf2f7; padding-top: 8px; }
+.templateDeadlineCalendar .react-datepicker__current-month { font-size: 14px; font-weight: 700; color: #2d3748; margin-bottom: 8px; }
+.templateDeadlineCalendar .react-datepicker__day-name { color: #718096; font-size: 12px; font-weight: 600; width: 36px; line-height: 28px; }
+.templateDeadlineCalendar .react-datepicker__day { color: #2d3748; font-size: 13px; width: 36px; line-height: 32px; border-radius: 8px; margin: 2px; }
+.templateDeadlineCalendar .react-datepicker__day:hover { background: #ebf8ff; color: #4A7C59; }
+.templateDeadlineCalendar .react-datepicker__day--selected,
+.templateDeadlineCalendar .react-datepicker__day--keyboard-selected { background: #4A7C59 !important; color: #fff !important; font-weight: 700; }
+.templateDeadlineCalendar .react-datepicker__day--today { font-weight: 700; color: #4A7C59; }
+.templateDeadlineCalendar .react-datepicker__day--disabled { color: #cbd5e0; cursor: not-allowed; }
+.templateDeadlineCalendar .react-datepicker__day--outside-month { color: #cbd5e0; }
+.templateDeadlineCalendar .react-datepicker__day-names .react-datepicker__day-name:first-child,
+.templateDeadlineCalendar .react-datepicker__week .react-datepicker__day:first-child { color: #e53e3e; }
+.templateDeadlineCalendar .react-datepicker__day--selected:first-child,
+.templateDeadlineCalendar .react-datepicker__day--keyboard-selected:first-child { color: #fff !important; }
+.templateDeadlineCalendar .react-datepicker__navigation-icon::before { border-color: #4a5568; }
+.templateDeadlineCalendar .react-datepicker__navigation:hover .react-datepicker__navigation-icon::before { border-color: #4A7C59; }

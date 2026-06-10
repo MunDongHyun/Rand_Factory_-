@@ -1,0 +1,887 @@
+/* --- 학습자 관리 페이지 (매니저 전용) --- */
+.learnerMgmtContainer {
+  padding: 24px 32px 60px;
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.learnerMgmtHeader {
+  margin-bottom: 20px;
+}
+
+.learnerMgmtTitle {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0 0 6px;
+}
+
+.learnerMgmtSubtitle {
+  font-size: 13px;
+  color: var(--ink-muted);
+  margin: 0;
+}
+
+/* --- 분할 레이아웃 --- */
+.learnerMgmtSplit {
+  display: grid;
+  grid-template-columns: minmax(320px, 440px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: stretch;
+  height: calc(100vh - 220px);
+  min-height: 480px;
+}
+
+@media (max-width: 900px) {
+  .learnerMgmtSplit {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+    min-height: 0;
+  }
+}
+
+/* --- 우측 상세 내부 2단 그리드 --- */
+.learnerMgmtDetailGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  margin-bottom: 32px;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .learnerMgmtDetailGrid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+}
+
+.learnerMgmtDetailGrid .learnerMgmtSection {
+  margin-bottom: 0;
+}
+
+/* --- 좌측 사이드 --- */
+.learnerMgmtSide {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.learnerMgmtInviteCard {
+  background: var(--bg-alt);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+
+.learnerMgmtInviteLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  margin-bottom: 8px;
+}
+
+.learnerMgmtInviteRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.learnerMgmtInviteCode {
+  flex: 1;
+  font-family: 'Pretendard', monospace;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 10px;
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+.learnerMgmtInviteAction {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.learnerMgmtInviteAction:hover {
+  background: var(--bg);
+}
+
+.learnerMgmtInviteHint {
+  font-size: 12px;
+  color: var(--ink-muted);
+  margin: 0;
+}
+
+.learnerMgmtControls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.learnerMgmtSearch,
+.learnerMgmtSort {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 14px;
+  background: var(--card);
+  color: var(--ink);
+  font-family: 'Pretendard', sans-serif;
+}
+
+.learnerMgmtSearch:focus,
+.learnerMgmtSort:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.learnerMgmtSort {
+  cursor: pointer;
+}
+
+.learnerMgmtCount {
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.learnerMgmtList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.learnerMgmtCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  gap: 10px;
+}
+
+.learnerMgmtCard:hover {
+  border-color: var(--primary);
+  background: var(--bg-alt);
+}
+
+.learnerMgmtCard.active {
+  border-color: var(--primary);
+  background: var(--bg-alt);
+  box-shadow: 0 2px 10px rgba(148, 184, 200, 0.25);
+}
+
+.learnerMgmtCardLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.learnerMgmtCardName {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.learnerMgmtCardEmail {
+  font-size: 12px;
+  color: var(--ink-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.learnerMgmtCardRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.learnerMgmtCardDate {
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.learnerMgmtCardArrow {
+  font-size: 11px;
+  color: var(--primary);
+}
+
+.learnerMgmtEmpty {
+  text-align: center;
+  padding: 30px 16px;
+  color: var(--ink-muted);
+}
+
+.learnerMgmtEmpty p {
+  margin: 4px 0;
+  font-size: 13px;
+}
+
+.learnerMgmtEmptyHint {
+  font-size: 12px;
+}
+
+.learnerMgmtLoading,
+.learnerMgmtError {
+  text-align: center;
+  padding: 24px 16px;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.learnerMgmtError {
+  color: #c0392b;
+}
+
+/* --- 우측 상세 --- */
+.learnerMgmtDetail {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+   padding: 24px 28px;
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.learnerMgmtDetailGrid .learnerMgmtSection {
+  min-width: 0;
+}
+
+.learnerMgmtEmptyDetail {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 360px;
+  color: var(--ink-muted);
+  font-size: 14px;
+}
+
+.learnerMgmtDetailHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--card);
+}
+
+.learnerMgmtDetailTop {
+  background: var(--ink);
+  margin: -24px -50px 20px -28px; 
+  padding: 24px 28px 5px;
+}
+
+
+.learnerMgmtDetailBody {
+  padding: 24px 28px;
+}
+
+.learnerMgmtDetailName {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--card);
+  margin: 0;
+}
+
+.learnerMgmtDetailClose {
+   background: rgba(255, 255, 255, 0.15);
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  font-size: 18px;
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.learnerMgmtDetailClose:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.learnerMgmtInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 40px;
+  padding: 0;
+  background: none;
+  border-radius: 0;
+}
+
+.learnerMgmtInfoRow {
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.learnerMgmtInfoLabel {
+  color:rgba(255, 255, 255, 0.5);
+  font-weight: 400;
+  min-width: 40px;
+}
+
+.learnerMgmtInfoValue {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.learnerMgmtSection {
+  margin-bottom: 22px;
+}
+
+.learnerMgmtSectionTopRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.learnerMgmtSectionActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.learnerMgmtSectionTitle {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--ink);
+  margin: 0 0 10px 0;
+}
+
+.learnerMgmtProgressRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.learnerMgmtProgressMeta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.learnerMgmtProgressLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+
+.learnerMgmtProgressValue {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.learnerMgmtLastActivity {
+  position: absolute;
+  top: 18px;
+  right: 0;
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.learnerMgmtStats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: #F8FAFC;
+  border: 1.5px solid var(--line);
+  border-radius: 6px;
+  min-height: 80px;
+}
+
+.learnerMgmtStat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 8px;
+  text-align: center;
+}
+
+.learnerMgmtStat + .learnerMgmtStat {
+  border-left: 1px solid var(--line);
+}
+
+.learnerMgmtStatLabel {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--ink-muted);
+  margin: 4px 0 0;
+  order: 2;
+}
+
+.learnerMgmtStatValue {
+  font-size: 22px;
+  font-weight: 800;
+  color: #1a1a1a;
+  margin: 0;
+  order: 1;
+}
+
+.learnerMgmtMuted {
+  color: var(--ink-muted);
+  font-size: 13px;
+  margin: 0;
+}
+
+.learnerMgmtSectionError {
+  color: #c0392b;
+  font-size: 13px;
+  margin: 0;
+}
+
+/* --- 커리큘럼 배정 --- */
+.learnerMgmtEditBtn {
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.learnerMgmtEditBtn:hover {
+  background: var(--bg-alt);
+  border-color: var(--primary);
+}
+
+.learnerMgmtAssignList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 88px;
+  min-width: 0;
+}
+
+.learnerMgmtAssignItem {
+  border: 1.5px solid var(--line);
+  padding: 8px 8px 8px 12px;
+  min-height: 35px;
+  font-size: 13px;
+  color: var(--ink);
+  min-width: 0;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.learnerMgmtAssignInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.learnerMgmtAssignTitle {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.learnerMgmtSectionCount {
+  font-size: 12px;
+  color: var(--ink-muted);
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+.learnerMgmtAssignToggleRow {
+  list-style: none;
+  display: flex;
+  justify-content: center;
+  padding: 2px 0;
+}
+
+.learnerMgmtAssignToggleBtn {
+  background: transparent;
+  border: none;
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.learnerMgmtAssignToggleBtn:hover {
+  background: var(--bg-alt);
+  color: var(--primary);
+}
+
+.learnerMgmtAssignProgressRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.learnerMgmtAssignProgressText {
+  font-size: 11px;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.learnerMgmtAssignBadge {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+}
+
+.learnerMgmtAssignBadge.issued {
+  background: rgba(72, 187, 120, 0.15);
+  color: #2f855a;
+}
+
+.learnerMgmtAssignBadge.eligible {
+  background: rgba(74, 124, 89, 0.15);
+  color: var(--primary);
+}
+
+.learnerMgmtAssignBadge.pending {
+  background: rgba(160, 174, 192, 0.18);
+  color: #4a5568;
+}
+
+.learnerMgmtCertBtn {
+  flex-shrink: 0;
+  height: 24px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.learnerMgmtCertBtn:hover:not(:disabled) {
+  background: var(--bg-alt);
+  border-color: var(--primary);
+}
+
+.learnerMgmtCertBtn.issued {
+  color: #2f855a;
+  border-color: rgba(72, 187, 120, 0.35);
+  background: rgba(72, 187, 120, 0.08);
+}
+
+.learnerMgmtCertBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.learnerMgmtAssignEdit {
+  background: var(--bg);
+  border: 1.5px solid var(--ink);
+  border-radius: 6px;
+  padding: 10px;
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.learnerMgmtAssignRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink);
+  cursor: pointer;
+  padding: 4px 2px;
+  min-width: 0;
+}
+
+.learnerMgmtAssignRow input[type="checkbox"] {
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.learnerMgmtAssignRow > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.learnerMgmtAssignActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.learnerMgmtAssignCancelBtn {
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--ink-muted);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.learnerMgmtAssignCancelBtn:hover:not(:disabled) {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.learnerMgmtAssignSaveBtn {
+  background: var(--ink);
+  border: 1px solid var(--ink);
+  color: var(--card);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 7px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.learnerMgmtAssignSaveBtn:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+
+
+.learnerMgmtAssignCancelBtn:disabled,
+.learnerMgmtAssignSaveBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.learnerMgmtSummaryWrapper {
+  position: relative;
+}
+
+/* --- 최근 제출 이력 --- */
+.learnerMgmtSubmissionsSection {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 24px;
+  margin-top: 8px;
+}
+
+.learnerMgmtSubmissionsList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.learnerMgmtSubmissionItem {
+  display: block;
+  background: #F8FAFC;
+  border: 1.5px solid #94B8C8;
+  border-left: 4px solid #94B8C8;
+  border-radius: 6px;
+  font-size: 13px;
+  min-width: 0;
+  overflow: hidden;
+}
+.learnerMgmtSubmissionItem.expanded {
+  background: #F8FAFC;
+}
+
+.learnerMgmtSubmissionItem.expanded .learnerMgmtSubmissionHeader {
+  background: var(--bg);
+  color: #ffffff;
+}
+
+.learnerMgmtSubmissionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+
+
+.learnerMgmtSubmissionHeader:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.learnerMgmtSubmissionExpandIcon {
+  font-size: 10px;
+  color: var(--ink-muted);
+  margin-left: 2px;
+}
+
+.learnerMgmtSubmissionExpanded {
+  padding: 12px 14px 14px;
+  border-top: 1px dashed var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.learnerMgmtSubmissionExpanded .managerSubmissionContent,
+.learnerMgmtSubmissionExpanded .managerFeedbackForm {
+  margin: 0;
+}
+
+.learnerMgmtSubmissionExpanded .managerFeedbackTextarea {
+  width: 100%;
+  min-height: 80px;
+  box-sizing: border-box;
+}
+
+
+
+.learnerMgmtSubmissionLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.learnerMgmtSubmissionWeek {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-muted);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+
+.learnerMgmtSubmissionCur {
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.learnerMgmtSubmissionRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.learnerMgmtSubmissionStatus {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 12px;
+  letter-spacing: 0.3px;
+}
+
+.learnerMgmtSubmissionStatus.waiting {
+  background: rgba(218, 165, 32, 0.15);
+  color: #b7791f;
+}
+
+.learnerMgmtSubmissionStatus.done {
+  background: rgba(72, 187, 120, 0.15);
+  color: #2f855a;
+}
+
+.learnerMgmtSubmissionStatus.resubmit {
+  background: rgba(229, 62, 62, 0.15);
+  color: #c53030;
+}
+
+.learnerMgmtSubmissionDate {
+  font-size: 11px;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+.managerSubmissionAttachmentItem {
+  display: flex;
+  align-items: center;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+}
+
+.managerSubmissionAttachmentLink {
+  flex: 1; 
+  text-align: left;
+  font-weight: 600;
+  font-size: 13px;
+  color: #3182ce;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+.managerSubmissionAttachmentLink:hover {
+  text-decoration: underline; 
+}
+
+.managerSubmissionAttachmentSize {
+  font-size: 12px;
+  color: #a0aec0;
+  margin-left: 12px; 
+}

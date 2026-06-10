@@ -1,41 +1,94 @@
 from datetime import date, datetime
-from typing import Any, Optional
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict
+
+
+ArticleSource = Literal["DBR", "HBR"]
 
 
 class ArticleCreate(BaseModel):
-    title: str
-    author: str
-    published_date: date
-    category: str
-    industry_tags: list[str]
-    summary: Optional[str] = None
-    source_url: Optional[str] = None
-    content: Optional[str] = None  # 본문 텍스트, 있으면 RAG 인덱싱
+    article_source: ArticleSource
+    article_title: str
+    article_author: str
+    article_published_date: date
+    article_category: str
+    article_source_url: str
+    content: str | None = None
 
 
 class ArticleResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     article_id: int
-    title: str
-    author: Optional[str] = None
-    published_date: Optional[date] = None
-    category: Optional[str] = None
-    industry_tags: list[str]
-    summary: Optional[str] = None
-    source_url: Optional[str] = None
-    image_count: int
-    chunk_count: int
-    created_at: datetime
+    article_source: ArticleSource
+    article_title: str
+    article_author: str | None = None
+    article_published_date: date | None = None
+    article_category: str | None = None
+    article_source_url: str | None = None
+    article_view_count: int | None = None
+    article_created_at: datetime | None = None
+    article_updated_at: datetime | None = None
+    article_thumbnail_url: str | None = None
+    article_has_summary: bool = False
+    article_has_pdf: bool = False
+    article_preview_summary_title: str | None = None
 
-    @field_validator("industry_tags", mode="before")
-    @classmethod
-    def default_industry_tags(cls, value: Any) -> list[str]:
-        return [] if value is None else value
+
+class AuthorBrief(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    author_numb: int
+    author_name: str
+    author_email: str | None = None
+
+
+class ArticleDetailResponse(ArticleResponse):
+    authors: list[AuthorBrief] = []
 
 
 class ArticleListResponse(BaseModel):
     articles: list[ArticleResponse]
     total: int
+
+
+class ArticleSummaryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    output_id: int
+    article_id: int | None = None
+    summary_text: dict | list | None = None
+    created_at: datetime | None = None
+
+
+class InsightItem(BaseModel):
+    title: str
+    description: str
+    actions: list[str]
+
+
+class ArticleInsightsResponse(BaseModel):
+    article_id: int
+    title: str
+    keywords: list[str]
+    insights: list[InsightItem]
+
+
+class CategoryStatItem(BaseModel):
+    category: str
+    total_views: int
+    article_count: int
+
+
+class CategoryStatsResponse(BaseModel):
+    items: list[CategoryStatItem]
+
+
+class TimelinePoint(BaseModel):
+    date: date
+    count: int
+
+
+class TimelineResponse(BaseModel):
+    items: list[TimelinePoint]

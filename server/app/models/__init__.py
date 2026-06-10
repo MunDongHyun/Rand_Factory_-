@@ -1,17 +1,25 @@
-from app.models.user import User, MentorProfile
-from app.models.mentoring import MentoringMatch, MentoringReview
-from app.models.point import Point
+from app.models.ai_summaries import AiSummary
 from app.models.article import Article
-from app.models.framework import Framework
-from app.models.chat import ChatMessage
+from app.models.author import Author, article_authors_mapping
+from app.models.bookmark import Bookmark
+from app.models.certificate import Certificate
+from app.models.curriculum import Curriculum
+from app.models.notification import Notification
+from app.models.task_submission import TaskSubmission, TaskSubmissionAttachment
+from app.models.user import User
+from app.models.user_activity import UserActivity
 
 __all__ = [
-    "User",
-    "MentorProfile",
-    "MentoringMatch",
-    "MentoringReview",
-    "Point",
+    "AiSummary",
     "Article",
-    "Framework",
-    "ChatMessage",
+    "Author",
+    "Bookmark",
+    "Certificate",
+    "Curriculum",
+    "Notification",
+    "TaskSubmission",
+    "TaskSubmissionAttachment",
+    "User",
+    "UserActivity",
+    "article_authors_mapping",
 ]

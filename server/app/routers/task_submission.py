@@ -1,0 +1,756 @@
+import hashlib
+import mimetypes
+import re
+import uuid
+from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
+from urllib.parse import quote
+
+import filetype
+
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi.responses import StreamingResponse
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+
+from app.core.database import get_db
+from app.core.db_helpers import fetch_in_order
+from app.core.security import get_current_user
+from app.models.curriculum import Curriculum
+from app.models.task_submission import TaskSubmission, TaskSubmissionAttachment
+from app.models.user import User
+from app.schemas.article import TimelinePoint, TimelineResponse
+from app.schemas.task_submission import (
+    TaskSubmissionCreate,
+    TaskSubmissionFeedbackUpdate,
+    TaskSubmissionResponse,
+    TaskSubmissionWithLearnerResponse,
+)
+from app.services import notification_service
+from app.services.attachment_storage import (
+    AttachmentNotFoundError,
+    AttachmentStorageError,
+    delete_attachment as delete_stored_attachment,
+    open_attachment,
+    save_attachment,
+)
+
+router = APIRouter(prefix="/api/task-submissions", tags=["task-submissions"])
+KST = timezone(timedelta(hours=9))
+
+# 첨부파일 저장 루트 (server/uploads/task_attachments/{submission_id}/{stored_name})
+ATTACHMENT_MAX_BYTES = 20 * 1024 * 1024  # 한 파일당 20MB
+
+# magic bytes 기반으로 명백한 실행 파일/스크립트 차단 (사용자 declared MIME만 신뢰하지 않음)
+_BLOCKED_MIME_PREFIXES = (
+    "application/x-msdownload",      # Windows .exe / .dll
+    "application/x-dosexec",
+    "application/x-executable",       # ELF / Mach-O
+    "application/x-msi",
+    "application/x-sh",
+    "application/x-bat",
+)
+
+# 허용 확장자 (도큐먼트 / 이미지 / 압축). 매니저가 다운받아 열어도 안전한 형식만.
+# .html/.js/.svg/.jar/.vbs/.ps1 등은 매니저 환경 노출 위험 있어 차단.
+_ALLOWED_EXTENSIONS = {
+    # 도큐먼트
+    ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+    ".txt", ".csv", ".md", ".hwp", ".hwpx",
+    # 이미지
+    ".jpg", ".jpeg", ".png", ".gif", ".webp",
+    # 압축
+    ".zip", ".7z",
+}
+
+
+def _detect_safe_mime(contents: bytes, declared: str | None, fallback_name: str) -> str:
+    """업로드된 바이트의 magic byte로 실제 MIME 추정.
+    명백한 실행 파일이면 415 예외. 그 외엔 detected/declared/mimetypes 순으로 사용.
+    """
+    detected_kind = filetype.guess(contents[:262])
+    detected_mime = detected_kind.mime if detected_kind else None
+    if detected_mime and any(detected_mime.startswith(p) for p in _BLOCKED_MIME_PREFIXES):
+        raise HTTPException(status_code=415, detail="실행 파일은 첨부할 수 없습니다")
+    return (
+        detected_mime
+        or declared
+        or mimetypes.guess_type(fallback_name)[0]
+        or "application/octet-stream"
+    )
+# Windows/POSIX 공통 위험 문자 + 제어문자만 차단 (유니코드 letter는 보존 → 한글 파일명 살림)
+_UNSAFE_FILENAME_PATTERN = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
+_HTML_TAG_PATTERN = re.compile(r"<[^>]+>")
+_HTML_WHITESPACE_ENTITY = re.compile(r"&(nbsp|ensp|emsp|thinsp);", re.IGNORECASE)
+
+
+def _sanitize_filename(name: str) -> str:
+    """원본 파일명에서 OS 위험 문자만 제거. 유니코드(한글 등)는 그대로 보존.
+    Path(name).name으로 path traversal 차단.
+    """
+    base = Path(name).name
+    cleaned = _UNSAFE_FILENAME_PATTERN.sub("_", base)
+    # Windows: 파일명이 '.' 또는 공백으로 끝나면 안 됨
+    cleaned = cleaned.strip().strip(".")
+    return cleaned or "file"
+
+
+def _strip_html(value) -> str:
+    """간단한 HTML 태그/공백 엔티티 제거.
+    JoditEditor의 빈 상태(<p><br></p> 등)가 has_text=True로 잘못 인식되는 걸 방지.
+    """
+    if not value:
+        return ""
+    text = _HTML_TAG_PATTERN.sub("", str(value))
+    text = _HTML_WHITESPACE_ENTITY.sub(" ", text)
+    return text.strip()
+
+
+def _attachment_content_disposition(filename: str) -> str:
+    fallback = _sanitize_filename(filename).encode("ascii", "ignore").decode("ascii") or "attachment"
+    encoded = quote(filename, safe="")
+    return f'attachment; filename="{fallback}"; filename*=UTF-8\'\'{encoded}'
+
+
+def _attachment_to_legacy_dict(attachment: TaskSubmissionAttachment) -> dict:
+    return {
+        "task_attachment_id": attachment.task_attachment_id,
+        "filename": attachment.file_original_name,
+        "stored_name": attachment.file_storage_key,
+        "size": attachment.file_size_bytes,
+        "mime": attachment.file_mime_type,
+        "sha256": attachment.file_sha256,
+        "uploaded_at": attachment.file_uploaded_at.isoformat() if attachment.file_uploaded_at else None,
+    }
+
+
+def _content_with_attachments(submission: TaskSubmission) -> dict:
+    content = dict(submission.task_submitted_content or {})
+    legacy_attachments = list(content.get("attachments") or [])
+    db_attachments = [
+        _attachment_to_legacy_dict(attachment)
+        for attachment in submission.attachments
+        if attachment.file_deleted_at is None
+    ]
+    content["attachments"] = db_attachments or legacy_attachments
+    return content
+
+
+def _submission_type_from_content(submission: TaskSubmission) -> str:
+    content = submission.task_submitted_content or {}
+    has_text = bool(_strip_html(content.get("text")))
+    has_file = any(attachment.file_deleted_at is None for attachment in submission.attachments)
+    if has_text and has_file:
+        return "mixed"
+    if has_file:
+        return "file"
+    return "text"
+
+
+def _submission_response(submission: TaskSubmission) -> TaskSubmissionResponse:
+    return TaskSubmissionResponse(
+        task_submission_id=submission.task_submission_id,
+        task_curriculum_id=submission.task_curriculum_id,
+        task_learner_id=submission.task_learner_id,
+        task_week_number=submission.task_week_number,
+        task_submission_type=submission.task_submission_type or _submission_type_from_content(submission),
+        task_submitted_content=_content_with_attachments(submission),
+        task_submitted_at=submission.task_submitted_at,
+        task_manager_feedback=submission.task_manager_feedback,
+        task_resubmit_requested=submission.task_resubmit_requested or "N",
+        task_feedback_at=submission.task_feedback_at,
+        task_status=submission.task_status,
+        attachments=[a for a in submission.attachments if a.file_deleted_at is None],
+    )
+
+
+def _normalize_deadline(raw: object) -> datetime | None:
+    """DatePicker 기반 마감일은 해당 날짜의 끝까지 제출 가능하게 보정한다."""
+    if not raw:
+        return None
+
+    raw_str = str(raw).strip()
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", raw_str):
+        y, m, d = map(int, raw_str.split("-"))
+        return datetime(y, m, d, 23, 59, 59, tzinfo=KST).astimezone(timezone.utc)
+
+    try:
+        dt = datetime.fromisoformat(raw_str.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=KST)
+
+    local_dt = dt.astimezone(KST)
+    if (
+        local_dt.hour == 0
+        and local_dt.minute == 0
+        and local_dt.second <= 59
+        and local_dt.microsecond == 0
+    ):
+        local_dt = local_dt.replace(hour=23, minute=59, second=59)
+
+    return local_dt.astimezone(timezone.utc)
+
+
+def _week_max_deadline(curriculum: Curriculum, week_number: int) -> datetime | None:
+    """해당 주차 assignment들 중 가장 늦은 deadline. 없으면 None.
+
+    cur_week_plan[week].assignments[].deadline 은 ISO 문자열(`...Z` 또는 `+00:00`).
+    비어 있거나 파싱 실패한 deadline은 무시.
+    """
+    wp = curriculum.cur_week_plan
+    if not isinstance(wp, list):
+        return None
+    for item in wp:
+        if not isinstance(item, dict) or item.get("week") != week_number:
+            continue
+        deadlines: list[datetime] = []
+        for a in item.get("assignments", []) or []:
+            if not isinstance(a, dict):
+                continue
+            raw = a.get("deadline")
+            if not raw:
+                continue
+            dt = _normalize_deadline(raw)
+            if dt is None:
+                continue
+            deadlines.append(dt)
+        return max(deadlines) if deadlines else None
+    return None
+
+
+def _week_exists(curriculum: Curriculum, week_number: int) -> bool:
+    if week_number < 1:
+        return False
+
+    week_plan = curriculum.cur_week_plan
+    if isinstance(week_plan, list) and week_plan:
+        return any(
+            isinstance(item, dict) and item.get("week") == week_number
+            for item in week_plan
+        )
+
+    if isinstance(week_plan, dict):
+        week = week_plan.get("week")
+        return week == week_number if week is not None else week_number == 1
+
+    return week_number <= curriculum.cur_duration_weeks
+
+
+def _can_access_submission(submission: TaskSubmission, user: User, db: Session) -> bool:
+    """Role 기반으로 task_submission 접근 권한 판정.
+
+    - a (admin): 전체
+    - m (manager): 본인이 만든 커리큘럼의 과제만
+    - j (learner): 본인이 제출한 과제만
+    """
+    if user.user_role == "a":
+        return True
+    if user.user_role == "j":
+        return submission.task_learner_id == user.user_id
+    if user.user_role == "m":
+        curriculum = (
+            db.query(Curriculum)
+            .filter(Curriculum.cur_id == submission.task_curriculum_id)
+            .first()
+        )
+        return curriculum is not None and curriculum.cur_creator_id == user.user_id
+    return False
+
+
+@router.post("", response_model=TaskSubmissionResponse, status_code=status.HTTP_201_CREATED)
+def create_submission(
+    body: TaskSubmissionCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.user_role != "j":
+        raise HTTPException(status_code=403, detail="Only learners can submit tasks")
+
+    curriculum = (
+        db.query(Curriculum)
+        .filter(
+            Curriculum.cur_id == body.task_curriculum_id,
+            Curriculum.cur_deleted_at.is_(None),
+            Curriculum.cur_status == "active",
+        )
+        .first()
+    )
+    assigned_ids = curriculum.cur_assigned_learner_ids if curriculum else None
+    if not curriculum or not isinstance(assigned_ids, list) or current_user.user_id not in assigned_ids:
+        raise HTTPException(status_code=404, detail="Curriculum not found")
+
+    if not _week_exists(curriculum, body.task_week_number):
+        raise HTTPException(status_code=400, detail="Invalid curriculum week")
+
+    deadline = _week_max_deadline(curriculum, body.task_week_number)
+    if deadline is not None and datetime.now(timezone.utc) > deadline:
+        raise HTTPException(status_code=400, detail="제출 마감일이 지났습니다")
+
+    submission = TaskSubmission(
+        task_curriculum_id=body.task_curriculum_id,
+        task_learner_id=current_user.user_id,
+        task_week_number=body.task_week_number,
+        task_submission_type=body.task_submission_type,
+        task_submitted_content=body.task_submitted_content or {},
+        task_deadline=deadline,
+    )
+    db.add(submission)
+    db.commit()
+    db.refresh(submission)
+
+    # 재제출 자동 첨부 승계:
+    # 클라이언트가 body.task_submitted_content.attachments 에 직전 제출 첨부의
+    # stored_name(file_storage_key) 메타데이터를 그대로 넣어 보낸 경우, 본인 소유 확인 후
+    # R2 객체는 공유(file_storage_key 재사용)하고 task_submission_attachments row 만 복사한다.
+    legacy_attachments = (body.task_submitted_content or {}).get("attachments") or []
+    if isinstance(legacy_attachments, list) and legacy_attachments:
+        stored_names = [
+            a.get("stored_name") for a in legacy_attachments
+            if isinstance(a, dict) and a.get("stored_name")
+        ]
+        if stored_names:
+            inherited_rows = (
+                db.query(TaskSubmissionAttachment)
+                .join(
+                    TaskSubmission,
+                    TaskSubmissionAttachment.task_submission_id == TaskSubmission.task_submission_id,
+                )
+                .filter(
+                    TaskSubmissionAttachment.file_storage_key.in_(stored_names),
+                    TaskSubmissionAttachment.file_deleted_at.is_(None),
+                    TaskSubmission.task_learner_id == current_user.user_id,
+                )
+                .all()
+            )
+            copied = 0
+            seen_keys: set[str] = set()
+            for existing in inherited_rows:
+                if existing.file_storage_key in seen_keys:
+                    continue
+                seen_keys.add(existing.file_storage_key)
+                db.add(TaskSubmissionAttachment(
+                    task_submission_id=submission.task_submission_id,
+                    file_original_name=existing.file_original_name,
+                    file_storage_key=existing.file_storage_key,
+                    file_mime_type=existing.file_mime_type,
+                    file_size_bytes=existing.file_size_bytes,
+                    file_sha256=existing.file_sha256,
+                ))
+                copied += 1
+            if copied:
+                db.commit()
+                db.refresh(submission)
+
+    # 매니저에게 새 제출 알림 (실패해도 제출 자체는 영향 없음)
+    try:
+        notification_service.create_for_user(
+            db,
+            user_id=curriculum.cur_creator_id,
+            notif_type=notification_service.NOTIF_TYPE_SUBMISSION_RECEIVED,
+            title=f"{current_user.user_name}님이 과제를 제출했습니다",
+            body=f"{curriculum.cur_title} {body.task_week_number}주차",
+            link=f"dashboard:curriculum:{curriculum.cur_id}",
+            ref_type="task_submission",
+            ref_id=submission.task_submission_id,
+        )
+    except Exception:
+        pass
+
+    return _submission_response(submission)
+
+
+@router.get("/my", response_model=list[TaskSubmissionResponse])
+def list_my_submissions(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.user_role != "j":
+        raise HTTPException(status_code=404, detail="찾을 수 없습니다")
+
+    id_query = (
+        db.query(TaskSubmission.task_submission_id)
+        .filter(TaskSubmission.task_learner_id == current_user.user_id)
+        .order_by(TaskSubmission.task_submitted_at.desc())
+    )
+    rows = fetch_in_order(db, id_query, TaskSubmission, TaskSubmission.task_submission_id)
+    return [_submission_response(submission) for submission in rows]
+
+
+@router.get("/by-learner/{user_id}", response_model=list[TaskSubmissionResponse])
+def list_submissions_by_learner(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """매니저/관리자 전용: 특정 학습자의 모든 제출 이력 (최신순).
+
+    - admin: 모든 학습자
+    - manager: 본인 회사 활성 학습자만
+    """
+    if current_user.user_role not in {"m", "a"}:
+        raise HTTPException(status_code=404, detail="찾을 수 없습니다")
+
+    learner = db.query(User).filter(User.user_id == user_id).first()
+    if not learner:
+        raise HTTPException(status_code=404, detail="학습자를 찾을 수 없습니다")
+
+    if current_user.user_role == "m":
+        if (
+            learner.user_role != "j"
+            or learner.user_company != current_user.user_company
+            or learner.user_deleted_at is not None
+        ):
+            raise HTTPException(status_code=404, detail="찾을 수 없습니다")
+
+    id_query = (
+        db.query(TaskSubmission.task_submission_id)
+        .filter(TaskSubmission.task_learner_id == user_id)
+        .order_by(TaskSubmission.task_submitted_at.desc())
+    )
+    rows = fetch_in_order(db, id_query, TaskSubmission, TaskSubmission.task_submission_id)
+    return [_submission_response(submission) for submission in rows]
+
+
+@router.get("/by-curriculum/{cur_id}", response_model=list[TaskSubmissionWithLearnerResponse])
+def list_submissions_by_curriculum(
+    cur_id: int,
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """매니저/관리자 전용: 본인이 만든 커리큘럼의 제출 + 학습자 정보 (페이지네이션)."""
+    if current_user.user_role not in {"m", "a"}:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    curriculum = (
+        db.query(Curriculum)
+        .filter(Curriculum.cur_id == cur_id, Curriculum.cur_deleted_at.is_(None))
+        .first()
+    )
+    if not curriculum:
+        raise HTTPException(status_code=404, detail="Curriculum not found")
+    if current_user.user_role == "m" and curriculum.cur_creator_id != current_user.user_id:
+        raise HTTPException(status_code=404, detail="Curriculum not found")
+
+    id_query = (
+        db.query(TaskSubmission.task_submission_id)
+        .filter(TaskSubmission.task_curriculum_id == cur_id)
+        .order_by(
+            TaskSubmission.task_week_number.asc(),
+            TaskSubmission.task_submitted_at.desc(),
+        )
+        .offset(offset)
+        .limit(limit)
+    )
+    submissions = fetch_in_order(db, id_query, TaskSubmission, TaskSubmission.task_submission_id)
+    if not submissions:
+        return []
+
+    learner_ids = {submission.task_learner_id for submission in submissions}
+    users = (
+        db.query(User)
+        .filter(User.user_id.in_(learner_ids))
+        .all()
+    )
+    user_map = {user.user_id: user for user in users}
+
+    return [
+        TaskSubmissionWithLearnerResponse(
+            task_submission_id=s.task_submission_id,
+            task_curriculum_id=s.task_curriculum_id,
+            task_learner_id=s.task_learner_id,
+            learner_name=user_map[s.task_learner_id].user_name if s.task_learner_id in user_map else None,
+            learner_email=user_map[s.task_learner_id].user_email if s.task_learner_id in user_map else None,
+            task_week_number=s.task_week_number,
+            task_submission_type=s.task_submission_type or _submission_type_from_content(s),
+            task_submitted_content=_content_with_attachments(s),
+            task_submitted_at=s.task_submitted_at,
+            task_manager_feedback=s.task_manager_feedback,
+            task_resubmit_requested=s.task_resubmit_requested or "N",
+            task_feedback_at=s.task_feedback_at,
+            task_status=s.task_status,
+            attachments=[a for a in s.attachments if a.file_deleted_at is None],
+        )
+        for s in submissions
+    ]
+
+
+@router.get("/stats/timeline", response_model=TimelineResponse)
+def get_submissions_timeline(
+    days: int = Query(30, ge=1, le=180),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """관리자(a) 전용: 최근 N일 일별 과제 제출 수."""
+    if current_user.user_role != "a":
+        raise HTTPException(status_code=404, detail="Not found")
+
+    today = date.today()
+    start_date = today - timedelta(days=days - 1)
+
+    rows = (
+        db.query(
+            func.date(TaskSubmission.task_submitted_at).label("d"),
+            func.count(TaskSubmission.task_submission_id).label("cnt"),
+        )
+        .filter(TaskSubmission.task_submitted_at >= start_date)
+        .group_by(func.date(TaskSubmission.task_submitted_at))
+        .all()
+    )
+    date_counts = {row.d: int(row.cnt) for row in rows}
+
+    items = []
+    for i in range(days):
+        d = start_date + timedelta(days=i)
+        items.append(TimelinePoint(date=d, count=date_counts.get(d, 0)))
+    return TimelineResponse(items=items)
+
+
+@router.get("/{submission_id}", response_model=TaskSubmissionResponse)
+def get_submission(
+    submission_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    submission = (
+        db.query(TaskSubmission)
+        .filter(TaskSubmission.task_submission_id == submission_id)
+        .first()
+    )
+    if not submission or not _can_access_submission(submission, current_user, db):
+        raise HTTPException(status_code=404, detail="Task submission not found")
+    return _submission_response(submission)
+
+
+@router.patch("/{submission_id}/feedback", response_model=TaskSubmissionResponse)
+def update_feedback(
+    submission_id: int,
+    body: TaskSubmissionFeedbackUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.user_role not in {"m", "a"}:
+        raise HTTPException(status_code=403, detail="Only master/admin can leave feedback")
+
+    submission = (
+        db.query(TaskSubmission)
+        .filter(TaskSubmission.task_submission_id == submission_id)
+        .first()
+    )
+    if not submission or not _can_access_submission(submission, current_user, db):
+        raise HTTPException(status_code=404, detail="Task submission not found")
+
+    feedback_text = (body.task_manager_feedback or "").strip()
+    if not feedback_text:
+        detail = "재제출 사유를 입력해야 합니다" if body.task_status == "resubmit_requested" else "피드백 내용이 비어 있습니다"
+        raise HTTPException(status_code=400, detail=detail)
+
+    submission.task_manager_feedback = feedback_text
+    submission.task_feedback_at = datetime.now(timezone.utc)
+    submission.task_status = body.task_status
+    submission.task_resubmit_requested = "Y" if body.task_status == "resubmit_requested" else "N"
+    db.commit()
+    db.refresh(submission)
+
+    # 학습자에게 피드백/재제출 알림
+    try:
+        is_resubmit = body.task_status == "resubmit_requested"
+        notif_type = (
+            notification_service.NOTIF_TYPE_RESUBMIT_REQUESTED
+            if is_resubmit
+            else notification_service.NOTIF_TYPE_FEEDBACK_RECEIVED
+        )
+        title = (
+            f"{submission.task_week_number}주차 과제 재제출 요청이 있습니다"
+            if is_resubmit
+            else f"{submission.task_week_number}주차 과제에 피드백이 도착했습니다"
+        )
+        body_text = (
+            f"{current_user.user_name}님이 재제출을 요청했습니다"
+            if is_resubmit
+            else f"{current_user.user_name}님이 코멘트를 작성했습니다"
+        )
+        notification_service.create_for_user(
+            db,
+            user_id=submission.task_learner_id,
+            notif_type=notif_type,
+            title=title,
+            body=body_text,
+            link=f"dashboard:curriculum:{submission.task_curriculum_id}",
+            ref_type="task_submission",
+            ref_id=submission.task_submission_id,
+        )
+    except Exception:
+        pass
+
+    return _submission_response(submission)
+
+
+# ---------------------------------------------------------------------------
+# 첨부파일 (업로드 / 다운로드 / 삭제)
+# task_submitted_content JSON 안 "attachments" 배열에 메타 보관.
+# 실제 파일은 server/uploads/task_attachments/{submission_id}/{stored_name}
+# ---------------------------------------------------------------------------
+
+
+@router.post("/{submission_id}/attachments", response_model=TaskSubmissionResponse)
+async def upload_attachment(
+    submission_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """학습자가 본인 제출에 파일 첨부. 한 파일당 20MB 제한."""
+    submission = (
+        db.query(TaskSubmission)
+        .filter(TaskSubmission.task_submission_id == submission_id)
+        .first()
+    )
+    if not submission or not _can_access_submission(submission, current_user, db):
+        raise HTTPException(status_code=404, detail="과제 제출을 찾을 수 없습니다")
+    if current_user.user_role != "j" or submission.task_learner_id != current_user.user_id:
+        raise HTTPException(status_code=403, detail="본인 제출에만 파일을 첨부할 수 있습니다")
+
+    contents = await file.read()
+    if len(contents) > ATTACHMENT_MAX_BYTES:
+        raise HTTPException(status_code=413, detail="파일이 너무 큽니다 (최대 20MB)")
+    if not contents:
+        raise HTTPException(status_code=400, detail="빈 파일은 업로드할 수 없습니다")
+
+    safe_name = _sanitize_filename(file.filename or "file")
+    ext = Path(safe_name).suffix.lower()
+    if ext not in _ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=415,
+            detail="허용되지 않는 파일 형식입니다 (문서·이미지·압축 파일만 가능)",
+        )
+    # magic byte 기반 MIME 추정 + 실행 파일 차단 (사용자 declared MIME만 믿지 않음)
+    safe_mime = _detect_safe_mime(contents, file.content_type, safe_name)
+    stored_name = f"{uuid.uuid4().hex}_{safe_name}"
+    # 원자성: DB row 먼저 등록(flush) → 파일 쓰기 → commit
+    # 파일 쓰기 실패 시 DB rollback으로 orphan 파일/row 모두 방지
+    attachment = TaskSubmissionAttachment(
+        task_submission_id=submission_id,
+        file_original_name=file.filename or safe_name,
+        file_storage_key=stored_name,
+        file_mime_type=safe_mime,
+        file_size_bytes=len(contents),
+        file_sha256=hashlib.sha256(contents).hexdigest(),
+    )
+    db.add(attachment)
+    db.flush()
+
+    try:
+        save_attachment(submission_id, stored_name, contents, safe_mime)
+    except AttachmentStorageError:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="첨부파일을 저장하지 못했습니다")
+
+    content = submission.task_submitted_content or {}
+    submission.task_submission_type = "mixed" if _strip_html(content.get("text")) else "file"
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        # 파일은 이미 디스크에 기록됐으므로 orphan 방지로 정리
+        delete_stored_attachment(submission_id, stored_name)
+        raise HTTPException(status_code=500, detail="첨부파일 등록에 실패했습니다")
+
+    db.refresh(submission)
+    return _submission_response(submission)
+
+
+@router.get("/{submission_id}/attachments/{stored_name}")
+def download_attachment(
+    submission_id: int,
+    stored_name: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """첨부파일 다운로드. 본인 제출 또는 담당 매니저/관리자만."""
+    submission = (
+        db.query(TaskSubmission)
+        .filter(TaskSubmission.task_submission_id == submission_id)
+        .first()
+    )
+    if not submission or not _can_access_submission(submission, current_user, db):
+        raise HTTPException(status_code=404, detail="과제 제출을 찾을 수 없습니다")
+
+    # path traversal 차단: 메타에 등록된 stored_name과만 매칭
+    attachment = (
+        db.query(TaskSubmissionAttachment)
+        .filter(
+            TaskSubmissionAttachment.task_submission_id == submission_id,
+            TaskSubmissionAttachment.file_storage_key == stored_name,
+            TaskSubmissionAttachment.file_deleted_at.is_(None),
+        )
+        .first()
+    )
+    if not attachment:
+        raise HTTPException(status_code=404, detail="첨부파일을 찾을 수 없습니다")
+
+    try:
+        stored_attachment = open_attachment(
+            submission_id,
+            stored_name,
+            attachment.file_mime_type or "application/octet-stream",
+        )
+    except AttachmentNotFoundError:
+        raise HTTPException(status_code=404, detail="첨부파일을 찾을 수 없습니다")
+    except AttachmentStorageError:
+        raise HTTPException(status_code=500, detail="첨부파일을 다운로드하지 못했습니다")
+
+    headers = {"Content-Disposition": _attachment_content_disposition(attachment.file_original_name or stored_name)}
+    if stored_attachment.content_length is not None:
+        headers["Content-Length"] = str(stored_attachment.content_length)
+    return StreamingResponse(
+        stored_attachment.body,
+        media_type=stored_attachment.content_type or "application/octet-stream",
+        headers=headers,
+    )
+
+
+@router.delete("/{submission_id}/attachments/{stored_name}", response_model=TaskSubmissionResponse)
+def delete_attachment(
+    submission_id: int,
+    stored_name: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """본인 제출의 첨부파일 삭제."""
+    submission = (
+        db.query(TaskSubmission)
+        .filter(TaskSubmission.task_submission_id == submission_id)
+        .first()
+    )
+    if not submission or not _can_access_submission(submission, current_user, db):
+        raise HTTPException(status_code=404, detail="과제 제출을 찾을 수 없습니다")
+    if current_user.user_role != "j" or submission.task_learner_id != current_user.user_id:
+        raise HTTPException(status_code=403, detail="본인 제출의 첨부파일만 삭제할 수 있습니다")
+
+    attachment = (
+        db.query(TaskSubmissionAttachment)
+        .filter(
+            TaskSubmissionAttachment.task_submission_id == submission_id,
+            TaskSubmissionAttachment.file_storage_key == stored_name,
+            TaskSubmissionAttachment.file_deleted_at.is_(None),
+        )
+        .first()
+    )
+    if not attachment:
+        raise HTTPException(status_code=404, detail="첨부파일을 찾을 수 없습니다")
+
+    # DB soft delete + commit 먼저 → storage delete 는 best-effort.
+    # 저장소 삭제가 실패해도 file_deleted_at 때문에 다운로드는 차단됨.
+    attachment.file_deleted_at = datetime.now(timezone.utc)
+    submission.task_submission_type = _submission_type_from_content(submission)
+    db.commit()
+    db.refresh(submission)
+
+    delete_stored_attachment(submission_id, stored_name)
+
+    return _submission_response(submission)

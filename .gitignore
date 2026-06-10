@@ -19,11 +19,24 @@ dist/
 
 # Environment
 .env
+.env.test
 .env.local
 .env.*.local
 
 # Data (로컬 데이터 파일 제외)
 data/
+deliverables/
+
+# 루트 일회성 보조 스크립트 (다이어그램 overlay 등). 운영 스크립트는 server/scripts/
+scripts/
+
+# 학습자 업로드 첨부파일 (로컬 디스크 저장)
+server/uploads/
+
+# AI generated artifacts
+ai/curriculum_output/
+ai/summary/
+ai/thumbnails/
 
 # IDE
 .vscode/
@@ -39,10 +52,17 @@ Thumbs.db
 *.log
 logs/
 
+# 개인 로컬 개발 로그 (git 미추적 — 팀 공유는 단톡/PR로)
+docs/devlog.md
+
 # FAISS / ChromaDB 벡터 저장소
 *.faiss
 *.index
 chroma_db/
+server/resources/fonts/*.pkl
 
 # Docker
 docker/volumes/
+
+# Claude Code local settings
+.claude/
